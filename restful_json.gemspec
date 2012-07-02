@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'restful_json'
-  s.version     = '0.0.1'
+  s.version     = '0.0.2'
   s.authors     = ['Gary S. Weaver']
   s.email       = ['garysweaver@gmail.com']
   s.homepage    = 'https://github.com/garysweaver/restful_json'

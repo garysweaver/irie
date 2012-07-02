@@ -1,11 +1,6 @@
 require 'test/unit'
 require 'action_controller'
 require 'active_support/inflector'
-
-# simulate Rails controller having already been loaded
-class ApplicationController < ActionController::Base
-end
-
 require 'restful_json'
 
 # simular ActiveRecord::Base for testing with models

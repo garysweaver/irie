@@ -39,13 +39,15 @@ That's it. Now you can serve up some Javascript in one of your views that hits t
 
 ### The JSON Services
 
+#### Basics
+
 The first part is just basic stuff from a resourceful routes in Rails 3, but it might help.
 
 You'd start the server:
 
     rails s
 
-You could then list all Foobars with a GET to:
+You could then list all Foobars with a GET to what equates to the "list" command:
 
     http://localhost:3000/foobar.json
 
@@ -70,6 +72,14 @@ And destroy it with a DELETE call to:
 You might also look at the output of 'rake routes' to see the paths for /foobar and then construct URLs to test it:
 
     rake routes
+
+#### Filtering
+
+Attributes marked as accessible in the model can be queried by specifying the value of the request parameter as the attribute in the list query.
+
+For example, if Foobar were to have an ActiveRecord attribute called "color" (because the backing database table has a column named color), you could do:
+
+    http://localhost:3000/foobar.json?color=blue
 
 #### CORS
 

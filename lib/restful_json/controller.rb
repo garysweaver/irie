@@ -5,7 +5,7 @@ class RestfulJson::Controller < RestfulJson::BaseController
     super
     puts "Attempting to autoconfigure RESTful JSON services for #{self.class.name}"
     fully_qualified_restful_json_model_name = self.class.name.chomp('Controller')
-    unqualified_restful_json_model_name = fully_qualified_restful_json_model_name.split("::").first
+    unqualified_restful_json_model_name = fully_qualified_restful_json_model_name.split("::").last
     if is_activerecord_model?(fully_qualified_restful_json_model_name)
       #restful_json_model fully_qualified_restful_json_model_name.constantize
       # This must be run when the class is instantiated, so we'll do the equivalent of having just written this line into the code of the class.

@@ -37,6 +37,20 @@ Then in config/routes.rb, add:
 
 That's it. Now you can serve up some Javascript in one of your views that hits the RESTful services that have been defined.
 
+#### Using a Different Model
+
+I wanted to just do it in the class, but because of RestfulJson::BaseController looking 
+
+    class TestAnotherModelController < RestfulJson::BaseController
+      def initialize
+        restful_json_model TestModel
+        
+        # note: If you were to inherit from RestfulJson::Controller, then super would look
+        #       at the classname, etc. to find the model class. Order doesn't matter here.
+        super
+      end
+    end
+
 ### License
 
 Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].

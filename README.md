@@ -28,7 +28,8 @@ So if you had an existing model app/models/foobar.rb:
 
 You would do this in app/controllers/foobar_controller.rb:
 
-    class FoobarController < RestfulJson::Controller
+    class FoobarController < ApplicationController
+      acts_as_restful_json
     end
 
 Then in config/routes.rb, you would add:
@@ -81,6 +82,83 @@ For example, if Foobar were to have an ActiveRecord attribute called "color" (be
 
     http://localhost:3000/foobar.json?color=blue
 
+#### Changing JSON format and Including Association Data
+
+#### Customizing ActiveRecord Queries/Methods
+
+Basic querying, filtering, and sorting is provided out-of-the-box, so the following shouldn't be needed for basic usage. But, in some cases you might need to just change the implementation. In fact you may choose to do this in all of your controllers if you wish, such that RESTful JSON would only be providing the JSON formatting and, optionally, CORS.
+
+To do this, you may implement some or all of the following methods: index_it, show_it, create_it, update_it, and/or destroy_it. These correspond to the index, show, create, update, and destroy methods in the RESTful JSON parent controller.
+
+For example, to have basic filtering behavior in the index and basic show/create/update/destroy, you might use:
+
+    def index_it(model_class)
+      value = model_class.scoped
+      allowed_activerecord_model_attribute_keys.each do |attribute_key|
+        param = params[attribute_key]
+        value = value.where(attribute_key => param) if param.present?
+      end
+      value
+    end
+
+    def show_it(model_class, id)
+      model_class.find(id)
+    end
+
+    def create_it(model_class, data)
+      model_class.new(data)
+    end
+
+    def update_it(model_class, id)
+      model_class.find(id)
+    end
+
+    def destroy_it(model_class, id)
+      model_class.find(id).destroy
+    end
+
+You can also use custom variable names that make the code clearer to read. For example, in our Foobar example, you might use:
+
+    def show_it(foobar_class, foobar_id)
+      foobar_class.find(foobar_id)
+    end
+
+or even ignore the passed in Foobar class and use your own. (This may not look as clear, though.):
+
+    def show_it(foobar_class, foobar_id)
+      Foobar.find(foobar_id)
+    end
+
+However, if you have some great generic code you are adding to all of your controllers to override, it might be better to fork the restful_json gem or extend it with your own gem, if it is something others could use.
+
+#### Refactoring Customized Controllers
+
+You could extend it locally with your own custom parent controller.
+
+For example, you would do this in app/controllers/my_base_controller.rb to scope the index query to only show data from the beginning of the year (UTC), while still providing some basic dynamic filtering:
+
+    class YearScopingController < ApplicationController
+
+      def index_it(model_class)
+        value = model_class.scoped
+        value = value.where("created_at <= ?", Time.utc(Time.now.year, 1, 1))
+        allowed_activerecord_model_attribute_keys.each do |attribute_key|
+          param = params[attribute_key]
+          value = value.where(attribute_key => param) if param.present?
+        end
+        value
+      end
+
+    end
+
+and then multiple controllers could use that, assuming they have an attribute called created_at:
+
+    class FoobarController < YearScopingController
+    end
+    
+    class BarfooController < YearScopingController
+    end
+
 #### CORS
 
 If you have javascript/etc. code in the client that is running under a different host or port than Rails server, then you are cross-origin/cross-domain and we handle this with [CORS][cors].
@@ -91,13 +169,13 @@ By default CORS is disabled, so to enable it you can either set the environment 
 
 By default, we make CORS just allow everything, so the whole cross-origin/cross-domain thing goes away and you can get to developing locally with your Javascript app that isn't even being served by Rails.
 
-##### Customizing CORS
+##### Advanced CORS Usage
 
 So, if you enabled CORS, then CORS starts with a [preflight request][preflight_request] from the client (the browser), to which we respond with a response. You can customize the values of headers returned in the :cors_preflight_headers option. Then for all other requests to the controller, you can specify headers to be returned in the :cors_access_control_headers option.
 
 Here's an example of customizing both:
 
-    class MyModelController < RestfulJson::Controller
+    class MyModelController < ApplicationController
       def initialize
         restful_json_options({
           cors_preflight_headers: {
@@ -112,25 +190,6 @@ Here's an example of customizing both:
             'Access-Control-Max-Age': '1728000'
           }
         })
-        super
-      end
-    end
-
-### Future
-
-Filter
-
-#### Using a Different Model
-
-I wanted to just do it in the class vs. initialize so it would look cleaner, but I think this makes things overall a lot clearer considering that that RestfulJson::Controller also looks at its name to determine model in its initializer:
-
-    # Note that we're using BaseController here. It doesn't try to guess the model class, etc.
-    class MyModelController < RestfulJson::BaseController
-      def initialize
-        restful_json_model TestModel
-        
-        # note: If you were to inherit from RestfulJson::Controller, then super would look
-        #       at the classname, etc. to find the model class. Order doesn't matter here.
         super
       end
     end

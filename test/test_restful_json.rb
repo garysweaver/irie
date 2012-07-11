@@ -1,3 +1,7 @@
+require 'rubygems'
+require 'bundler'
+Bundler.setup
+
 require "test/unit"
 require "action_controller"
 require "active_support/inflector"
@@ -8,8 +12,6 @@ module ActiveRecord
   class Base
   end
 end
-
-# Test models
 
 class Foobar
 end
@@ -29,37 +31,45 @@ end
 
 # Test controllers
 
+# Stub overriden by Rails 3 app
+class ApplicationController < ActionController::Base
+end
+
 # attempts to define but not activerecord model.
-class FoobarService < RestfulJson::Controller
+class FoobarService < ApplicationController
+  restful_json
 end
 
 # should be defined.
-class FoobarDefinedService < RestfulJson::Controller
-  def initialize; super; restful_json_model TestModel; end
+class FoobarDefinedService < ApplicationController
+  restful_json TestModel
 end
 
 # should attempt to define because of name, and fail because not an AR model.
-class FoobarController < RestfulJson::Controller
+class FoobarController < ApplicationController
+  restful_json
 end
 
 # should be defined because of name.
-class TestModelController < RestfulJson::Controller
+class TestModelController < ApplicationController
+  restful_json
 end
 
 # should be defined.
-class TestAnotherModelController < RestfulJson::BaseController
-  def initialize; super; restful_json_model TestModel; end
+class TestAnotherModelController < ApplicationController
+  restful_json TestModel
 end
 
 # should be defined.
-class FoobarDefinedService < RestfulJson::Controller
-  def initialize; super; restful_json_model TestModel; end
+class FoobarDefinedService < ApplicationController
+  restful_json TestModel
 end
 
 # should be defined because finds model in default namespace.
 module FirstModule
   module SecondModule
-    class TestModelController < RestfulJson::Controller
+    class TestModelController < ApplicationController
+      restful_json
     end
   end
 end
@@ -67,10 +77,12 @@ end
 # should be defined because finds model in same namespace.
 module FirstModule
   module SecondModule
-    class NamespacedModelController < RestfulJson::Controller
+    class NamespacedModelController < ApplicationController
+      restful_json
     end
   end
 end
+
 
 class TestRestfulJson < Test::Unit::TestCase
   

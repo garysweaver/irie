@@ -19,8 +19,6 @@ Then run:
 
 ### Usage
 
-Just have your controller extend RestfulJson::Controller. If your controller is named MyModelNameController then it will assume the model name is MyModelName. If your controller is named SomeModule::MyModelNameController then it will first try the model name as SomeModule::MyModelName and if that isn't a valid ActiveRecord model it will also try MyModelName.
-
 So if you had an existing model app/models/foobar.rb:
 
     class Foobar < ActiveRecord::Base
@@ -28,51 +26,49 @@ So if you had an existing model app/models/foobar.rb:
 
 You would do this in app/controllers/foobar_controller.rb:
 
-    class FoobarController < ApplicationController
+    class FoobarsController < ApplicationController
       acts_as_restful_json
     end
 
-Then in config/routes.rb, you would add:
+Then in config/routes.rb, you would add the following. This will set up normal Rails resourceful routes to the Foobar resource, and restrict it to only serving json format:
 
-    resources :foobar
+    resources :foobars, :constraints => {:format => /json/}
 
 That's it. Now you can serve up some Javascript in one of your views that hits the RESTful services that have been defined.
+
+Just start the Rails server:
+
+    rails s
 
 ### The JSON Services
 
 #### Basics
 
-The first part is just basic stuff from a resourceful routes in Rails 3, but it might help.
+Take a look at the output of 'rake routes' to see the paths for /foobar and then construct URLs to test it:
 
-You'd start the server:
+    rake routes
 
-    rails s
+For our example above, you could then list all Foobars with a GET to what equates to the "list" command:
 
-You could then list all Foobars with a GET to what equates to the "list" command:
-
-    http://localhost:3000/foobar.json
+    http://localhost:3000/foobars.json
 
 To find out what the JSON to use as the 'foobar' parameter value, you could create one first in Rails console and then get that or call to_json on it in the console.
 
-Get a specific foobar using a GET to:
+Get a Foobar with id '1' with a GET method call to the following:
 
-    http://localhost:3000/foobar/object_id.json
+    http://localhost:3000/foobars/1.json
 
-POST the JSON of a new Foobar as request parameter 'foobar' to create one:
+Create a Foobar with with a POST method call to the following, setting the JSON of a new Foobar as input/request parameter 'foobar':
 
-    http://localhost:3000/foobar/new.json
+    http://localhost:3000/foobars/new.json
 
-Update a Foobar with a PUT call to:
+Update a Foobar with id '1' with a PUT method call to the following:
 
-    http://localhost:3000/foobar/object_id.json
+    http://localhost:3000/foobar/1.json
 
-And destroy it with a DELETE call to:
+Destroy a Foobar with id '1' with a DELETE method call to the following:
 
-    http://localhost:3000/foobar/object_id.json
-
-You might also look at the output of 'rake routes' to see the paths for /foobar and then construct URLs to test it:
-
-    rake routes
+    http://localhost:3000/foobar/1.json
 
 #### Filtering
 
@@ -80,7 +76,7 @@ Attributes marked as accessible in the model can be queried by specifying the va
 
 For example, if Foobar were to have an ActiveRecord attribute called "color" (because the backing database table has a column named color), you could do:
 
-    http://localhost:3000/foobar.json?color=blue
+    http://localhost:3000/foobars.json?color=blue
 
 #### Changing JSON format and Including Association Data
 
@@ -139,6 +135,8 @@ For example, you would do this in app/controllers/my_base_controller.rb to scope
 
     class YearScopingController < ApplicationController
 
+      acts_as_restful_json
+
       def index_it(model_class)
         value = model_class.scoped
         value = value.where("created_at <= ?", Time.utc(Time.now.year, 1, 1))
@@ -153,10 +151,10 @@ For example, you would do this in app/controllers/my_base_controller.rb to scope
 
 and then multiple controllers could use that, assuming they have an attribute called created_at:
 
-    class FoobarController < YearScopingController
+    class FoobarsController < YearScopingController
     end
     
-    class BarfooController < YearScopingController
+    class BarfoosController < YearScopingController
     end
 
 #### CORS
@@ -175,7 +173,7 @@ So, if you enabled CORS, then CORS starts with a [preflight request][preflight_r
 
 Here's an example of customizing both:
 
-    class MyModelController < ApplicationController
+    class FoobarsController < ApplicationController
       def initialize
         restful_json_options({
           cors_preflight_headers: {

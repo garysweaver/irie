@@ -9,18 +9,17 @@ module RestfulJson
     module InstanceMethods
       def sanity_check
         puts "Request accepted #{request}"
-        puts "params #{params}"
-        puts "self #{self}"
-        puts "methods #{self.methods.sort.join(', ')}"
-        puts "@__restful_json_class=#{@__restful_json_class} methods=#{@__restful_json_class.methods}"
+        #puts "params #{params}"
+        #puts "self #{self}"
+        #puts "methods #{self.methods.sort.join(', ')}"
+        #puts "@__restful_json_class=#{@__restful_json_class} methods=#{@__restful_json_class.methods}"
       end
 
       def initialize
-        puts "in class instance"
-        puts "self: #{self} object_id=#{self.object_id}"
-        puts "self.class: #{self.class} object_id=#{self.class.object_id}"
-        puts "self: #{(class << self; self; end)} object_id=#{(class << self; self; end).object_id}"
-
+        #puts "in class instance"
+        #puts "self: #{self} object_id=#{self.object_id}"
+        #puts "self.class: #{self.class} object_id=#{self.class.object_id}"
+        #puts "self: #{(class << self; self; end)} object_id=#{(class << self; self; end).object_id}"
         autodetermine_model_class
       end
 
@@ -37,7 +36,7 @@ module RestfulJson
           instance_variable_set("@#{@__restful_json_model_plural}".to_sym, nil)
           instance_variable_set("@#{@__restful_json_model_singular}".to_sym, nil)
           puts "'#{self}' using model class: '#{@__restful_json_class}', attributes: '@#{@__restful_json_model_plural}', '@#{@__restful_json_model_singular}'"
-          puts "Immediately before class_eval, @__restful_json_class is #{@__restful_json_class} and object_id=#{@__restful_json_class.object_id}}"
+          #puts "Immediately before class_eval, @__restful_json_class is #{@__restful_json_class} and object_id=#{@__restful_json_class.object_id}}"
           @__restful_json_initialized = true
         end
       end
@@ -101,36 +100,39 @@ module RestfulJson
         true
       end
 
-      def get_to_json_options
-        # this is a bit nasty and could use a chain of ||= but it is
-        # helpful to output the process used for finding the format
-
-        if @__restful_json_class.methods.include?(:get_json_format)
-          puts "Looking for a json format... params[:json_format]=#{params[:json_format]}, request.referer=#{request.referer}, params[:controller]=#{params[:controller]}, params[:action]=#{params[:action]}"
-          options = json_format(params[:json_format]) if params[:json_format]
-          return options if options
-          options = json_format("#{request.referer}") if request.referer
-          return options if options
-          options = json_format("#{params[:controller]}\##{params[:action]}")
-          return options if options
-          options = json_format(params[:controller])
-          return options if options
-          options = json_format(params[:action])
-          return options if options
-          options = json_format('default')
-          return options if options
+      def allowed_referer_uri
+        if request.referer && $restful_json_domains_providing_referer_path
+          referer_uri = URI::parse(request.referer)
+          # can take array or single
+          domains = ($restful_json_domains_providing_referer_path.is_a? Array) ? $restful_json_domains_providing_referer_path : [$restful_json_domains_providing_referer_path]
+          domains.each do |domain|
+            if referer_uri.hostname.end_with?(domain)
+              return referer_uri
+            end
+          end
         end
-
-        puts "get_json_format method not defined on #{@__restful_json_class}, so using to_json formatting defaults"
-        {}
+        nil
       end
 
-      def json_format(key)
-        options = @__restful_json_class.get_json_format(key.to_sym)
-        # only quote-escape symbol if not a valid symbol name without quote-escapes using inspect.
-        what_happened = options.nil? ? "did not define a json format for #{key.to_sym.inspect}" : "defined a json format #{key.to_sym.inspect} with options #{options.inspect}"
-        puts "#{@__restful_json_class} #{what_happened}"
-        options
+      def json_names_with_logging
+        puts "Determining possible *_json method names: params[:json_format]=#{params[:json_format]}, request.referer=#{request.referer}, params[:controller]=#{params[:controller]}, params[:action]=#{params[:action]})"
+        names = json_names
+        puts "Will check for the first of the following methods in the model: \'#{names.join('\'', '\'')}\'"
+        names
+      end
+
+      def json_names        
+        names = []
+        names << params[:json_format] if params[:json_format]
+        referer_uri = allowed_referer_uri
+        if uri
+          names << "#{referer_uri.path.parameterize.underscore}"
+          names << "#{File.dirname(referer_uri.path.parameterize.underscore)}"
+        end
+        names << "#{params[:controller]}_#{params[:action]}".parameterize.underscore
+        names << params[:controller].parameterize.underscore
+        names << params[:action].parameterize.underscore
+        names << params[:default]
       end
 
       # may be overidden in controller to have method-specific access control
@@ -151,7 +153,7 @@ module RestfulJson
 
         cors_preflight_check
 
-        value = JSON.parse(index_it(@__restful_json_class).to_json(get_to_json_options))
+        value = JSON.parse(index_it(@__restful_json_class).json_for(json_names))
 
         instance_variable_set("@#{@__restful_json_model_plural}".to_sym, value)
         respond_to do |format|
@@ -215,7 +217,7 @@ module RestfulJson
         cors_preflight_check
 
         puts "@__restful_json_class=#{@__restful_json_class}"
-        value = JSON.parse(show_it(@__restful_json_class).to_json(get_to_json_options))
+        value = JSON.parse(show_it(@__restful_json_class).json_for(json_names))
 
         instance_variable_set("@#{@__restful_json_model_singular}".to_sym, value)
         respond_to do |format|
@@ -246,7 +248,7 @@ module RestfulJson
 
         cors_preflight_check
 
-        value = JSON.parse(create_it(@__restful_json_class).to_json(get_to_json_options))
+        value = JSON.parse(create_it(@__restful_json_class).json_for(json_names))
 
         instance_variable_set("@#{@__restful_json_model_singular}".to_sym, value)
         respond_to do |format|
@@ -285,7 +287,7 @@ module RestfulJson
 
         cors_preflight_check
 
-        value = JSON.parse(update_it(@__restful_json_class).to_json(get_to_json_options))
+        value = JSON.parse(update_it(@__restful_json_class).json_for(json_names))
         
         instance_variable_set("@#{@__restful_json_model_singular}".to_sym, value)
         respond_to do |format|

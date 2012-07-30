@@ -1,4 +1,4 @@
-RESTful JSON for Rails 3.x
+RESTful JSON v2 for Rails 3.x
 =====
 
 A gem that loads a class called RestfulJson::Controller that extends your ApplicationController that you can use to easily make controllers in Rails 3.x that dynamically add RESTful JSON methods to your controllers to reduce code clutter and just focus on the javascript (or whatever makes you happy these days) frontend that interacts with it.
@@ -78,7 +78,18 @@ For example, if Foobar were to have an ActiveRecord attribute called "color" (be
 
     http://localhost:3000/foobars.json?color=blue
 
-#### Changing JSON format and Including Association Data
+Note: Don't use any of these methods to allow or filter anything secure. If a user has access to the controller method, they have access to any format you define with one of these methods via the json_format request parameter or faking referer. The primary reason for these filters are to limit associations- not for security, but to reduce data returned in the request, thereby reducing traffic and time required for response.
+
+#### JSON format
+
+as_json is extended to include attributes specified in default_as_json_includes, e.g.:
+
+    default_as_json_includes :association_name_1, :association_name_2
+
+So, if you want to automatically accept json association data in put/post and include it in the json that is emitted by the services, you'd do:
+
+    accepts_nested_attributes_for :association_name_1, :association_name_2
+    default_as_json_includes :association_name_1, :association_name_2
 
 #### Customizing ActiveRecord Queries/Methods
 
@@ -198,6 +209,7 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 
 [ember_data_example]: https://github.com/dgeb/ember_data_example/blob/master/app/controllers/contacts_controller.rb
 [angular]: http://angularjs.org/
+[as_json]: http://api.rubyonrails.org/classes/ActiveModel/Serializers/JSON.html#method-i-as_json
 [cors]: http://enable-cors.org/
 [preflight_request]: http://www.w3.org/TR/cors/#resource-preflight-requests
 [lic]: http://github.com/garysweaver/activerecord-attribute-override/blob/master/LICENSE

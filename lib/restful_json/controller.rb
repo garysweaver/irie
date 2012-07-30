@@ -33,8 +33,11 @@ module RestfulJson
           puts "@__restful_json_class=#{@__restful_json_class}"
 
           raise "#{self.class.name} assumes that #{@__restful_json_class} extends ActiveRecord::Base, but it didn't. Please fix, or remove this constraint." unless @__restful_json_class.ancestors.include?(ActiveRecord::Base)
-          instance_variable_set("@#{@__restful_json_model_plural}".to_sym, nil)
-          instance_variable_set("@#{@__restful_json_model_singular}".to_sym, nil)
+          
+          # how we'd initialize if we needed to reference in a view
+          #instance_variable_set("@#{@__restful_json_model_plural}".to_sym, nil)
+          #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, nil)
+
           puts "'#{self}' using model class: '#{@__restful_json_class}', attributes: '@#{@__restful_json_model_plural}', '@#{@__restful_json_model_singular}'"
           #puts "Immediately before class_eval, @__restful_json_class is #{@__restful_json_class} and object_id=#{@__restful_json_class.object_id}}"
           @__restful_json_initialized = true
@@ -45,12 +48,12 @@ module RestfulJson
       def restful_json_controller_not_yet_configured?
         unless @__restful_json_initialized
           puts "RestfulJson controller #{self} called before setup, so returning a 503 error."
-          puts "#{self}.instance_variable_names: #{self.instance_variable_names}"
-          puts "#{self}.inspect: #{self.inspect}"
           respond_to do |format|
             format.json { render json: nil, status: :service_unavailable }
           end
+          return true
         end
+        false
       end
 
       def allowed_activerecord_model_attribute_keys
@@ -67,9 +70,10 @@ module RestfulJson
       # request, return only the necessary headers and return an empty
       # text/plain. Modified from Tom Sheffler's example in 
       # http://www.tsheffler.com/blog/?p=428 to allow customization.
-      def cors_preflight_check
+      def cors_preflight_check?
         unless ENV['RESTFUL_JSON_CORS_GLOBALLY_ENABLED'] || $restful_json_cors_globally_enabled
           if request.method == :options
+            puts "CORS preflight check"
             headers['Access-Control-Allow-Origin'] =  '*'
             headers['Access-Control-Allow-Methods'] = 'POST, GET, PUT, DELETE, OPTIONS'
             headers['Access-Control-Allow-Headers'] = 'X-Requested-With, X-Prototype-Version'
@@ -78,8 +82,10 @@ module RestfulJson
             headers.merge!(@__restful_json_options[:cors_preflight_headers])
             # CORS returns as text to the browser as a step before the json, so is intentionally text type and not json.
             render :text => '', :content_type => 'text/plain'
+            return true
           end
         end
+        false
       end
 
       # For all responses in this controller, return the CORS access control headers.
@@ -114,25 +120,10 @@ module RestfulJson
         nil
       end
 
-      def json_names_with_logging
-        puts "Determining possible *_json method names: params[:json_format]=#{params[:json_format]}, request.referer=#{request.referer}, params[:controller]=#{params[:controller]}, params[:action]=#{params[:action]})"
-        names = json_names
-        puts "Will check for the first of the following methods in the model: \'#{names.join('\'', '\'')}\'"
-        names
-      end
-
-      def json_names        
-        names = []
-        names << params[:json_format] if params[:json_format]
-        referer_uri = allowed_referer_uri
-        if uri
-          names << "#{referer_uri.path.parameterize.underscore}"
-          names << "#{File.dirname(referer_uri.path.parameterize.underscore)}"
-        end
-        names << "#{params[:controller]}_#{params[:action]}".parameterize.underscore
-        names << params[:controller].parameterize.underscore
-        names << params[:action].parameterize.underscore
-        names << params[:default]
+      def json_options
+        # ?only=name,status will send as_json({restful_json_only: ['name','status']}) which forces :only and no associations for a simpler view
+        # in addition, we're only selecting these fields in the query in index_it
+        params[:only] ? {restful_json_only: params[:only].split(',').collect{|s|s.to_sym}} : {}
       end
 
       # may be overidden in controller to have method-specific access control
@@ -144,21 +135,33 @@ module RestfulJson
         return if restful_json_controller_not_yet_configured?
 
         unless index_allowed?
+          puts "user not allowed to call index on #{self.class.name}"
           respond_to do |format|
             # note: status is magic- automatically sets HTTP code to 403 since status is forbidden
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
             format.json { render json: nil, status: :forbidden }
           end
+          return
         end
 
-        cors_preflight_check
+        return if cors_preflight_check?
 
-        value = JSON.parse(index_it(@__restful_json_class).json_for(json_names))
+        #puts "json_options=#{json_options.inspect}"
 
-        instance_variable_set("@#{@__restful_json_model_plural}".to_sym, value)
+        #value = index_it(@__restful_json_class).as_json(json_options)
+        #puts "JSON.parse(#{value})"
+        #value = JSON.parse(data_string)
+        #puts "equals #{value}"
+
+        # how we'd set if we needed to reference in a view
+        #instance_variable_set("@#{@__restful_json_model_plural}".to_sym, value)
+
+          # ember-data:
+          #format.json { render json: {@__restful_json_model_plural.to_sym => value} }
+          # angular:
+
         respond_to do |format|
-          format.json { render json: {@__restful_json_model_plural.to_sym => value} }
-          #json
+          format.json { render json: index_it(@__restful_json_class).as_json(json_options) }
         end
       end
 
@@ -177,9 +180,18 @@ module RestfulJson
         # Using scoped and separate wheres if params present similar to solution provided by
         # John Gibb in http://stackoverflow.com/a/5820947/178651
         value = restful_json_model_class.scoped
+        # if "only" request param specified, only return those fields- this is important for uniq to be useful
+        if params[:only]
+          value.select(params[:only].split(',').collect{|s|s.to_sym})
+        end
+
         allowed_activerecord_model_attribute_keys.each do |attribute_key|
           param = params[attribute_key]
           value = value.where(attribute_key => param) if param.present?
+        end
+        # ?uniq= will return unique records
+        if params[:uniq]
+          value = value.uniq
         end
         # Sorts can either be specified by sortby=color&sortby=shape or comma-delimited like sortby=color,shape, or some combination.
         # The order in the url is the opposite of the order applied, so first sort param is dominant.
@@ -207,21 +219,28 @@ module RestfulJson
         return if restful_json_controller_not_yet_configured?
 
         unless show_allowed?
+          puts "user not allowed to call show on #{self.class.name}"
           respond_to do |format|
             # note: status is magic- automatically sets HTTP code to 403 since status is forbidden
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
             format.json { render json: nil, status: :forbidden }
           end
+          return
         end
 
-        cors_preflight_check
+        return if cors_preflight_check?
 
         puts "@__restful_json_class=#{@__restful_json_class}"
-        value = JSON.parse(show_it(@__restful_json_class).json_for(json_names))
+        value = JSON.parse(show_it(@__restful_json_class).as_json(json_options))
+        
+        # how we'd set if we needed to reference in a view
+        #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, value)
 
-        instance_variable_set("@#{@__restful_json_model_singular}".to_sym, value)
         respond_to do |format|
-          format.json { render json: {@__restful_json_model_singular.to_sym => value} }
+          # ember-data:
+          #format.json { render json: {@__restful_json_model_singular.to_sym => value} }
+          # angular:
+          format.json { render json: value }
         end
       end
 
@@ -239,23 +258,30 @@ module RestfulJson
         return if restful_json_controller_not_yet_configured?
 
         unless create_allowed?
+          puts "user not allowed to call create on #{self.class.name}"
           respond_to do |format|
             # note: status is magic- automatically sets HTTP code to 403 since status is forbidden
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
             format.json { render json: nil, status: :forbidden }
           end
+          return
         end
 
-        cors_preflight_check
+        return if cors_preflight_check?
 
-        value = JSON.parse(create_it(@__restful_json_class).json_for(json_names))
+        value = JSON.parse(create_it(@__restful_json_class).as_json(json_options))
+        
+        # how we'd set if we needed to reference in a view
+        #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, value)
 
-        instance_variable_set("@#{@__restful_json_model_singular}".to_sym, value)
         respond_to do |format|
           if @__restful_json_model_singular.save
             # note: status is magic- automatically sets HTTP code to 201 since status is created
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
-            format.json { render json: {@__restful_json_model_singular.to_sym => value}, status: :created, location: value }
+            # ember-data:
+            #format.json { render json: {@__restful_json_model_singular.to_sym => value}, status: :created, location: value }
+            # angular:
+            format.json { render json: value, status: :created, location: value }
           else
             # note: status is magic- automatically sets HTTP code to 422 since status is unprocessable_entity
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
@@ -278,23 +304,30 @@ module RestfulJson
         return if restful_json_controller_not_yet_configured?
 
         unless update_allowed?
+          puts "user not allowed to call update on #{self.class.name}"
           respond_to do |format|
             # note: status is magic- automatically sets HTTP code to 403 since status is forbidden
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
             format.json { render json: nil, status: :forbidden }
           end
+          return
         end
 
-        cors_preflight_check
+        return if cors_preflight_check?
 
-        value = JSON.parse(update_it(@__restful_json_class).json_for(json_names))
+        value = JSON.parse(update_it(@__restful_json_class).as_json(json_options))
         
-        instance_variable_set("@#{@__restful_json_model_singular}".to_sym, value)
+        # how we'd set if we needed to reference in a view
+        #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, value)
+
         respond_to do |format|
           if @__restful_json_model_singular.save
             # note: status is magic- automatically sets HTTP code to 200 since status is ok
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
-            format.json { render json: {@__restful_json_model_singular.to_sym => value}, status: :ok }
+            # ember-data:
+            # format.json { render json: {@__restful_json_model_singular.to_sym => value}, status: :ok }
+            # angular:
+            format.json { render json: value, status: :ok }
           else
             # note: status is magic- automatically sets HTTP code to 422 since status is unprocessable_entity
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
@@ -317,14 +350,16 @@ module RestfulJson
         return if restful_json_controller_not_yet_configured?
 
         unless destroy_allowed?
+          puts "user not allowed to call destroy on #{self.class.name}"
           respond_to do |format|
             # note: status is magic- automatically sets HTTP code to 403 since status is forbidden
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
             format.json { render json: nil, status: :forbidden }
           end
+          return
         end
 
-        cors_preflight_check
+        return if cors_preflight_check?
 
         destroy_it(@__restful_json_class, params[:id])
         respond_to do |format|

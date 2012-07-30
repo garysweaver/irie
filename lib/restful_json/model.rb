@@ -40,15 +40,28 @@ module RestfulJson
       # works just like normal as_json, but includes restful_json_nested symbols in :includes
       def as_json(options = nil)
         puts "restful_json's as_json called with options=#{options.inspect}"
-        puts "self.class.as_json_includes_array()=#{self.class.as_json_includes_array()}"
         new_options = options ? options.dup : {}
-        as_json_includes = []
-        as_json_includes = as_json_includes + self.class.as_json_includes_array()
-        if options.try(:key?, :methods)
-          as_json_includes = as_json_includes + options[:methods]
+        if new_options[:restful_json_only]
+          puts "restful_json_only=#{new_options[:restful_json_only]}"
+          # if specifies :restful_json_only via controller, it includes only what is specified as an :only and does not include associations
+          result = {}
+          new_options[:restful_json_only].each do |attr_name|
+            result[attr_name] = send(attr_name)
+          end
+          puts "returning #{result.inspect}"
+          result
+        else
+          # otherwise, it includes associations defined as default_as_json_includes
+          puts "self.class.as_json_includes_array()=#{self.class.as_json_includes_array()}"
+          as_json_includes = []
+          as_json_includes = as_json_includes + self.class.as_json_includes_array()
+          if options.try(:key?, :methods)
+            as_json_includes = as_json_includes + options[:methods]
+          end
+          new_options[:methods] = as_json_includes
+          puts "calling as_json(#{new_options.inspect})"
+          super(new_options)
         end
-        new_options[:methods] = as_json_includes
-        super(new_options)
       end
     end
   end

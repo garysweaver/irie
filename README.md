@@ -80,6 +80,18 @@ For example, if Foobar were to have an ActiveRecord attribute called "color" (be
 
 Note: Don't use any of these methods to allow or filter anything secure. If a user has access to the controller method, they have access to any format you define with one of these methods via the json_format request parameter or faking referer. The primary reason for these filters are to limit associations- not for security, but to reduce data returned in the request, thereby reducing traffic and time required for response.
 
+#### Only
+
+To return a simple view of a model, use the only param. This limits both the select in the SQL used and the json returned, e.g. to return the name and color attributes of foobars:
+
+    http://localhost:3000/foobars.json?only=name,color
+
+#### Uniq
+
+To return a simple view of a model, use the uniq param. This limits both the select in the SQL used and the json returned, e.g. to return unique/distinct colors of foobars:
+
+    http://localhost:3000/foobars.json?only=color&uniq=
+
 #### JSON format
 
 as_json is extended to include attributes specified in default_as_json_includes, e.g.:

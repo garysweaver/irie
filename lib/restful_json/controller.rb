@@ -230,8 +230,8 @@ module RestfulJson
 
         return if cors_preflight_check?
 
-        puts "@__restful_json_class=#{@__restful_json_class}"
-        value = JSON.parse(show_it(@__restful_json_class).as_json(json_options))
+        #puts "@__restful_json_class=#{@__restful_json_class}"
+        #value = JSON.parse(show_it(@__restful_json_class).as_json(json_options))
         
         # how we'd set if we needed to reference in a view
         #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, value)
@@ -240,7 +240,7 @@ module RestfulJson
           # ember-data:
           #format.json { render json: {@__restful_json_model_singular.to_sym => value} }
           # angular:
-          format.json { render json: value }
+          format.json { render json: show_it(@__restful_json_class).as_json(json_options) }
         end
       end
 
@@ -269,7 +269,7 @@ module RestfulJson
 
         return if cors_preflight_check?
 
-        value = JSON.parse(create_it(@__restful_json_class).as_json(json_options))
+        value = create_it(@__restful_json_class).as_json(json_options)
         
         # how we'd set if we needed to reference in a view
         #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, value)
@@ -315,7 +315,7 @@ module RestfulJson
 
         return if cors_preflight_check?
 
-        value = JSON.parse(update_it(@__restful_json_class).as_json(json_options))
+        value = update_it(@__restful_json_class).as_json(json_options)
         
         # how we'd set if we needed to reference in a view
         #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, value)

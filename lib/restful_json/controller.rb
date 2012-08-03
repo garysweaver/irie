@@ -153,15 +153,17 @@ module RestfulJson
         #value = JSON.parse(data_string)
         #puts "equals #{value}"
 
-        # how we'd set if we needed to reference in a view
-        #instance_variable_set("@#{@__restful_json_model_plural}".to_sym, value)
+        index_it(@__restful_json_class)
+
+        # how we'd set if we needed to reference in a view by its common plural name
+        #instance_variable_set("@#{@__restful_json_model_plural}".to_sym, @value)
 
           # ember-data:
-          #format.json { render json: {@__restful_json_model_plural.to_sym => value} }
+          #format.json { render json: {@__restful_json_model_plural.to_sym => @value} }
           # angular:
 
         respond_to do |format|
-          format.json { render json: index_it(@__restful_json_class).as_json(json_options) }
+          format.json { render json: @value.as_json(json_options) }
         end
       end
 
@@ -207,7 +209,9 @@ module RestfulJson
         #    # TODO: in progress of adding, sorry...
         #  end
         #end
-        value
+
+        # could just return value, but trying to be consistent with create/update that need to return flag of success
+        @value = value
       end
 
       # may be overidden in controller to have method-specific access control
@@ -232,20 +236,24 @@ module RestfulJson
 
         #puts "@__restful_json_class=#{@__restful_json_class}"
         #value = JSON.parse(show_it(@__restful_json_class).as_json(json_options))
+
+        show_it(@__restful_json_class)
         
         # how we'd set if we needed to reference in a view
-        #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, value)
+        #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, @value)
 
         respond_to do |format|
           # ember-data:
           #format.json { render json: {@__restful_json_model_singular.to_sym => value} }
           # angular:
-          format.json { render json: show_it(@__restful_json_class).as_json(json_options) }
+          format.json { render json: @value.as_json(json_options) }
         end
       end
 
       def show_it(restful_json_model_class)
-        restful_json_model_class.find(params[:id])
+        puts "Attempting to show #{restful_json_model_class.try(:name)} with id #{params[:id]}"
+        # could just return value, but trying to be consistent with create/update that need to return flag of success
+        @value = restful_json_model_class.find(params[:id])
       end
 
       # may be overidden in controller to have method-specific access control
@@ -269,29 +277,32 @@ module RestfulJson
 
         return if cors_preflight_check?
 
-        value = create_it(@__restful_json_class).as_json(json_options)
+        success = create_it(@__restful_json_class)
         
         # how we'd set if we needed to reference in a view
-        #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, value)
+        #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, @value)
 
         respond_to do |format|
-          if @__restful_json_model_singular.save
+          if success
             # note: status is magic- automatically sets HTTP code to 201 since status is created
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
             # ember-data:
-            #format.json { render json: {@__restful_json_model_singular.to_sym => value}, status: :created, location: value }
+            #format.json { render json: {@__restful_json_model_singular.to_sym => @value}, status: :created, location: @value }
             # angular:
-            format.json { render json: value, status: :created, location: value }
+            format.json { render json: @value.as_json(json_options), status: :created, location: @value.as_json(json_options) }
           else
             # note: status is magic- automatically sets HTTP code to 422 since status is unprocessable_entity
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
-            format.json { render json: value.errors, status: :unprocessable_entity }
+            format.json { render json: @value.try(:as_json, json_options), status: :unprocessable_entity }
           end
         end
       end
 
-      def create_it(restful_json_model_class, data)
-        restful_json_model_class.new(data)
+      def create_it(restful_json_model_class)
+        json = "#{request.body.read}"
+        puts "Attempting #{restful_json_model_class.name}.new with request body #{json}"
+        @value = restful_json_model_class.new(JSON.parse(json))
+        @value.save
       end
 
       # may be overidden in controller to have method-specific access control
@@ -315,29 +326,33 @@ module RestfulJson
 
         return if cors_preflight_check?
 
-        value = update_it(@__restful_json_class).as_json(json_options)
+        success = update_it(@__restful_json_class)
         
         # how we'd set if we needed to reference in a view
-        #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, value)
+        #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, @value)
 
         respond_to do |format|
-          if @__restful_json_model_singular.save
+          if success
             # note: status is magic- automatically sets HTTP code to 200 since status is ok
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
             # ember-data:
-            # format.json { render json: {@__restful_json_model_singular.to_sym => value}, status: :ok }
+            # format.json { render json: {@__restful_json_model_singular.to_sym => @value}, status: :ok }
             # angular:
-            format.json { render json: value, status: :ok }
+            format.json { render json: @value.as_json(json_options), status: :ok }
           else
             # note: status is magic- automatically sets HTTP code to 422 since status is unprocessable_entity
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
-            format.json { render json: value.errors, status: :unprocessable_entity }
+            format.json { render json: @value.errors, status: :unprocessable_entity }
           end
         end
       end
 
-      def update_it(restful_json_model_class, id)
-        restful_json_model_class.find(id)
+      def update_it(restful_json_model_class)
+        @value = restful_json_model_class.find(params[:id])
+        json = "#{request.body.read}"
+        puts "Attempting #{restful_json_model_class.name}.update_attributes with request body #{json}"
+        success = @value.update_attributes(JSON.parse(json))
+        success
       end
 
       # may be overidden in controller to have method-specific access control
@@ -361,7 +376,7 @@ module RestfulJson
 
         return if cors_preflight_check?
 
-        destroy_it(@__restful_json_class, params[:id])
+        destroy_it(@__restful_json_class)
         respond_to do |format|
           # note: status is magic- automatically sets HTTP code to 200 since status is ok
           # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
@@ -369,8 +384,9 @@ module RestfulJson
         end
       end
 
-      def destroy_it(restful_json_model_class, id)
-        restful_json_model_class.find(id).destroy
+      def destroy_it(restful_json_model_class)
+        puts "Attempting to destroy #{restful_json_model_class.try(:name)} with id #{params[:id]}"
+        restful_json_model_class.find(params[:id]).destroy
       end
     end
   end

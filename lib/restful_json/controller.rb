@@ -356,7 +356,7 @@ module RestfulJson
       end
 
       # may be overidden in controller to have method-specific access control
-      def destoy_allowed?
+      def destroy_allowed?
         allowed?
       end
 
@@ -386,7 +386,7 @@ module RestfulJson
 
       def destroy_it(restful_json_model_class)
         puts "Attempting to destroy #{restful_json_model_class.try(:name)} with id #{params[:id]}"
-        restful_json_model_class.find(params[:id]).destroy
+        restful_json_model_class.where(id: params[:id]).first ? restful_json_model_class.destroy(params[:id]) : true
       end
     end
   end

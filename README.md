@@ -234,4 +234,4 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [as_json]: http://api.rubyonrails.org/classes/ActiveModel/Serializers/JSON.html#method-i-as_json
 [cors]: http://enable-cors.org/
 [preflight_request]: http://www.w3.org/TR/cors/#resource-preflight-requests
-[lic]: http://github.com/garysweaver/activerecord-attribute-override/blob/master/LICENSE
+[lic]: http://github.com/garysweaver/restful_json/blob/master/LICENSE

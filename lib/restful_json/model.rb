@@ -37,7 +37,8 @@ module RestfulJson
     end
 
     module InstanceMethods
-      # works just like normal as_json, but includes restful_json_nested symbols in :includes
+      # works just like normal as_json, but includes restful_json_nested symbols in :includes and adds an "id" key to the result for each object if there isn't one
+      # to make up for craziness caused by non-standard primary key names.
       def as_json(options = nil)
         puts "restful_json's as_json called with options=#{options.inspect}"
         new_options = options ? options.dup : {}
@@ -49,7 +50,7 @@ module RestfulJson
             result[attr_name] = send(attr_name)
           end
           puts "returning #{result.inspect}"
-          result
+          add_id_if_needed(self.class, result)
         else
           # otherwise, it includes associations defined as default_as_json_includes
           puts "self.class.as_json_includes_array()=#{self.class.as_json_includes_array()}"
@@ -60,8 +61,37 @@ module RestfulJson
           end
           new_options[:methods] = as_json_includes
           puts "calling as_json(#{new_options.inspect})"
-          super(new_options)
+          add_id_if_needed(self.class, super(new_options))
         end
+      end
+
+    protected
+      def add_id_if_needed(clazz, json_hash)
+        puts "In add_id_if_needed(#{clazz}, #{json_hash})"
+        result = {}
+        unless json_hash['id']
+          if clazz.primary_key.is_a?(String)
+            json_hash['id'] = json_hash[clazz.primary_key]
+          elsif clazz.primary_key.is_a?(Array)
+            # composite_primary_keys gem returns primary_key as an array of symbols, but values in json hash are strings, so we'll get the key values as
+            # an array, convert them to strings, and look them up to provide an array of the key values. It's the best we can do.
+            json_hash['id'] = clazz.primary_key.collect{|pk|json_hash[pk.to_s]}
+          end
+        end
+
+        association_name_sym_to_class = {}
+        clazz.reflect_on_all_associations.each do |association|
+          association_name_sym_to_class[association.name] = association.class_name.constantize
+        end
+        json_hash.keys.each do |key|
+          # assuming that associations are not suffixed with _attributes
+          if association_name_sym_to_class.keys.include?(key.to_sym)
+            result[key] = add_id_if_needed(association_name_sym_to_class[key.to_sym], json_hash[key])
+          else
+            result[key] = json_hash[key]
+          end
+        end
+        result
       end
     end
   end

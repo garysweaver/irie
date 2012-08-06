@@ -13,6 +13,8 @@ module RestfulJson
         #puts "self #{self}"
         #puts "methods #{self.methods.sort.join(', ')}"
         #puts "@__restful_json_class=#{@__restful_json_class} methods=#{@__restful_json_class.methods}"
+        puts "form_authenticity_token=#{form_authenticity_token}"
+        puts "If you get the error: 'WARNING: Can't verify CSRF token authenticity', then put this in your layout or page if using jQuery: $(document).ajaxSend(function(e, xhr, options) {var token = $(\"meta[name='csrf-token']\").attr(\"content\");xhr.setRequestHeader(\"X-CSRF-Token\", token);});"
       end
 
       def initialize
@@ -301,6 +303,9 @@ module RestfulJson
       def create_it(restful_json_model_class)
         json = "#{request.body.read}"
         puts "Attempting #{restful_json_model_class.name}.new with request body #{json}"
+        converted_json = append_attributes_to_association_key_names(restful_json_model_class, JSON.parse(json))
+        puts "Original JSON.parse(json) was #{JSON.parse(json)}"
+        puts "Keyfixed JSON.parse(json) was #{converted_json}"
         @value = restful_json_model_class.new(JSON.parse(json))
         @value.save
       end
@@ -351,7 +356,10 @@ module RestfulJson
         @value = restful_json_model_class.find(params[:id])
         json = "#{request.body.read}"
         puts "Attempting #{restful_json_model_class.name}.update_attributes with request body #{json}"
-        success = @value.update_attributes(JSON.parse(json))
+        converted_json = append_attributes_to_association_key_names(restful_json_model_class, JSON.parse(json))
+        puts "Original JSON.parse(json) was #{JSON.parse(json)}"
+        puts "Keyfixed JSON.parse(json) was #{converted_json}"
+        success = @value.update_attributes(converted_json)
         success
       end
 
@@ -388,6 +396,29 @@ module RestfulJson
         puts "Attempting to destroy #{restful_json_model_class.try(:name)} with id #{params[:id]}"
         restful_json_model_class.where(id: params[:id]).first ? restful_json_model_class.destroy(params[:id]) : true
       end
+
+    protected
+
+      # Because most of the time having to specify (name)_attributes as the name of a key in the incoming json is a pain,
+      # we'll change each key (name) to (name)_attributes if it is a name. Recurses the provided json, outputting a
+      # a hash with the key names "fixed".
+      def append_attributes_to_association_key_names(clazz, json_hash)
+        puts "In append_attributes_to_association_key_names(#{clazz}, #{json_hash})"
+        result = {}
+        association_name_sym_to_class = {}
+        clazz.reflect_on_all_associations.each do |association|
+          association_name_sym_to_class[association.name] = association.class_name.constantize
+        end
+        json_hash.keys.each do |key|
+          if association_name_sym_to_class.keys.include?(key.to_sym)
+            result["#{key}_attributes".to_sym] = append_attributes_to_association_key_names(association_name_sym_to_class[key.to_sym], json_hash[key])
+          else
+            result[key] = json_hash[key]
+          end
+        end
+        result
+      end
+      
     end
   end
 end

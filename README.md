@@ -103,6 +103,13 @@ So, if you want to automatically accept json association data in put/post and in
     accepts_nested_attributes_for :association_name_1, :association_name_2
     default_as_json_includes :association_name_1, :association_name_2
 
+#### Including id and other non-mass-assignable attributes in the JSON
+
+To include extra non-mass-assignable attributes in the json, add those to default_as_json_includes. id is a common attribute that needs to be returned in the json but you should be allowed to set:
+
+    accepts_nested_attributes_for :association_name_1, :association_name_2
+    default_as_json_includes :id, :association_name_1, :association_name_2
+
 #### No Associations
 
 To return a view of a model without associations, even if those associations are defined to be displayed via default_as_json_includes, use the no_associations param. e.g. to return the foobars accessible attributes only:
@@ -115,13 +122,7 @@ To return a view of a model with only certain associations that you have rights 
 
     http://localhost:3000/foobars.json?include=foos,bars
 
-#### And Some Things Are Just a Little Bit Easier
-
-##### 'id' Included in JSON, even for custom primary key or keys
-
-If you are setting a custom primary key via set_primary_key or self.primary= in your model, or using the composite_primary_keys gem, there is an 'id' attribute added to the attributes in every object returned (and its associations, and their associations, etc.) that contains the id that you would expect in the returned JSON (and whenever as_json is called).
-
-##### You don't have to specify *_attributes when using accepts_nested_attributes_for
+#### You don't have to specify *_attributes in POSTed or PUT JSON when using accepts_nested_attributes_for
 
 With accepts_nested_attributes_for, Rails/ActiveRecord expects you to specify the key in the provided JSON by suffixing the key with _attributes, e.g. if you want to specify FlightCrewMembers on Airplane, you would have had to have sent in flight_crew_members_attributes instead of flight_crew_members. With restful_json, you only need to pass in flight_crew_members as the key as you'd expect.
 

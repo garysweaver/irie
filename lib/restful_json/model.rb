@@ -51,10 +51,16 @@ module RestfulJson
           # solution to get keys from: http://stackoverflow.com/a/1526328/178651
           accessible_attributes = self.class.new.attributes.keys - self.class.protected_attributes.to_a
           accessible_attributes.each do |attr_name|
-            result[attr_name] = send(attr_name) if !options[:restful_json_only] || options[:restful_json_only].include?(attr_name)
+            result[attr_name] = send(attr_name) if !options[:restful_json_only] || options[:restful_json_only].collect{|v|v.to_sym}.include?(attr_name.to_sym)
           end
+
+          as_json_includes_array_without_associations = self.class.as_json_includes_array.dup.collect{|m|m.to_sym} - self.class.reflect_on_all_associations.collect{|a|a.name.to_sym}
+          as_json_includes_array_without_associations.each do |attr_name|
+            result[attr_name] = send(attr_name) if !options[:restful_json_only] || options[:restful_json_only].collect{|v|v.to_sym}.include?(attr_name.to_sym)
+          end
+
           puts "returning accessible attributes #{result.inspect}"
-          add_id_if_needed(self.class, result)
+          result
         else
           # otherwise, it includes associations defined as default_as_json_includes
           puts "self.class.as_json_includes_array()=#{self.class.as_json_includes_array()}"
@@ -66,49 +72,13 @@ module RestfulJson
           
           # apply includes client-supplied filter, not allowing client to supply non-allowed methods
           if options[:restful_json_include] && options[:restful_json_include].is_a?(Array)
-            as_json_includes = as_json_includes.collect{|incl| incl if options[:restful_json_include].include?(incl)}.compact
+            as_json_includes = as_json_includes.collect{|incl| incl if options[:restful_json_include].collect{|v|v.to_sym}.include?(incl.to_sym)}.compact
           end
 
           options[:methods] = as_json_includes
 
           puts "calling as_json(#{options.inspect})"
-          add_id_if_needed(self.class, super(options))
-        end
-      end
-
-    protected
-      def add_id_if_needed(clazz, value)
-        puts "In add_id_if_needed(#{clazz}, #{value})"
-        
-        if value.is_a?(Array)
-          return value.collect{|v|add_id_if_needed(clazz, v)}
-        elsif value.is_a?(Hash)
-          result = {}
-          unless value['id']
-            if clazz.primary_key.is_a?(String) || clazz.primary_key.is_a?(Symbol)
-              value['id'] = value[clazz.primary_key]
-            elsif clazz.primary_key.is_a?(Array)
-              # composite_primary_keys gem returns primary_key as an array of symbols, but values in json hash are strings, so we'll get the key values as
-              # an array, convert them to strings, and look them up to provide an array of the key values. It's the best we can do.
-              value['id'] = clazz.primary_key.collect{|pk|value[pk.to_s]}
-            end
-          end
-
-          association_name_sym_to_class = {}
-          clazz.reflect_on_all_associations.each do |association|
-            association_name_sym_to_class[association.name] = association.class_name.constantize
-          end
-          value.keys.each do |key|
-            # assuming that associations are not suffixed with _attributes
-            if association_name_sym_to_class.keys.include?(key.to_sym)
-              result[key] = add_id_if_needed(association_name_sym_to_class[key.to_sym], value[key])
-            else
-              result[key] = value[key]
-            end
-          end
-          return result
-        else
-          return value
+          super(options)
         end
       end
     end

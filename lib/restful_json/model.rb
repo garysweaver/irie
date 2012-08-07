@@ -21,15 +21,7 @@ module RestfulJson
     #end
 
     def default_as_json_includes(*attr_names)
-      unless attr_names.nil?
-        if attr_names.is_a?(Array)
-          attr_names.each do |attr_name|
-            @@__as_json_includes_and_accepts_nested_attributes_for << attr_name if attr_name.is_a?(Symbol)
-          end
-        else
-          @@__as_json_includes_and_accepts_nested_attributes_for << attr_name
-        end
-      end
+      @@__as_json_includes_and_accepts_nested_attributes_for = Array.wrap(attr_names)
     end
 
     def as_json_includes_array
@@ -49,23 +41,17 @@ module RestfulJson
         was_already_as_jsoned = options[:restful_json_ancestors].include?(self.object_id)
         options[:restful_json_ancestors] << self.object_id
 
-        if options[:restful_json_only]
-          puts "restful_json_only=#{options[:restful_json_only]}"
-          # if specifies :restful_json_only via controller, it includes only what is specified as an :only and does not include associations
-          result = {}
-          options[:restful_json_only].each do |attr_name|
-            result[attr_name] = send(attr_name)
-          end
-          puts "returning #{result.inspect}"
-          add_id_if_needed(self.class, result)
-        elsif was_already_as_jsoned
-          puts "avoiding circular reference by just outputting the already as_json'd instance without its associations as_json"
+        if was_already_as_jsoned || options[:restful_json_no_includes] || options[:restful_json_only]
+          puts "avoiding circular reference by just outputting the already as_json'd instance without its associations as_json" if was_already_as_jsoned
+          puts "ignoring default_as_json_includes" if options[:restful_json_no_includes]
+          puts "restful_json_only=#{options[:restful_json_only]}" if options[:restful_json_only]
+
           # return all accessible attributes
           result = {}
           # solution to get keys from: http://stackoverflow.com/a/1526328/178651
           accessible_attributes = self.class.new.attributes.keys - self.class.protected_attributes.to_a
           accessible_attributes.each do |attr_name|
-            result[attr_name] = send(attr_name)
+            result[attr_name] = send(attr_name) if !options[:restful_json_only] || options[:restful_json_only].include?(attr_name)
           end
           puts "returning accessible attributes #{result.inspect}"
           add_id_if_needed(self.class, result)
@@ -77,7 +63,14 @@ module RestfulJson
           if options.try(:key?, :methods)
             as_json_includes = as_json_includes + options[:methods]
           end
+          
+          # apply includes client-supplied filter, not allowing client to supply non-allowed methods
+          if options[:restful_json_include] && options[:restful_json_include].is_a?(Array)
+            as_json_includes = as_json_includes.collect{|incl| incl if options[:restful_json_include].include?(incl)}.compact
+          end
+
           options[:methods] = as_json_includes
+
           puts "calling as_json(#{options.inspect})"
           add_id_if_needed(self.class, super(options))
         end
@@ -92,7 +85,7 @@ module RestfulJson
         elsif value.is_a?(Hash)
           result = {}
           unless value['id']
-            if clazz.primary_key.is_a?(String)
+            if clazz.primary_key.is_a?(String) || clazz.primary_key.is_a?(Symbol)
               value['id'] = value[clazz.primary_key]
             elsif clazz.primary_key.is_a?(Array)
               # composite_primary_keys gem returns primary_key as an array of symbols, but values in json hash are strings, so we'll get the key values as

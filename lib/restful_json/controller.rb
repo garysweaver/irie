@@ -112,8 +112,7 @@ module RestfulJson
         if request.referer && $restful_json_domains_providing_referer_path
           referer_uri = URI::parse(request.referer)
           # can take array or single
-          domains = ($restful_json_domains_providing_referer_path.is_a? Array) ? $restful_json_domains_providing_referer_path : [$restful_json_domains_providing_referer_path]
-          domains.each do |domain|
+          Array.wrap($restful_json_domains_providing_referer_path).each do |domain|
             if referer_uri.hostname.end_with?(domain)
               return referer_uri
             end
@@ -125,7 +124,10 @@ module RestfulJson
       def json_options
         # ?only=name,status will send as_json({restful_json_only: ['name','status']}) which forces :only and no associations for a simpler view
         # in addition, we're only selecting these fields in the query in index_it
-        options = params[:only] ? {restful_json_only: params[:only].split(',').collect{|s|s.to_sym}} : {}
+        options = {}
+        options[:restful_json_include] = params[:include].split(',').collect{|s|s.to_sym} if params[:include]
+        options[:restful_json_no_includes] = true if params[:no_includes]
+        options[:restful_json_only] = params[:only].split(',').collect{|s|s.to_sym} if params[:only]
         # this is a collection to avoid circular references
         options[:restful_json_ancestors] = []
         options

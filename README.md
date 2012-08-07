@@ -82,19 +82,19 @@ Note: Don't use any of these methods to allow or filter anything secure. If a us
 
 #### Only
 
-To return a simple view of a model, use the only param. This limits both the select in the SQL used and the json returned, e.g. to return the name and color attributes of foobars:
+To return a simple view of a model, use the only param. This limits both the select in the SQL used and the json returned. e.g. to return the name and color attributes of foobars:
 
     http://localhost:3000/foobars.json?only=name,color
 
 #### Uniq
 
-To return a simple view of a model, use the uniq param. This limits both the select in the SQL used and the json returned, e.g. to return unique/distinct colors of foobars:
+To return a simple view of a model, use the uniq param. This limits both the select in the SQL used and the json returned. e.g. to return unique/distinct colors of foobars:
 
     http://localhost:3000/foobars.json?only=color&uniq=
 
 #### JSON format
 
-as_json is extended to include attributes specified in default_as_json_includes, e.g.:
+as_json is extended to include methods/associations specified in default_as_json_includes, e.g.:
 
     default_as_json_includes :association_name_1, :association_name_2
 
@@ -102,6 +102,18 @@ So, if you want to automatically accept json association data in put/post and in
 
     accepts_nested_attributes_for :association_name_1, :association_name_2
     default_as_json_includes :association_name_1, :association_name_2
+
+#### No Associations
+
+To return a view of a model without associations, even if those associations are defined to be displayed via default_as_json_includes, use the no_associations param. e.g. to return the foobars accessible attributes only:
+
+    http://localhost:3000/foobars.json?no_includes=
+
+#### Some Associations
+
+To return a view of a model with only certain associations that you have rights to see, use the associations param. e.g. if the foo, bar, boo, and far associations are exposed via default_as_json_includes and you only want to show the foos and bars:
+
+    http://localhost:3000/foobars.json?include=foos,bars
 
 #### And Some Things Are Just a Little Bit Easier
 

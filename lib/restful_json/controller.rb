@@ -125,7 +125,10 @@ module RestfulJson
       def json_options
         # ?only=name,status will send as_json({restful_json_only: ['name','status']}) which forces :only and no associations for a simpler view
         # in addition, we're only selecting these fields in the query in index_it
-        params[:only] ? {restful_json_only: params[:only].split(',').collect{|s|s.to_sym}} : {}
+        options = params[:only] ? {restful_json_only: params[:only].split(',').collect{|s|s.to_sym}} : {}
+        # this is a collection to avoid circular references
+        options[:restful_json_ancestors] = []
+        options
       end
 
       # may be overidden in controller to have method-specific access control
@@ -160,12 +163,12 @@ module RestfulJson
         # how we'd set if we needed to reference in a view by its common plural name
         #instance_variable_set("@#{@__restful_json_model_plural}".to_sym, @value)
 
-          # ember-data:
-          #format.json { render json: {@__restful_json_model_plural.to_sym => @value} }
-          # angular:
+        # ember-data:
+        #format.json { render json: {@__restful_json_model_plural.to_sym => @value} }
+        # angular:
 
         respond_to do |format|
-          format.json { render json: @value.as_json(json_options) }
+          format.json { render json: @value.try(:as_json, json_options) }
         end
       end
 
@@ -248,7 +251,7 @@ module RestfulJson
           # ember-data:
           #format.json { render json: {@__restful_json_model_singular.to_sym => value} }
           # angular:
-          format.json { render json: @value.as_json(json_options) }
+          format.json { render json: @value.try(:as_json, json_options) }
         end
       end
 
@@ -291,7 +294,7 @@ module RestfulJson
             # ember-data:
             #format.json { render json: {@__restful_json_model_singular.to_sym => @value}, status: :created, location: @value }
             # angular:
-            format.json { render json: @value.as_json(json_options), status: :created, location: @value.as_json(json_options) }
+            format.json { render json: @value.try(:as_json, json_options), status: :created, location: @value.as_json(json_options) }
           else
             # note: status is magic- automatically sets HTTP code to 422 since status is unprocessable_entity
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
@@ -343,11 +346,11 @@ module RestfulJson
             # ember-data:
             # format.json { render json: {@__restful_json_model_singular.to_sym => @value}, status: :ok }
             # angular:
-            format.json { render json: @value.as_json(json_options), status: :ok }
+            format.json { render json: @value.try(:as_json, json_options), status: :ok }
           else
             # note: status is magic- automatically sets HTTP code to 422 since status is unprocessable_entity
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
-            format.json { render json: @value.errors, status: :unprocessable_entity }
+            format.json { render json: @value.try(:errors), status: :unprocessable_entity }
           end
         end
       end
@@ -402,23 +405,29 @@ module RestfulJson
       # Because most of the time having to specify (name)_attributes as the name of a key in the incoming json is a pain,
       # we'll change each key (name) to (name)_attributes if it is a name. Recurses the provided json, outputting a
       # a hash with the key names "fixed".
-      def append_attributes_to_association_key_names(clazz, json_hash)
-        puts "In append_attributes_to_association_key_names(#{clazz}, #{json_hash})"
-        result = {}
-        association_name_sym_to_class = {}
-        clazz.reflect_on_all_associations.each do |association|
-          association_name_sym_to_class[association.name] = association.class_name.constantize
-        end
-        json_hash.keys.each do |key|
-          if association_name_sym_to_class.keys.include?(key.to_sym)
-            result["#{key}_attributes".to_sym] = append_attributes_to_association_key_names(association_name_sym_to_class[key.to_sym], json_hash[key])
-          else
-            result[key] = json_hash[key]
+      def append_attributes_to_association_key_names(clazz, value)
+        puts "In append_attributes_to_association_key_names(#{clazz}, #{value})"
+        
+        if value.is_a?(Array)
+          return value.collect{|v|append_attributes_to_association_key_names(clazz, v)}
+        elsif value.is_a?(Hash)
+          result = {}
+          association_name_sym_to_class = {}
+          clazz.reflect_on_all_associations.each do |association|
+            association_name_sym_to_class[association.name] = association.class_name.constantize
           end
+          json_hash.keys.each do |key|
+            if association_name_sym_to_class.keys.include?(key.to_sym)
+              result["#{key}_attributes".to_sym] = append_attributes_to_association_key_names(association_name_sym_to_class[key.to_sym], json_hash[key])
+            else
+              result[key] = json_hash[key]
+            end
+          end
+          return result
+        else
+          return value
         end
-        result
       end
-      
     end
   end
 end

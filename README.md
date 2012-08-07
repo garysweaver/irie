@@ -105,13 +105,17 @@ So, if you want to automatically accept json association data in put/post and in
 
 #### And Some Things Are Just a Little Bit Easier
 
-##### 'id' Included in JSON
+##### 'id' Included in JSON, even for custom primary key or keys
 
 If you are setting a custom primary key via set_primary_key or self.primary= in your model, or using the composite_primary_keys gem, there is an 'id' attribute added to the attributes in every object returned (and its associations, and their associations, etc.) that contains the id that you would expect in the returned JSON (and whenever as_json is called).
 
 ##### You don't have to specify *_attributes when using accepts_nested_attributes_for
 
 With accepts_nested_attributes_for, Rails/ActiveRecord expects you to specify the key in the provided JSON by suffixing the key with _attributes, e.g. if you want to specify FlightCrewMembers on Airplane, you would have had to have sent in flight_crew_members_attributes instead of flight_crew_members. With restful_json, you only need to pass in flight_crew_members as the key as you'd expect.
+
+##### Circular references avoided
+
+If an object has already been expanded into its associations, if it is referenced again, it only emits JSON for the object's accessible attributes, not its associations.
 
 #### Customizing ActiveRecord Queries/Methods
 

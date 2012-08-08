@@ -385,7 +385,7 @@ module RestfulJson
       def create_it(restful_json_model_class=nil)
         json = request_json
         puts "Attempting #{restful_json_model_class.name}.new with request body #{json}"
-        parsed_and_converted_json = append_attributes_to_association_key_names(restful_json_model_class, json)
+        parsed_and_converted_json = parse_and_convert_json(restful_json_model_class, json)
         puts "Original JSON.parse(json) was #{JSON.parse(json)}"
         puts "Keyfixed JSON.parse(json) was #{converted_json}"
         @value = restful_json_model_class.new(parsed_and_converted_json)
@@ -438,7 +438,7 @@ module RestfulJson
         @value = restful_json_model_class.find(params[:id])
         json = request_json
         puts "Attempting #{restful_json_model_class.name}.update_attributes with request body #{json}"
-        parsed_and_converted_json = append_attributes_to_association_key_names(restful_json_model_class, json)
+        parsed_and_converted_json = parse_and_convert_json(restful_json_model_class, json)
         puts "Original JSON.parse(json) was #{JSON.parse(json)}"
         puts "Keyfixed JSON.parse(json) was #{converted_json}"
         success = @value.update_attributes(parsed_and_converted_json)
@@ -483,14 +483,14 @@ module RestfulJson
       # we'll change each key (name) to (name)_attributes if it is a name. Recurses the provided json, outputting a
       # a hash with the key names "fixed".
       def parse_and_convert_json(clazz, value)
-        puts "In append_attributes_to_association_key_names(#{clazz}, #{value})"
+        puts "In parse_and_convert_json(#{clazz}, #{value})"
 
         # append _attributes to association key names to make using 
 
         value = JSON.parse(value)
         
         if value.is_a?(Array)
-          return value.collect{|v|append_attributes_to_association_key_names(clazz, v)}
+          return value.collect{|v|parse_and_convert_json(clazz, v)}
         elsif value.is_a?(Hash)
           result = {}
           association_name_sym_to_class = {}
@@ -499,7 +499,7 @@ module RestfulJson
           end
           value.keys.each do |key|
             if association_name_sym_to_class.keys.include?(key.to_sym)
-              result["#{key}_attributes".to_sym] = append_attributes_to_association_key_names(association_name_sym_to_class[key.to_sym], value[key])
+              result["#{key}_attributes".to_sym] = parse_and_convert_json(association_name_sym_to_class[key.to_sym], value[key])
             else
               result[key] = value[key]
             end

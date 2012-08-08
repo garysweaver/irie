@@ -80,6 +80,22 @@ For example, if Foobar were to have an ActiveRecord attribute called "color" (be
 
 Note: Don't use any of these methods to allow or filter anything secure. If a user has access to the controller method, they have access to any format you define with one of these methods via the json_format request parameter or faking referer. The primary reason for these filters are to limit associations- not for security, but to reduce data returned in the request, thereby reducing traffic and time required for response.
 
+#### Support for AREL Predications
+
+By specifying a character that identifies an AREL predication is suffixed to the request parameter name, you can help filter data even further:
+
+    http://localhost:3000/foobars.json?foo_date^gteq=2012-08-08
+
+We currently support the following AREL predications: does_not_match, does_not_match_all, does_not_match_any, eq, eq_all, eq_any, gt, gt_all, gt_any, gteq, gteq_all, gteq_any, in, in_all, in_any, lt, lt_all, lt_any, lteq, lteq_all, lteq_any, matches, matches_all, matches_any, not_eq, not_eq_all, not_eq_any, not_in, not_in_all, and not_in_any:
+
+    http://localhost:3000/foobars.json?foo_date^eq_any=2012-08-08,2012-09-09
+
+To limit AREL predications that are supported, you can override supported_arel_predications(attr_name=nil) in your controller if you want, e.g. to only allow eq and not_eq, you might use:
+
+    def supported_arel_predications(attr_name=nil)
+      ['eq', 'not_eq']
+    end
+
 #### Only
 
 To return a simple view of a model, use the only param. This limits both the select in the SQL used and the json returned. e.g. to return the name and color attributes of foobars:
@@ -92,35 +108,90 @@ To return a simple view of a model, use the uniq param. This limits both the sel
 
     http://localhost:3000/foobars.json?only=color&uniq=
 
-#### JSON format
+#### Skip
 
-as_json is extended to include methods/associations specified in default_as_json_includes, e.g.:
+To skip rows returned, use 'skip'. It is called take, because skip is the AREL equivalent of SQL OFFSET:
 
-    default_as_json_includes :association_name_1, :association_name_2
+    http://localhost:3000/foobars.json?skip=5
 
-So, if you want to automatically accept json association data in put/post and include it in the json that is emitted by the services, you'd do:
+#### Take
 
-    accepts_nested_attributes_for :association_name_1, :association_name_2
-    default_as_json_includes :association_name_1, :association_name_2
+To limit the number of rows returned, use 'take'. It is called take, because take is the AREL equivalent of SQL LIMIT:
 
-#### Including id and other non-mass-assignable attributes in the JSON
+    http://localhost:3000/foobars.json?take=5
 
-To include extra non-mass-assignable attributes in the json, add those to default_as_json_includes. id is a common attribute that needs to be returned in the json but you should be allowed to set:
+#### Paging Results
 
-    accepts_nested_attributes_for :association_name_1, :association_name_2
-    default_as_json_includes :id, :association_name_1, :association_name_2
+Combine skip and take for manual completely customized paging.
+
+Get the first page of 15 results:
+
+    http://localhost:3000/foobars.json?take=15
+
+Second page of 15 results:
+
+    http://localhost:3000/foobars.json?skip=15&take=15
+
+Third page of 15 results:
+
+    http://localhost:3000/foobars.json?skip=30&take=15
+
+First page of 30 results:
+
+    http://localhost:3000/foobars.json?take=30
+
+Second page of 30 results:
+
+    http://localhost:3000/foobars.json?skip=30&take=30
+
+Third page of 30 results:
+
+    http://localhost:3000/foobars.json?skip=60&take=30
+
 
 #### No Associations
 
-To return a view of a model without associations, even if those associations are defined to be displayed via default_as_json_includes, use the no_associations param. e.g. to return the foobars accessible attributes only:
+To return a view of a model without associations, even if those associations are defined to be displayed via as_json_includes, use the no_associations param. e.g. to return the foobars accessible attributes only:
 
     http://localhost:3000/foobars.json?no_includes=
 
 #### Some Associations
 
-To return a view of a model with only certain associations that you have rights to see, use the associations param. e.g. if the foo, bar, boo, and far associations are exposed via default_as_json_includes and you only want to show the foos and bars:
+To return a view of a model with only certain associations that you have rights to see, use the associations param. e.g. if the foo, bar, boo, and far associations are exposed via as_json_includes and you only want to show the foos and bars:
 
     http://localhost:3000/foobars.json?include=foos,bars
+
+### Models
+
+ActiveRecord::Base gets a few new class methods and new as_json behavior!  
+
+#### JSON format
+
+as_json is extended to include methods/associations specified in as_json_includes, e.g.:
+
+    as_json_includes :association_name_1, :association_name_2
+
+So, if you want to automatically accept json association data in put/post and include it in the json that is emitted by the services, you'd do:
+
+    accepts_nested_attributes_for :association_name_1, :association_name_2
+    as_json_includes :association_name_1, :association_name_2
+
+#### Including non-mass-assignable attributes in the JSON
+
+To include extra non-mass-assignable attributes in the json, add those to as_json_includes. id is a common attribute that needs to be returned in the json but you should be allowed to set:
+
+    accepts_nested_attributes_for :association_name_1, :association_name_2
+    as_json_includes :association_name_1, :association_name_2
+
+#### IDs are included by default
+
+Most of the time when working with a RESTful service, you'll want it to return the id of each object. This is done by default. If your object doesn't have an ID or you don't want it included, you can specifically exclude it, e.g.:
+
+    as_json_excludes :id
+
+#### Excluding other attributes and associations
+
+    as_json_excludes :foo, :bars
 
 #### You don't have to specify *_attributes in POSTed or PUT JSON when using accepts_nested_attributes_for
 
@@ -128,7 +199,21 @@ With accepts_nested_attributes_for, Rails/ActiveRecord expects you to specify th
 
 ##### Circular references avoided
 
-If an object has already been expanded into its associations, if it is referenced again, it only emits JSON for the object's accessible attributes, not its associations.
+If an object has already been expanded into its associations, if it is referenced again, as_json only emits JSON for the object's accessible attributes, not its associations.
+
+### Controller
+
+#### With Parameter Wrapping
+
+Our AngularJS integration seemed to be easier without any wrapping, so by default RESTful JSON does not wrap response data. You can change this and have it take and specify the singular or plural model name by setting the RESTFUL_JSON_WRAPPED environment variable or the global variable $restful_json_wrapped=true in your environment.rb:
+
+    $restful_json_wrapped=true
+
+Or in the controller, you can specify:
+
+    def restful_json_wrapped
+      true
+    end
 
 #### Customizing ActiveRecord Queries/Methods
 
@@ -136,84 +221,88 @@ Basic querying, filtering, and sorting is provided out-of-the-box, so the follow
 
 To do this, you may implement some or all of the following methods: index_it, show_it, create_it, update_it, and/or destroy_it. These correspond to the index, show, create, update, and destroy methods in the RESTful JSON parent controller.
 
-For example, to have basic filtering behavior in the index and basic show/create/update/destroy, you might use:
+For example, to only provide very basic behavior and pass models via the response body for POST/PUT:
+
+    def index_it
+      @value = Foo.all
+    end
+
+    def show_it
+      @value = Foo.find(params[:id])
+    end
+
+    def create_it
+      @value = Foo.new(JSON.parse(request.body.read))
+      @value.save
+    end
+
+    def update_it
+      @value.update_attributes(JSON.parse(request.body.read))
+    end
+
+    def destroy_it
+      Foo.where(id: params[:id]).first ? Foo.destroy(params[:id]) : true
+    end
+
+Or in an abstract controller:
 
     def index_it(model_class)
-      value = model_class.scoped
-      allowed_activerecord_model_attribute_keys.each do |attribute_key|
-        param = params[attribute_key]
-        value = value.where(attribute_key => param) if param.present?
-      end
-      value
+      @value = model_class.all
     end
 
-    def show_it(model_class, id)
-      model_class.find(id)
+    def show_it(model_class)
+      @value = model_class.find(params[:id])
     end
 
-    def create_it(model_class, data)
-      model_class.new(data)
+    def create_it(model_class)
+      @value = model_class.new(JSON.parse(request.body.read))
+      @value.save
     end
 
-    def update_it(model_class, id)
-      model_class.find(id)
+    def update_it(model_class)
+      @value.update_attributes(JSON.parse(request.body.read))
     end
 
-    def destroy_it(model_class, id)
-      model_class.find(id).destroy
+    def destroy_it(model_class)
+      model_class.where(id: params[:id]).first ? model_class.destroy(params[:id]) : true
     end
 
-You can also use custom variable names that make the code clearer to read. For example, in our Foobar example, you might use:
+Or specifying the input as a 'foo' request parameter rather than in response body, similar to $restful_json_wrapped=true behavior:
 
-    def show_it(foobar_class, foobar_id)
-      foobar_class.find(foobar_id)
+    def index_it
+      @value = Foo.all
     end
 
-or even ignore the passed in Foobar class and use your own. (This may not look as clear, though.):
-
-    def show_it(foobar_class, foobar_id)
-      Foobar.find(foobar_id)
+    def show_it
+      @value = Foo.find(params[:id])
     end
 
-However, if you have some great generic code you are adding to all of your controllers to override, it might be better to fork the restful_json gem or extend it with your own gem, if it is something others could use.
-
-#### Refactoring Customized Controllers
-
-You could extend it locally with your own custom parent controller.
-
-For example, you would do this in app/controllers/my_base_controller.rb to scope the index query to only show data from the beginning of the year (UTC), while still providing some basic dynamic filtering:
-
-    class YearScopingController < ApplicationController
-
-      acts_as_restful_json
-
-      def index_it(model_class)
-        value = model_class.scoped
-        value = value.where("created_at <= ?", Time.utc(Time.now.year, 1, 1))
-        allowed_activerecord_model_attribute_keys.each do |attribute_key|
-          param = params[attribute_key]
-          value = value.where(attribute_key => param) if param.present?
-        end
-        value
-      end
-
+    def create_it
+      @value = Foo.new(params[:foo])
+      @value.save
     end
 
-and then multiple controllers could use that, assuming they have an attribute called created_at:
-
-    class FoobarsController < YearScopingController
-    end
-    
-    class BarfoosController < YearScopingController
+    def update_it
+      @value.update_attributes(params[:foo])
     end
 
-#### CORS
+    def destroy_it
+      Foo.where(id: params[:id]).first ? Foo.destroy(params[:id]) : true
+    end
+
+### CORS
 
 If you have javascript/etc. code in the client that is running under a different host or port than Rails server, then you are cross-origin/cross-domain and we handle this with [CORS][cors].
 
 By default CORS is disabled, so to enable it you can either set the environment variable RESTFUL_JSON_CORS_GLOBALLY_ENABLED, or in config/environment.rb or for a specific environment like config/environments/development.rb you can add the following global variable:
 
     $restful_json_cors_globally_enabled = true
+
+Or in the controller, you can specify:
+
+    def restful_json_cors_enabled
+      true
+    end
 
 By default, we make CORS just allow everything, so the whole cross-origin/cross-domain thing goes away and you can get to developing locally with your Javascript app that isn't even being served by Rails.
 

@@ -1,5 +1,19 @@
 module RestfulJson
   module Controller
+    @@__as_json_includes_and_accepts_nested_attributes_for=[]
+
+    # Generated from Arel::Predications.public_instance_methods.collect{|c|c.to_s}.sort. To lockdown a little, defining these specifically.
+    # See: https://github.com/rails/arel/blob/master/lib/arel/predications.rb
+    SUPPORTED_AREL_PREDICATIONS = ['does_not_match', 'does_not_match_all', 'does_not_match_any', 'eq', 'eq_all', 'eq_any', 'gt', 'gt_all', 
+                                   'gt_any', 'gteq', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt', 'lt_all', 'lt_any', 'lteq', 
+                                   'lteq_all', 'lteq_any', 'matches', 'matches_all', 'matches_any', 'not_eq', 'not_eq_all', 'not_eq_any', 
+                                   'not_in', 'not_in_all', 'not_in_any']
+
+    SUPPORTED_AREL_PREDICATIONS_THAT_SPLIT_VALUE = ['does_not_match_all', 'does_not_match_any', 'eq_all', 'eq_any', 'gt_all', 
+                                   'gt_any', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt_all', 'lt_any', 
+                                   'lteq_all', 'lteq_any', 'matches_all', 'matches_any', 'not_eq_all', 'not_eq_any', 
+                                   'not_in', 'not_in_all', 'not_in_any']
+
     def acts_as_restful_json(options = {})
       send :include, InstanceMethods
       send :before_filter, :sanity_check
@@ -7,6 +21,59 @@ module RestfulJson
     end
     
     module InstanceMethods
+
+      # as method so can be overriden
+      def supported_arel_predications(attr_name=nil)
+        SUPPORTED_AREL_PREDICATIONS
+      end
+
+      # as method so can be overriden
+      def arel_predication_split
+        '^'
+      end
+      
+      # as method so can be overriden
+      def multiple_value_arel_predications(attr_name=nil)
+        SUPPORTED_AREL_PREDICATIONS_THAT_SPLIT_VALUE
+      end
+
+      # as method so can be overriden
+      def value_split
+        ','
+      end
+
+      def restful_json_wrapped
+        ENV['RESTFUL_JSON_WRAPPED'] || $restful_json_wrapped
+      end
+
+      def restful_json_cors_enabled
+        ENV['RESTFUL_JSON_CORS_GLOBALLY_ENABLED'] || $restful_json_cors_globally_enabled
+      end
+
+      def request_json
+        if restful_json_wrapped
+          params[@__restful_json_model_singular]
+        else
+          "#{request.body.read}"
+        end
+      end
+
+      def single_response_json(value)
+        if restful_json_wrapped
+          {@__restful_json_model_singular.to_sym => value}
+        else
+          value
+        end
+      end
+
+      def plural_response_json(value)
+        if restful_json_wrapped
+          {@__restful_json_model_plural.to_sym => value}
+        else
+          value
+        end
+      end
+
       def sanity_check
         puts "Request accepted #{request}"
         #puts "params #{params}"
@@ -73,7 +140,7 @@ module RestfulJson
       # text/plain. Modified from Tom Sheffler's example in 
       # http://www.tsheffler.com/blog/?p=428 to allow customization.
       def cors_preflight_check?
-        unless ENV['RESTFUL_JSON_CORS_GLOBALLY_ENABLED'] || $restful_json_cors_globally_enabled
+        unless restful_json_cors_enabled
           if request.method == :options
             puts "CORS preflight check"
             headers['Access-Control-Allow-Origin'] =  '*'
@@ -94,7 +161,7 @@ module RestfulJson
       # Modified from Tom Sheffler's example in http://www.tsheffler.com/blog/?p=428
       # to allow customization.
       def cors_set_access_control_headers
-        unless ENV['RESTFUL_JSON_CORS_GLOBALLY_ENABLED'] || $restful_json_cors_globally_enabled
+        unless restful_json_cors_enabled
           headers['Access-Control-Allow-Origin'] = '*'
           headers['Access-Control-Allow-Methods'] = 'POST, GET, PUT, DELETE, OPTIONS'
           headers['Access-Control-Max-Age'] = '1728000'
@@ -108,26 +175,13 @@ module RestfulJson
         true
       end
 
-      def allowed_referer_uri
-        if request.referer && $restful_json_domains_providing_referer_path
-          referer_uri = URI::parse(request.referer)
-          # can take array or single
-          Array.wrap($restful_json_domains_providing_referer_path).each do |domain|
-            if referer_uri.hostname.end_with?(domain)
-              return referer_uri
-            end
-          end
-        end
-        nil
-      end
-
       def json_options
         # ?only=name,status will send as_json({restful_json_only: ['name','status']}) which forces :only and no associations for a simpler view
         # in addition, we're only selecting these fields in the query in index_it
         options = {}
-        options[:restful_json_include] = params[:include].split(',').collect{|s|s.to_sym} if params[:include]
+        options[:restful_json_include] = params[:include].split(value_split).collect{|s|s.to_sym} if params[:include]
         options[:restful_json_no_includes] = true if params[:no_includes]
-        options[:restful_json_only] = params[:only].split(',').collect{|s|s.to_sym} if params[:only]
+        options[:restful_json_only] = params[:only].split(value_split).collect{|s|s.to_sym} if params[:only]
         # this is a collection to avoid circular references
         options[:restful_json_ancestors] = []
         options
@@ -170,11 +224,11 @@ module RestfulJson
         # angular:
 
         respond_to do |format|
-          format.json { render json: @value.try(:as_json, json_options) }
+          format.json { render json: plural_response_json(@value.try(:as_json, json_options)) }
         end
       end
 
-      def index_it(restful_json_model_class)
+      def index_it(restful_json_model_class=nil)
         # TODO: continue to explore filtering, etc. and look into extension of this project to use Sunspot/SOLR.
         # TODO: Darrel Miller/Ted M. Young suggest reviewing these: http://stackoverflow.com/a/4028874/178651
         #       http://www.ietf.org/rfc/rfc3986.txt  http://tools.ietf.org/html/rfc6570
@@ -191,13 +245,33 @@ module RestfulJson
         value = restful_json_model_class.scoped
         # if "only" request param specified, only return those fields- this is important for uniq to be useful
         if params[:only]
-          value.select(params[:only].split(',').collect{|s|s.to_sym})
+          value.select(params[:only].split(value_split).collect{|s|s.to_sym})
         end
 
+        # handle foo=bar, foo^eq=bar, foo^gt=bar, foo^gteq=bar, etc.
         allowed_activerecord_model_attribute_keys.each do |attribute_key|
           param = params[attribute_key]
           value = value.where(attribute_key => param) if param.present?
+          # supported AREL predications are suffix of ^ and predication in the parameter name
+          supported_arel_predications.each do |arel_predication|
+            param = params["#{attribute_key}#{arel_predication_split}#{arel_predication}"]
+            if param.present?
+              one_or_more_param = multiple_value_arel_predications.include?(arel_predication) ? param.split(value_split) : param
+              value = value.where(value[attribute_key.to_sym].call(arel_predication, one_or_more_param))
+            end
+          end
         end
+
+        # AREL equivalent of SQL OFFSET
+        if params[:skip]
+          value = value.take(params[:skip])
+        end
+
+        # AREL equivalent of SQL LIMIT
+        if params[:take]
+          value = value.take(params[:take])
+        end
+
         # ?uniq= will return unique records
         if params[:uniq]
           value = value.uniq
@@ -253,11 +327,11 @@ module RestfulJson
           # ember-data:
           #format.json { render json: {@__restful_json_model_singular.to_sym => value} }
           # angular:
-          format.json { render json: @value.try(:as_json, json_options) }
+          format.json { render json: single_response_json(@value.try(:as_json, json_options)) }
         end
       end
 
-      def show_it(restful_json_model_class)
+      def show_it(restful_json_model_class=nil)
         puts "Attempting to show #{restful_json_model_class.try(:name)} with id #{params[:id]}"
         # could just return value, but trying to be consistent with create/update that need to return flag of success
         @value = restful_json_model_class.find(params[:id])
@@ -296,22 +370,22 @@ module RestfulJson
             # ember-data:
             #format.json { render json: {@__restful_json_model_singular.to_sym => @value}, status: :created, location: @value }
             # angular:
-            format.json { render json: @value.try(:as_json, json_options), status: :created, location: @value.as_json(json_options) }
+            format.json { render json: single_response_json(@value.try(:as_json, json_options)), status: :created, location: @value.as_json(json_options) }
           else
             # note: status is magic- automatically sets HTTP code to 422 since status is unprocessable_entity
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
-            format.json { render json: @value.try(:as_json, json_options), status: :unprocessable_entity }
+            format.json { render json: @value.errors, status: :unprocessable_entity }
           end
         end
       end
 
-      def create_it(restful_json_model_class)
-        json = "#{request.body.read}"
+      def create_it(restful_json_model_class=nil)
+        json = request_json
         puts "Attempting #{restful_json_model_class.name}.new with request body #{json}"
-        converted_json = append_attributes_to_association_key_names(restful_json_model_class, JSON.parse(json))
+        parsed_and_converted_json = append_attributes_to_association_key_names(restful_json_model_class, json)
         puts "Original JSON.parse(json) was #{JSON.parse(json)}"
         puts "Keyfixed JSON.parse(json) was #{converted_json}"
-        @value = restful_json_model_class.new(JSON.parse(json))
+        @value = restful_json_model_class.new(parsed_and_converted_json)
         @value.save
       end
 
@@ -348,7 +422,7 @@ module RestfulJson
             # ember-data:
             # format.json { render json: {@__restful_json_model_singular.to_sym => @value}, status: :ok }
             # angular:
-            format.json { render json: @value.try(:as_json, json_options), status: :ok }
+            format.json { render json: single_response_json(@value.try(:as_json, json_options)), status: :ok }
           else
             # note: status is magic- automatically sets HTTP code to 422 since status is unprocessable_entity
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
@@ -357,14 +431,14 @@ module RestfulJson
         end
       end
 
-      def update_it(restful_json_model_class)
+      def update_it(restful_json_model_class=nil)
         @value = restful_json_model_class.find(params[:id])
-        json = "#{request.body.read}"
+        json = request_json
         puts "Attempting #{restful_json_model_class.name}.update_attributes with request body #{json}"
-        converted_json = append_attributes_to_association_key_names(restful_json_model_class, JSON.parse(json))
+        parsed_and_converted_json = append_attributes_to_association_key_names(restful_json_model_class, json)
         puts "Original JSON.parse(json) was #{JSON.parse(json)}"
         puts "Keyfixed JSON.parse(json) was #{converted_json}"
-        success = @value.update_attributes(converted_json)
+        success = @value.update_attributes(parsed_and_converted_json)
         success
       end
 
@@ -397,18 +471,20 @@ module RestfulJson
         end
       end
 
-      def destroy_it(restful_json_model_class)
+      def destroy_it(restful_json_model_class=nil)
         puts "Attempting to destroy #{restful_json_model_class.try(:name)} with id #{params[:id]}"
         restful_json_model_class.where(id: params[:id]).first ? restful_json_model_class.destroy(params[:id]) : true
       end
 
-    protected
-
       # Because most of the time having to specify (name)_attributes as the name of a key in the incoming json is a pain,
       # we'll change each key (name) to (name)_attributes if it is a name. Recurses the provided json, outputting a
       # a hash with the key names "fixed".
-      def append_attributes_to_association_key_names(clazz, value)
+      def parse_and_convert_json(clazz, value)
         puts "In append_attributes_to_association_key_names(#{clazz}, #{value})"
+
+        # append _attributes to association key names to make using 
+
+        value = JSON.parse(value)
         
         if value.is_a?(Array)
           return value.collect{|v|append_attributes_to_association_key_names(clazz, v)}
@@ -418,11 +494,11 @@ module RestfulJson
           clazz.reflect_on_all_associations.each do |association|
             association_name_sym_to_class[association.name] = association.class_name.constantize
           end
-          json_hash.keys.each do |key|
+          value.keys.each do |key|
             if association_name_sym_to_class.keys.include?(key.to_sym)
-              result["#{key}_attributes".to_sym] = append_attributes_to_association_key_names(association_name_sym_to_class[key.to_sym], json_hash[key])
+              result["#{key}_attributes".to_sym] = append_attributes_to_association_key_names(association_name_sym_to_class[key.to_sym], value[key])
             else
-              result[key] = json_hash[key]
+              result[key] = value[key]
             end
           end
           return result

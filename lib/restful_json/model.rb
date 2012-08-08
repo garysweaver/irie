@@ -70,7 +70,7 @@ module RestfulJson
         # add id to list of attributes we want, unless it is explicitly excluded
         attrs = ['id'] + accessible_attributes + includes_without_associations - excludes
         attrs = attrs - options[:except] if options.try(:key?, :except)
-        attrs.each do |attr_name|
+        attrs.collect{|m|m.to_sym}.uniq.each do |attr_name|
           result[attr_name] = send(attr_name) if !options[:restful_json_only] || options[:restful_json_only].collect{|v|v.to_sym}.include?(attr_name.to_sym)
         end
 
@@ -91,7 +91,7 @@ module RestfulJson
         end
         
         # add id to list of attributes we want, unless it is explicitly excluded
-        options[:methods] = ['id'] + includes_with_associations - excludes
+        options[:methods] = ([:id] + includes_with_associations - excludes).collect{|m|m.to_sym}.uniq
 
         if options.try(:key?, :except)
           options[:except] = options[:except] + excludes

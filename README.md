@@ -5,7 +5,7 @@ A gem that loads a class called RestfulJson::Controller that extends your Applic
 
 The intent is to allow a simple way to use Rails as a RESTful JSON service backend for a javascript-based front-end. Some believe that you should have the boilerplate code all over your controllers, which you may decide is better for you, but using restful-json will save you some code and opts for a simpler implementation.
 
-The controller implementation borrows heavily from Dan Gebhardt's example in [ember_data_example][ember_data_example] even though it is just a generic RESTful JSON service implementation that is Javascript-friendly and isn't meant to be ember-specific- in fact, I'm testing it with [angular.js][angular].
+The original controller implementation borrowed heavily from Dan Gebhardt's example in [ember_data_example][ember_data_example], but we are using it with [AngularJS][angular].
 
 ### Setup
 
@@ -82,18 +82,42 @@ Note: Don't use any of these methods to allow or filter anything secure. If a us
 
 #### Support for AREL Predications
 
-By specifying a character that identifies an AREL predication is suffixed to the request parameter name, you can help filter data even further:
+By specifying a character that identifies an AREL predication is suffixed to the request parameter name after a character you can customize, you can help filter data even further:
 
-    http://localhost:3000/foobars.json?foo_date^gteq=2012-08-08
+    http://localhost:3000/foobars.json?foo_date!gteq=2012-08-08
 
 We currently support the following AREL predications: does_not_match, does_not_match_all, does_not_match_any, eq, eq_all, eq_any, gt, gt_all, gt_any, gteq, gteq_all, gteq_any, in, in_all, in_any, lt, lt_all, lt_any, lteq, lteq_all, lteq_any, matches, matches_all, matches_any, not_eq, not_eq_all, not_eq_any, not_in, not_in_all, and not_in_any:
 
-    http://localhost:3000/foobars.json?foo_date^eq_any=2012-08-08,2012-09-09
+    http://localhost:3000/foobars.json?foo_date!eq_any=2012-08-08,2012-09-09
 
-To limit AREL predications that are supported, you can override supported_arel_predications(attr_name=nil) in your controller if you want, e.g. to only allow eq and not_eq, you might use:
+To limit AREL predications that are supported, you can override supported_arel_predications(attr_name=nil) in your controller if you want. Here are the defaults:
 
     def supported_arel_predications(attr_name=nil)
-      ['eq', 'not_eq']
+      ['does_not_match', 'does_not_match_all', 'does_not_match_any', 'eq', 'eq_all', 'eq_any', 'gt', 'gt_all', 
+        'gt_any', 'gteq', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt', 'lt_all', 'lt_any', 'lteq', 
+        'lteq_all', 'lteq_any', 'matches', 'matches_all', 'matches_any', 'not_eq', 'not_eq_all', 'not_eq_any', 
+        'not_in', 'not_in_all', 'not_in_any']
+    end
+
+To change the AREL predication delimiter in the controller, change the '!' to something else:
+
+    def arel_predication_split
+      '!'
+    end
+
+To change the split for multiple values in the controller, change the ',' to something else:
+
+    def value_split
+      ','
+    end
+
+For some predications, we don't split, just to not split for something we can't take a multiple value for anyway. Here are the defaults:
+
+    def multiple_value_arel_predications(attr_name=nil)
+      ['does_not_match_all', 'does_not_match_any', 'eq_all', 'eq_any', 'gt_all', 
+       'gt_any', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt_all', 'lt_any', 
+       'lteq_all', 'lteq_any', 'matches_all', 'matches_any', 'not_eq_all', 'not_eq_any', 
+       'not_in', 'not_in_all', 'not_in_any']
     end
 
 #### Only

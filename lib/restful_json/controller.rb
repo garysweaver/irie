@@ -29,7 +29,7 @@ module RestfulJson
 
       # as method so can be overriden
       def arel_predication_split
-        '^'
+        '!'
       end
       
       # as method so can be overriden
@@ -242,6 +242,7 @@ module RestfulJson
 
         # Using scoped and separate wheres if params present similar to solution provided by
         # John Gibb in http://stackoverflow.com/a/5820947/178651
+        t = restful_json_model_class.arel_table
         value = restful_json_model_class.scoped
         # if "only" request param specified, only return those fields- this is important for uniq to be useful
         if params[:only]
@@ -250,6 +251,7 @@ module RestfulJson
 
         # handle foo=bar, foo^eq=bar, foo^gt=bar, foo^gteq=bar, etc.
         allowed_activerecord_model_attribute_keys.each do |attribute_key|
+          puts "Finding #{restful_json_model_class}"
           param = params[attribute_key]
           value = value.where(attribute_key => param) if param.present?
           # supported AREL predications are suffix of ^ and predication in the parameter name
@@ -257,7 +259,8 @@ module RestfulJson
             param = params["#{attribute_key}#{arel_predication_split}#{arel_predication}"]
             if param.present?
               one_or_more_param = multiple_value_arel_predications.include?(arel_predication) ? param.split(value_split) : param
-              value = value.where(value[attribute_key.to_sym].call(arel_predication, one_or_more_param))
+              puts ".where(value[#{attribute_key.to_sym.inspect}].call(#{arel_predication.to_sym.inspect}, '#{one_or_more_param}'))"
+              value = value.where(t[attribute_key.to_sym].try(arel_predication.to_sym, one_or_more_param))
             end
           end
         end

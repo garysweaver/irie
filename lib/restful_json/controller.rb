@@ -412,12 +412,13 @@ module RestfulJson
       end
       
       def create_it(restful_json_model_class)
-        json = request_json
-        puts "Attempting #{restful_json_model_class.name}.new with request body #{json}"
-        parsed_and_converted_json = parse_and_convert_json(restful_json_model_class, json)
-        puts "Original JSON.parse(json) was #{JSON.parse(json)}"
-        puts "Keyfixed JSON.parse(json) was #{converted_json}"
+        parsed_request_json = JSON.parse(request_json)
+        puts "Converting incoming JSON if needed: #{parsed_request_json.inspect}"
+        start = Time.now
+        parsed_and_converted_json = convert_parsed_json(restful_json_model_class, parsed_request_json)
+        puts "Time to convert: #{Time.now - start}"
         @value = restful_json_model_class.new(parsed_and_converted_json)
+        puts "Attempting #{restful_json_model_class.name}.save with converted JSON: #{parsed_and_converted_json.inspect}"
         @value.save
       end
       
@@ -465,11 +466,12 @@ module RestfulJson
       
       def update_it(restful_json_model_class)
         @value = restful_json_model_class.find(params[:id])
-        json = request_json
-        puts "Attempting #{restful_json_model_class.name}.update_attributes with request body #{json}"
-        parsed_and_converted_json = parse_and_convert_json(restful_json_model_class, json)
-        puts "Original JSON.parse(json) was #{JSON.parse(json)}"
-        puts "Keyfixed JSON.parse(json) was #{converted_json}"
+        parsed_request_json = JSON.parse(request_json)
+        puts "Converting incoming JSON if needed: #{parsed_request_json.inspect}"
+        start = Time.now
+        parsed_and_converted_json = convert_parsed_json(restful_json_model_class, parsed_request_json)
+        puts "Time to convert: #{Time.now - start}"
+        puts "Attempting #{restful_json_model_class.name}.update_attributes with converted JSON: #{parsed_and_converted_json.inspect}"
         success = @value.update_attributes(parsed_and_converted_json)
         success
       end
@@ -518,10 +520,10 @@ module RestfulJson
       #
       # Finally we'll just ignore all attributes that the client may not have meant to send in, with the exception of
       # id which will assume the client wanted to update.
-      def parse_and_convert_json(clazz, value)
-        puts "In parse_and_convert_json(#{clazz}, #{value})"
+      def convert_parsed_json(clazz, value)
+        puts "In convert_parsed_json(#{clazz}, #{value})"
         
-        result = JSON.parse(value)
+        result = value.dup
         
         # Create a reference hash of association names to their classes
         association_name_sym_to_association = {}
@@ -589,12 +591,12 @@ module RestfulJson
         # Append _attributes to associations that haven't gotten the axe yet, and expand those associations.
         if restful_json_suffix_attributes
           if result.is_a?(Array)
-            result = result.collect{|v|parse_and_convert_json(clazz, v)}
+            result = result.collect{|v|convert_parsed_json(clazz, v)}
           elsif result.is_a?(Hash)
             converted_result = {}
             result.keys.each do |key|
               if association_name_sym_to_class.keys.include?(key.to_sym)
-                converted_result["#{key}_attributes".to_sym] = parse_and_convert_json(association_name_sym_to_association[key.to_sym].class_name.constantize, value[key])
+                converted_result["#{key}_attributes".to_sym] = convert_parsed_json(association_name_sym_to_association[key.to_sym].class_name.constantize, value[key])
               else
                 converted_result[key] = value[key]
               end

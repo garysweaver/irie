@@ -40,7 +40,7 @@ Just start the Rails server:
 
     rails s
 
-### The JSON Services
+### The JSON services
 
 #### Basics
 
@@ -94,7 +94,7 @@ If you want to change this behavior for a specific param or for all, you may imp
       value && ['NULL','null','nil',''].include?(value.strip) ? nil : value
     end
 
-#### Support for AREL Predications
+#### Support for AREL predications
 
 By specifying a character that identifies an AREL predication is suffixed to the request parameter name after a character you can customize, you can help filter data even further:
 
@@ -158,7 +158,7 @@ To limit the number of rows returned, use 'take'. It is called take, because tak
 
     http://localhost:3000/foobars.json?take=5
 
-#### Paging Results
+#### Paging results
 
 Combine skip and take for manual completely customized paging.
 
@@ -187,13 +187,13 @@ Third page of 30 results:
     http://localhost:3000/foobars.json?skip=60&take=30
 
 
-#### No Associations
+#### No associations
 
 To return a view of a model without associations, even if those associations are defined to be displayed via as_json_includes, use the no_associations param. e.g. to return the foobars accessible attributes only:
 
     http://localhost:3000/foobars.json?no_includes=
 
-#### Some Associations
+#### Some associations
 
 To return a view of a model with only certain associations that you have rights to see, use the associations param. e.g. if the foo, bar, boo, and far associations are exposed via as_json_includes and you only want to show the foos and bars:
 
@@ -237,7 +237,23 @@ If an object has already been expanded into its associations, if it is reference
 
 ### Controller
 
-#### Scavenge Bad Associations for ID
+#### Do updates without having to put the id in the URL, just put the id in the JSON
+
+Enabled by default.
+
+The controller can just figure out whether it is a create by no 'id' being set in the JSON and an update of the 'id' is set. No need to worry about POST, PUT methods or the URL, just POST everything to the create URL.
+
+You can change this by setting the RESTFUL_JSON_INTUIT_POST_OR_PUT_METHOD environment variable or the global variable $restful_json_intuit_post_or_put_method in your environment.rb:
+
+      $restful_json_intuit_post_or_put_method = false
+
+Or via overriding the following method on the controller:
+      
+      def restful_json_intuit_post_or_put_method
+        ENV['RESTFUL_JSON_INTUIT_POST_OR_PUT_METHOD'] || $restful_json_intuit_post_or_put_method || true
+      end
+
+#### Scavenge bad associations for ID
 
 Enabled by default.
 
@@ -253,7 +269,7 @@ Or via overriding the following method on the controller:
         ENV['RESTFUL_JSON_SCAVENGE_BAD_ASSOCIATIONS_FOR_ID_ONLY'] || $restful_json_scavenge_bad_associations_for_id_only || true
       end
 
-#### Ignore Attributes and Associations You Didn't Mean to Pass in the JSON
+#### Ignore attributes and associations you didn't mean to pass in the JSON
 
 Enabled by default.
 
@@ -283,7 +299,7 @@ Or via overriding the following method on the controller:
         ENV['RESTFUL_JSON_SUFFIX_ATTRIBUTES'] || $restful_json_suffix_attributes || true
       end
 
-#### With Parameter Wrapping
+#### With parameter wrapping
 
 Our AngularJS integration seemed to be easier without any wrapping, so by default RESTful JSON does not wrap response data. You can change this and have it take and specify the singular or plural model name by setting the RESTFUL_JSON_WRAPPED environment variable or the global variable $restful_json_wrapped in your environment.rb:
 
@@ -295,7 +311,7 @@ Or in the controller, you can specify:
       true
     end
 
-#### Customizing ActiveRecord Queries/Methods
+#### Customizing ActiveRecord queries/methods
 
 Basic querying, filtering, and sorting is provided out-of-the-box, so the following shouldn't be needed for basic usage. But, in some cases you might need to just change the implementation. In fact you may choose to do this in all of your controllers if you wish, such that RESTful JSON would only be providing the JSON formatting and, optionally, CORS.
 
@@ -386,7 +402,7 @@ Or in the controller, you can specify:
 
 By default, we make CORS just allow everything, so the whole cross-origin/cross-domain thing goes away and you can get to developing locally with your Javascript app that isn't even being served by Rails.
 
-##### Advanced CORS Usage
+##### Advanced CORS usage
 
 So, if you enabled CORS, then CORS starts with a [preflight request][preflight_request] from the client (the browser), to which we respond with a response. You can customize the values of headers returned in the :cors_preflight_headers option. Then for all other requests to the controller, you can specify headers to be returned in the :cors_access_control_headers option.
 

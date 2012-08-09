@@ -48,6 +48,10 @@ module RestfulJson
       end
       
       # TODO: implement sane configuration
+
+      def restful_json_intuit_post_or_put_method
+        ENV['RESTFUL_JSON_INTUIT_POST_OR_PUT_METHOD'] || $restful_json_intuit_post_or_put_method || true
+      end
       
       def restful_json_scavenge_bad_associations_for_id_only
         ENV['RESTFUL_JSON_SCAVENGE_BAD_ASSOCIATIONS_FOR_ID_ONLY'] || $restful_json_scavenge_bad_associations_for_id_only || true
@@ -365,6 +369,14 @@ module RestfulJson
       # POST /#{model_plural}.json
       def create
         return if restful_json_controller_not_yet_configured?
+        
+        if restful_json_intuit_post_or_put_method
+          parsed_request_json = JSON.parse(request_json)
+          if parsed_request_json && parsed_request_json[:id]
+            # We'll assume this is an update because the id was sent in
+            return update
+          end
+        end
         
         unless create_allowed?
           puts "user not allowed to call create on #{self.class.name}"

@@ -231,19 +231,61 @@ Most of the time when working with a RESTful service, you'll want it to return t
 
     as_json_excludes :foo, :bars
 
-#### You don't have to specify *_attributes in POSTed or PUT JSON when using accepts_nested_attributes_for
-
-With accepts_nested_attributes_for, Rails/ActiveRecord expects you to specify the key in the provided JSON by suffixing the key with _attributes, e.g. if you want to specify FlightCrewMembers on Airplane, you would have had to have sent in flight_crew_members_attributes instead of flight_crew_members. With restful_json, you only need to pass in flight_crew_members as the key as you'd expect.
-
 ##### Circular references avoided
 
 If an object has already been expanded into its associations, if it is referenced again, as_json only emits JSON for the object's accessible attributes, not its associations.
 
 ### Controller
 
+#### Scavenge Bad Associations for ID
+
+Enabled by default.
+
+Use this with restful_json_ignore_bad_attributes and if you pass in JSON with associations set to their full JSON representation, it will mine the JSON for an 'id' which it will then create a key for in the request JSON corresponding to the foreign id that you probably meant to set if the association is a belongs_to or has_and_belongs_to_many.
+
+You can change this by setting the RESTFUL_JSON_SCAVENGE_BAD_ASSOCIATIONS_FOR_ID_ONLY environment variable or the global variable $restful_json_scavenge_bad_associations_for_id_only in your environment.rb:
+
+      $restful_json_scavenge_bad_associations_for_id_only = false
+
+Or via overriding the following method on the controller:
+      
+      def restful_json_scavenge_bad_associations_for_id_only
+        ENV['RESTFUL_JSON_SCAVENGE_BAD_ASSOCIATIONS_FOR_ID_ONLY'] || $restful_json_scavenge_bad_associations_for_id_only || true
+      end
+
+#### Ignore Attributes and Associations You Didn't Mean to Pass in the JSON
+
+Enabled by default.
+
+You can change this by setting the RESTFUL_JSON_IGNORE_BAD_ATTRIBUTES environment variable or the global variable $restful_json_ignore_bad_attributes in your environment.rb:
+
+      $restful_json_ignore_bad_attributes = false
+
+Or via overriding the following method on the controller:
+      
+      def restful_json_ignore_bad_attributes
+        ENV['RESTFUL_JSON_IGNORE_BAD_ATTRIBUTES'] || $restful_json_ignore_bad_attributes || true
+      end
+      
+#### You don't have to specify *_attributes in POSTed or PUT JSON when using accepts_nested_attributes_for
+
+Enabled by default.
+
+With accepts_nested_attributes_for, Rails/ActiveRecord expects you to specify the key in the provided JSON by suffixing the key with _attributes, e.g. if you want to specify FlightCrewMembers on Airplane, you would have had to have sent in flight_crew_members_attributes instead of flight_crew_members. With restful_json, you only need to pass in flight_crew_members as the key as you'd expect.
+
+You can change this by setting the RESTFUL_JSON_SUFFIX_ATTRIBUTES environment variable or the global variable $restful_json_suffix_attributes in your environment.rb:
+
+      $restful_json_suffix_attributes = false
+
+Or via overriding the following method on the controller:
+      
+      def restful_json_suffix_attributes
+        ENV['RESTFUL_JSON_SUFFIX_ATTRIBUTES'] || $restful_json_suffix_attributes || true
+      end
+
 #### With Parameter Wrapping
 
-Our AngularJS integration seemed to be easier without any wrapping, so by default RESTful JSON does not wrap response data. You can change this and have it take and specify the singular or plural model name by setting the RESTFUL_JSON_WRAPPED environment variable or the global variable $restful_json_wrapped=true in your environment.rb:
+Our AngularJS integration seemed to be easier without any wrapping, so by default RESTful JSON does not wrap response data. You can change this and have it take and specify the singular or plural model name by setting the RESTFUL_JSON_WRAPPED environment variable or the global variable $restful_json_wrapped in your environment.rb:
 
     $restful_json_wrapped=true
 
@@ -259,30 +301,30 @@ Basic querying, filtering, and sorting is provided out-of-the-box, so the follow
 
 To do this, you may implement some or all of the following methods: index_it, show_it, create_it, update_it, and/or destroy_it. These correspond to the index, show, create, update, and destroy methods in the RESTful JSON parent controller.
 
-For example, to only provide very basic behavior and pass models via the response body for POST/PUT:
+For example, to only provide very basic behavior and pass models via the response body for POST/PUT (note: can use model_class or Foo here, we're just using Foo to show you can use whatever you want):
 
-    def index_it
+    def index_it(model_class)
       @value = Foo.all
     end
 
-    def show_it
+    def show_it(model_class)
       @value = Foo.find(params[:id])
     end
 
-    def create_it
+    def create_it(model_class)
       @value = Foo.new(JSON.parse(request.body.read))
       @value.save
     end
 
-    def update_it
+    def update_it(model_class)
       @value.update_attributes(JSON.parse(request.body.read))
     end
 
-    def destroy_it
+    def destroy_it(model_class)
       Foo.where(id: params[:id]).first ? Foo.destroy(params[:id]) : true
     end
 
-Or in an abstract controller:
+Or in an abstract controller (note: here we are using passed in model_class but you can use whatever you want):
 
     def index_it(model_class)
       @value = model_class.all
@@ -305,7 +347,7 @@ Or in an abstract controller:
       model_class.where(id: params[:id]).first ? model_class.destroy(params[:id]) : true
     end
 
-Or specifying the input as a 'foo' request parameter rather than in response body, similar to $restful_json_wrapped=true behavior:
+Or specifying the input as a 'foo' request parameter rather than in response body, similar to $restful_json_wrapped=true behavior (note: again, you can use model_class if you want.):
 
     def index_it
       @value = Foo.all
@@ -332,9 +374,9 @@ Or specifying the input as a 'foo' request parameter rather than in response bod
 
 If you have javascript/etc. code in the client that is running under a different host or port than Rails server, then you are cross-origin/cross-domain and we handle this with [CORS][cors].
 
-By default CORS is disabled, so to enable it you can either set the environment variable RESTFUL_JSON_CORS_GLOBALLY_ENABLED, or in config/environment.rb or for a specific environment like config/environments/development.rb you can add the following global variable:
+By default CORS is disabled, so to enable it you can either set the environment variable RESTFUL_JSON_CORS_ENABLED, or in config/environment.rb or for a specific environment like config/environments/development.rb you can add the following global variable:
 
-    $restful_json_cors_globally_enabled = true
+    $restful_json_cors_enabled = true
 
 Or in the controller, you can specify:
 

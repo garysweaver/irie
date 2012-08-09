@@ -9,23 +9,24 @@ module RestfulJson
 
     module ClassMethods
 
-      # works just like accepts_nested_attributes_for, except it stores any symbols passed in attr_names as in as_json :includes
-      #def accepts_nested_attributes_for(*attr_names)
-      #  puts "restful_json's accepts_nested_attributes_for called with attr_names=#{attr_names.inspect}"
-      #  puts "#{self.class.name}.reflect_on_all_associations=#{self.reflect_on_all_associations.inspect}"
-      #  
-      #  unless attr_names.nil?
-      #    if attr_names.is_a?(Array)
-      #      attr_names.each do |attr_name|
-      #        @@__as_json_includes << attr_name if attr_name.is_a?(Symbol)
-      #      end
-      #    elsif attr_names.is_a?(Symbol)
-      #      @@__as_json_includes << attr_name
-      #    end
-      #  end
-      #
-      #  super(attr_names)
-      #end
+      # works just like accepts_nested_attributes_for, except it stores any symbols passed in attr_names
+      def accepts_nested_attributes_for(*attr_names)
+        puts "restful_json's accepts_nested_attributes_for called with attr_names=#{attr_names.inspect}"
+        
+        unless attr_names.nil?
+          if attr_names.is_a?(Array)
+            attr_names.each do |attr_name|
+              @@__accepts_nested_attributes_for << attr_name if attr_name.is_a?(Symbol)
+            end
+          elsif attr_names.is_a?(Symbol)
+            @@__accepts_nested_attributes_for << attr_name
+          end
+        end
+
+        puts "collected_accepts_nested_attributes_for = #{collected_accepts_nested_attributes_for.inspect}"
+      
+        super(attr_names)
+      end
 
       def as_json_includes (*attr_names)
         self._as_json_includes = Array.wrap(attr_names)
@@ -34,6 +35,10 @@ module RestfulJson
 
       def as_json_excludes (*attr_names)
         self._as_json_excludes = Array.wrap(attr_names)
+      end
+
+      def collected_accepts_nested_attributes_for
+        @@__accepts_nested_attributes_for
       end
     end
 

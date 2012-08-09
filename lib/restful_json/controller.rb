@@ -257,6 +257,7 @@ module RestfulJson
         # handle foo=bar, foo^eq=bar, foo^gt=bar, foo^gteq=bar, etc.
         allowed_activerecord_model_attribute_keys.each do |attribute_key|
           puts "Finding #{restful_json_model_class}"
+          param = params[attribute_key]
           value = value.where(attribute_key => convert_request_param_value_for_filtering(param)) if param.present?
           # supported AREL predications are suffix of ^ and predication in the parameter name
           supported_arel_predications.each do |arel_predication|

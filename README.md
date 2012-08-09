@@ -80,6 +80,20 @@ For example, if Foobar were to have an ActiveRecord attribute called "color" (be
 
 Note: Don't use any of these methods to allow or filter anything secure. If a user has access to the controller method, they have access to any format you define with one of these methods via the json_format request parameter or faking referer. The primary reason for these filters are to limit associations- not for security, but to reduce data returned in the request, thereby reducing traffic and time required for response.
 
+#### NULL
+
+To specify a null value for filtering or predication value, by default you can use NULL, null, or nil, so any of these would mean you want to find Foobars where the color is not set:
+
+    http://localhost:3000/foobars.json?color=NULL
+    http://localhost:3000/foobars.json?color=null
+    http://localhost:3000/foobars.json?color=nil
+
+If you want to change this behavior for a specific param or for all, you may implement convert_request_param_value_for_filtering in your controller. For example, if empty params or those only containing only spaces should be null, e.g. 'http://localhost:3000/foobars.json?color=' or http://localhost:3000/foobars.json?color=  ', then you'd put this into the controller:
+
+    def convert_request_param_value_for_filtering(attr_name, value)
+      value && ['NULL','null','nil',''].include?(value.strip) ? nil : value
+    end
+
 #### Support for AREL Predications
 
 By specifying a character that identifies an AREL predication is suffixed to the request parameter name after a character you can customize, you can help filter data even further:

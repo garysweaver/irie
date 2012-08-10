@@ -317,53 +317,7 @@ Basic querying, filtering, and sorting is provided out-of-the-box, so the follow
 
 To do this, you may implement some or all of the following methods: index_it, show_it, create_it, update_it, and/or destroy_it. These correspond to the index, show, create, update, and destroy methods in the RESTful JSON parent controller.
 
-For example, to only provide very basic behavior and pass models via the response body for POST/PUT (note: can use model_class or Foo here, we're just using Foo to show you can use whatever you want):
-
-    def index_it(model_class)
-      @value = Foo.all
-    end
-
-    def show_it(model_class)
-      @value = Foo.find(params[:id])
-    end
-
-    def create_it(model_class)
-      @value = Foo.new(JSON.parse(request.body.read))
-      @value.save
-    end
-
-    def update_it(model_class)
-      @value.update_attributes(JSON.parse(request.body.read))
-    end
-
-    def destroy_it(model_class)
-      Foo.where(id: params[:id]).first ? Foo.destroy(params[:id]) : true
-    end
-
-Or in an abstract controller (note: here we are using passed in model_class but you can use whatever you want):
-
-    def index_it(model_class)
-      @value = model_class.all
-    end
-
-    def show_it(model_class)
-      @value = model_class.find(params[:id])
-    end
-
-    def create_it(model_class)
-      @value = model_class.new(JSON.parse(request.body.read))
-      @value.save
-    end
-
-    def update_it(model_class)
-      @value.update_attributes(JSON.parse(request.body.read))
-    end
-
-    def destroy_it(model_class)
-      model_class.where(id: params[:id]).first ? model_class.destroy(params[:id]) : true
-    end
-
-Or specifying the input as a 'foo' request parameter rather than in response body, similar to $restful_json_wrapped=true behavior (note: again, you can use model_class if you want.):
+For example, a very basic unwrapped implementation (note: @request_json is automatically determined and set by index, show, create, update, and destroy that call these methods):
 
     def index_it
       @value = Foo.all
@@ -374,16 +328,39 @@ Or specifying the input as a 'foo' request parameter rather than in response bod
     end
 
     def create_it
-      @value = Foo.new(params[:foo])
+      @value = Foo.new(@request_json)
       @value.save
     end
 
     def update_it
-      @value.update_attributes(params[:foo])
+      @value.update_attributes(@request_json)
     end
 
     def destroy_it
       Foo.where(id: params[:id]).first ? Foo.destroy(params[:id]) : true
+    end
+
+A basic abstract controller might contain (note: @model_class is automatically set based on controller name in every controller):
+
+    def index_it
+      @value = @model_class.all
+    end
+
+    def show_it
+      @value = @model_class.find(params[:id])
+    end
+
+    def create_it
+      @value = @model_class.new(@request_json)
+      @value.save
+    end
+
+    def update_it
+      @value.update_attributes(@request_json)
+    end
+
+    def destroy_it
+      @model_class.where(id: params[:id]).first ? @model_class.destroy(params[:id]) : true
     end
 
 ### CORS

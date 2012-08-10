@@ -73,12 +73,29 @@ module RestfulJson
         ENV['RESTFUL_JSON_CORS_ENABLED'] || $restful_json_cors_enabled # || false
       end
       
-      def request_json
+      def collected_accepts_nested_attributes_for
+        @model_class._collected_accepts_nested_attributes_for || []
+      end
+
+      def parse_request_json
+        puts "params=#{params.inspect}"
+        puts "request.body.read=#{request.body.read}"
+        puts "will look for #{@__restful_json_model_singular} key in incoming request params" if restful_json_wrapped
+        
+        request_body_value = request.body.read
+        request_body_string = request_body_value ? "#{request_body_value}" : nil
+
+        result = nil
         if restful_json_wrapped
-          params[@__restful_json_model_singular]
+          result = params[@__restful_json_model_singular]
+        elsif request_body_string && request_body_string.length >= 2
+          result = JSON.parse(request_body_string)
         else
-          "#{request.body.read}"
+          result = params
         end
+
+        puts "parsed_request_json=#{result}"
+        result
       end
       
       def single_response_json(value)
@@ -98,11 +115,11 @@ module RestfulJson
       end
       
       def sanity_check
-        puts "Request accepted #{request}"
+        puts "Request accepted: #{request}"
         #puts "params #{params}"
         #puts "self #{self}"
         #puts "methods #{self.methods.sort.join(', ')}"
-        #puts "@__restful_json_class=#{@__restful_json_class} methods=#{@__restful_json_class.methods}"
+        #puts "@model_class=#{@model_class} methods=#{@model_class.methods}"
         puts "form_authenticity_token=#{form_authenticity_token}"
         puts "If you get the error: 'WARNING: Can't verify CSRF token authenticity', then put this in your layout or page if using jQuery: $(document).ajaxSend(function(e, xhr, options) {var token = $(\"meta[name='csrf-token']\").attr(\"content\");xhr.setRequestHeader(\"X-CSRF-Token\", token);});"
       end
@@ -121,17 +138,17 @@ module RestfulJson
           puts "@__restful_json_model_singular=#{@__restful_json_model_singular}"
           @__restful_json_model_plural = @__restful_json_model_singular.pluralize
           puts "@__restful_json_model_plural=#{@__restful_json_model_plural}"
-          @__restful_json_class = @__restful_json_model_singular.constantize
-          puts "@__restful_json_class=#{@__restful_json_class}"
+          @model_class = @__restful_json_model_singular.constantize
+          puts "@model_class=#{@model_class}"
           
-          raise "#{self.class.name} assumes that #{@__restful_json_class} extends ActiveRecord::Base, but it didn't. Please fix, or remove this constraint." unless @__restful_json_class.ancestors.include?(ActiveRecord::Base)
+          raise "#{self.class.name} assumes that #{@model_class} extends ActiveRecord::Base, but it didn't. Please fix, or remove this constraint." unless @model_class.ancestors.include?(ActiveRecord::Base)
           
           # how we'd initialize if we needed to reference in a view
           #instance_variable_set("@#{@__restful_json_model_plural}".to_sym, nil)
           #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, nil)
           
-          puts "'#{self}' using model class: '#{@__restful_json_class}', attributes: '@#{@__restful_json_model_plural}', '@#{@__restful_json_model_singular}'"
-          #puts "Immediately before class_eval, @__restful_json_class is #{@__restful_json_class} and object_id=#{@__restful_json_class.object_id}}"
+          puts "'#{self}' using model class: '#{@model_class}', attributes: '@#{@__restful_json_model_plural}', '@#{@__restful_json_model_singular}'"
+          #puts "Immediately before class_eval, @model_class is #{@model_class} and object_id=#{@model_class.object_id}}"
           @__restful_json_initialized = true
         end
       end
@@ -150,7 +167,7 @@ module RestfulJson
       
       def allowed_activerecord_model_attribute_keys
         # Solution from Jeffrey Chupp (a.k.a. 'semanticart') in http://stackoverflow.com/a/1526328/178651
-        @__restful_json_class.new.attributes.keys - @__restful_json_class.protected_attributes.to_a
+        @model_class.new.attributes.keys - @model_class.protected_attributes.to_a
       end
       
       def restful_json_controller_not_yet_configured?
@@ -214,6 +231,8 @@ module RestfulJson
       end
       
       def index
+        puts "In #{self.class.name}.index"
+
         return if restful_json_controller_not_yet_configured?
         
         unless index_allowed?
@@ -228,32 +247,21 @@ module RestfulJson
         
         return if cors_preflight_check?
         
-        #puts "json_options=#{json_options.inspect}"
-        
-        #value = index_it(@__restful_json_class).as_json(json_options)
-        #puts "JSON.parse(#{value})"
-        #value = JSON.parse(data_string)
-        #puts "equals #{value}"
-        
-        index_it(@__restful_json_class)
-        
-        # how we'd set if we needed to reference in a view by its common plural name
+        index_it
+
+        # how we'd set if we needed to reference in a view
         #instance_variable_set("@#{@__restful_json_model_plural}".to_sym, @value)
-        
-        # ember-data:
-        #format.json { render json: {@__restful_json_model_plural.to_sym => @value} }
-        # angular:
         
         respond_to do |format|
           format.json { render json: plural_response_json(@value.try(:as_json, json_options)) }
         end
       end
       
-      def index_it(restful_json_model_class)
+      def index_it
         # TODO: continue to explore filtering, etc. and look into extension of this project to use Sunspot/SOLR.
         # TODO: Darrel Miller/Ted M. Young suggest reviewing these: http://stackoverflow.com/a/4028874/178651
         #       http://www.ietf.org/rfc/rfc3986.txt  http://tools.ietf.org/html/rfc6570
-        # TODO: Paging. Eugen Paraschiv (a.k.a. baeldung) has a good post here, even though is in context of Spring:
+        # TODO: Easier paging. Eugen Paraschiv (a.k.a. baeldung) has a good post here, even though is in context of Spring:
         #       http://www.baeldung.com/2012/01/18/rest-pagination-in-spring/
         #       http://www.iana.org/assignments/link-relations/link-relations.
         #       More on Link header: http://blog.steveklabnik.com/posts/2011-08-07-some-people-understand-rest-and-http
@@ -263,8 +271,8 @@ module RestfulJson
         
         # Using scoped and separate wheres if params present similar to solution provided by
         # John Gibb in http://stackoverflow.com/a/5820947/178651
-        t = restful_json_model_class.arel_table
-        value = restful_json_model_class.scoped
+        t = @model_class.arel_table
+        value = @model_class.scoped
         # if "only" request param specified, only return those fields- this is important for uniq to be useful
         if params[:only]
           value.select(params[:only].split(value_split).collect{|s|s.to_sym})
@@ -272,7 +280,7 @@ module RestfulJson
         
         # handle foo=bar, foo^eq=bar, foo^gt=bar, foo^gteq=bar, etc.
         allowed_activerecord_model_attribute_keys.each do |attribute_key|
-          puts "Finding #{restful_json_model_class}"
+          puts "Finding #{@model_class}"
           param = params[attribute_key]
           value = value.where(attribute_key => convert_request_param_value_for_filtering(attribute_key, param)) if param.present?
           # supported AREL predications are suffix of ^ and predication in the parameter name
@@ -325,6 +333,8 @@ module RestfulJson
       end
       
       def show
+        puts "In #{self.class.name}.show"
+
         return if restful_json_controller_not_yet_configured?
         
         unless show_allowed?
@@ -339,10 +349,7 @@ module RestfulJson
         
         return if cors_preflight_check?
         
-        #puts "@__restful_json_class=#{@__restful_json_class}"
-        #value = JSON.parse(show_it(@__restful_json_class).as_json(json_options))
-        
-        show_it(@__restful_json_class)
+        show_it
         
         # how we'd set if we needed to reference in a view
         #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, @value)
@@ -355,10 +362,10 @@ module RestfulJson
         end
       end
       
-      def show_it(restful_json_model_class)
-        puts "Attempting to show #{restful_json_model_class.try(:name)} with id #{params[:id]}"
+      def show_it
+        puts "Attempting to show #{@model_class.try(:name)} with id #{params[:id]}"
         # could just return value, but trying to be consistent with create/update that need to return flag of success
-        @value = restful_json_model_class.find(params[:id])
+        @value = @model_class.find(params[:id])
       end
       
       # may be overidden in controller to have method-specific access control
@@ -368,13 +375,20 @@ module RestfulJson
       
       # POST /#{model_plural}.json
       def create
+        puts "In #{self.class.name}.create"
+
         return if restful_json_controller_not_yet_configured?
+
+        @request_json = parse_request_json
         
         if restful_json_intuit_post_or_put_method
-          parsed_request_json = JSON.parse(request_json)
-          if parsed_request_json && parsed_request_json[:id]
-            # We'll assume this is an update because the id was sent in
+          if @request_json && @request_json[:id]
+            # We'll assume this is an update because the id was sent in- make it look like it came in via PUT with id param
+            puts "THIS CAME INTO create BUT SINCE @request_json[:id] RETURNED A VALUE, WE WILL SET params[:id] = #{@request_json[:id]} AND CALL update INSTEAD, SINCE restful_json_intuit_post_or_put_method"
+            params[:id] = @request_json[:id]
             return update
+          else
+            puts "ASSUMING THIS IS REALLY A create SINCE @request_json was nil or had no :id key: @request_json=#{@request_json}"
           end
         end
         
@@ -390,8 +404,10 @@ module RestfulJson
         
         return if cors_preflight_check?
         
-        success = create_it(@__restful_json_class)
-        
+        success = create_it
+
+        puts "Failed update_it with errors #{(@value.try(:errors)).inspect}" unless success
+
         # how we'd set if we needed to reference in a view
         #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, @value)
         
@@ -411,14 +427,12 @@ module RestfulJson
         end
       end
       
-      def create_it(restful_json_model_class)
-        parsed_request_json = JSON.parse(request_json)
-        puts "Converting incoming JSON if needed: #{parsed_request_json.inspect}"
-        start = Time.now
-        parsed_and_converted_json = convert_parsed_json(restful_json_model_class, parsed_request_json)
-        puts "Time to convert: #{Time.now - start}"
-        @value = restful_json_model_class.new(parsed_and_converted_json)
-        puts "Attempting #{restful_json_model_class.name}.save with converted JSON: #{parsed_and_converted_json.inspect}"
+      def create_it
+        puts "create_it: @model_class=#{@model_class} @request_json=#{@request_json}"
+        parsed_and_converted_json = convert_parsed_json(@model_class, @request_json)
+        puts "#{@model_class.name}.new(#{parsed_and_converted_json.inspect})"
+        @value = @model_class.new(parsed_and_converted_json)
+        puts "Attempting #{@model_class.name}.save"
         @value.save
       end
       
@@ -429,7 +443,11 @@ module RestfulJson
       
       # PUT /#{model_plural}/1.json
       def update
+        puts "In #{self.class.name}.update"
+
         return if restful_json_controller_not_yet_configured?
+
+        @request_json = parse_request_json unless @request_json # may be set in create method already
         
         unless update_allowed?
           puts "user not allowed to call update on #{self.class.name}"
@@ -443,7 +461,9 @@ module RestfulJson
         
         return if cors_preflight_check?
         
-        success = update_it(@__restful_json_class)
+        success = update_it
+
+        puts "Failed update_it with errors #{(@value.try(:errors)).inspect}" unless success
         
         # how we'd set if we needed to reference in a view
         #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, @value)
@@ -464,14 +484,12 @@ module RestfulJson
         end
       end
       
-      def update_it(restful_json_model_class)
-        @value = restful_json_model_class.find(params[:id])
-        parsed_request_json = JSON.parse(request_json)
-        puts "Converting incoming JSON if needed: #{parsed_request_json.inspect}"
-        start = Time.now
-        parsed_and_converted_json = convert_parsed_json(restful_json_model_class, parsed_request_json)
-        puts "Time to convert: #{Time.now - start}"
-        puts "Attempting #{restful_json_model_class.name}.update_attributes with converted JSON: #{parsed_and_converted_json.inspect}"
+      def update_it
+        puts "update_it: @model_class=#{@model_class} @request_json=#{@request_json}"
+        puts "@model_class.find(#{params[:id]})"
+        @value = @model_class.find(params[:id])        
+        parsed_and_converted_json = convert_parsed_json(@model_class, @request_json)        
+        puts "Attempting #{@value}.update_attributes(#{parsed_and_converted_json.inspect})"
         success = @value.update_attributes(parsed_and_converted_json)
         success
       end
@@ -483,6 +501,8 @@ module RestfulJson
       
       # DELETE /#{model_plural}/1.json
       def destroy
+        puts "In #{self.class.name}.destroy"
+
         return if restful_json_controller_not_yet_configured?
         
         unless destroy_allowed?
@@ -497,7 +517,10 @@ module RestfulJson
         
         return if cors_preflight_check?
         
-        destroy_it(@__restful_json_class)
+        success = destroy_it
+
+        puts "Failed destroy_it but returning ok anyway, as it might have been deleted between the time we checked for it and when we tried to delete it" unless success
+
         respond_to do |format|
           # note: status is magic- automatically sets HTTP code to 200 since status is ok
           # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
@@ -505,9 +528,9 @@ module RestfulJson
         end
       end
       
-      def destroy_it(restful_json_model_class)
-        puts "Attempting to destroy #{restful_json_model_class.try(:name)} with id #{params[:id]}"
-        restful_json_model_class.where(id: params[:id]).first ? restful_json_model_class.destroy(params[:id]) : true
+      def destroy_it
+        puts "Attempting to destroy #{@model_class.try(:name)} with id #{params[:id]}"
+        @model_class.where(id: params[:id]).first ? @model_class.destroy(params[:id]) : true
       end
       
       # Because most of the time having to specify (name)_attributes as the name of a key in the incoming json is a pain,
@@ -522,90 +545,109 @@ module RestfulJson
       # id which will assume the client wanted to update.
       def convert_parsed_json(clazz, value)
         puts "In convert_parsed_json(#{clazz}, #{value})"
-        
-        result = value.dup
-        
-        # Create a reference hash of association names to their classes
-        association_name_sym_to_association = {}
-        clazz.reflect_on_all_associations.each do |association|
-          association_name_sym_to_association[association.name] = association
+
+        unless value
+          return nil
         end
-        accessible_attributes = clazz.new.attributes.keys - clazz.protected_attributes.to_a
-        
-        # If you send in an association as a full json object and didn't define it as accepts_nested_attributes_for
-        # then you probably either didn't mean to send it or you meant to set this model's foreign id with its id. 
-        # Is this the right assumption? We could make it explicit at some point or make this a configuration option.
-        if restful_json_scavenge_bad_associations_for_id_only
-          if result.is_a?(Hash)
-            result.keys.each do |key|
-              key_sym = key.to_sym
-              key_sym_without_suffix = (key.end_with?('_attributes') ? key.chomp('_attributes') : key).to_sym
-              if association_name_sym_to_class.keys.include?(key_sym_without_suffix) && !collected_accepts_nested_attributes_for.include?(key_sym_without_suffix)
-                puts "JSON for #{key_sym} can't be persisted because #{clazz}'s accepts_nested_attributes_for didn't include it, but we're going to scavenge it for an id"
-                # scavenge json that isn't accepts_nested_attributes_for for an id
-                association = association_name_sym_to_association[key_sym_without_suffix]
-                foreign_key = association.options[:foreign_key] || association.try(:foreign_key)
-                if association.macro == :belongs_to
-                  foreign_key ||= "#{association.name}_id"
-                elsif association.macro == :has_and_belongs_to_many
-                  foreign_key ||= "#{association.name.singularize}_id"
-                end
-                
-                # if this foreign id is settable and it wasn't explicitly set to a non-null value, update it
-                if accessible_attributes.include?(foreign_key.to_sym)
-                  association_hash = result[key_sym]
-                  assoc_id = association_hash[:id]
-                  # for now we'll assume the id is called id in the passed in json association
-                  if assoc_id
-                    if result[foreign_key.to_sym]
-                      puts "Didn't set foreign key #{foreign_key.to_sym} on #{clazz} with #{assoc_id} because it was already set to #{result[foreign_key.to_sym]}" if "#{assoc_id}" != "#{result[foreign_key.to_sym]}"
+
+        if restful_json_scavenge_bad_associations_for_id_only || restful_json_ignore_bad_attributes || restful_json_suffix_attributes
+
+          start = Time.now
+
+          puts "Prior to conversion(s): #{value}"
+          
+          # Create a reference hash of association names to their classes
+          association_name_sym_to_association = {}
+          clazz.reflect_on_all_associations.each do |association|
+            association_name_sym_to_association[association.name] = association
+          end
+          accessible_attributes = clazz.new.attributes.keys - clazz.protected_attributes.to_a
+          
+          # If you send in an association as a full json object and didn't define it as accepts_nested_attributes_for
+          # then you probably either didn't mean to send it or you meant to set this model's foreign id with its id. 
+          # Is this the right assumption? We could make it explicit at some point or make this a configuration option.
+          if restful_json_scavenge_bad_associations_for_id_only
+            if value.is_a?(Hash)
+              value.keys.each do |key|
+                key_sym = key.to_sym
+                key_sym_without_suffix = (key.end_with?('_attributes') ? key.chomp('_attributes') : key).to_sym
+                if association_name_sym_to_association.keys.include?(key_sym_without_suffix) && !collected_accepts_nested_attributes_for.include?(key_sym_without_suffix)
+                  puts "JSON for #{key_sym} can't be persisted because #{clazz}'s accepts_nested_attributes_for didn't include it, but we're going to scavenge it for an id"
+                  # scavenge json that isn't accepts_nested_attributes_for for an id
+                  association = association_name_sym_to_association[key_sym_without_suffix]
+                  foreign_key = association.options[:foreign_key] || association.try(:foreign_key)
+                  if association.macro == :belongs_to
+                    foreign_key ||= "#{association.name}_id"
+                  elsif association.macro == :has_and_belongs_to_many
+                    foreign_key ||= "#{association.name.singularize}_id"
+                  end
+                  
+                  # if this foreign id is settable and it wasn't explicitly set to a non-null value, update it
+                  if accessible_attributes.include?(foreign_key.to_s)
+                    association_hash = value[key_sym]
+                    assoc_id = association_hash[:id]
+                    # for now we'll assume the id is called id in the passed in json association
+                    if assoc_id
+                      if value[foreign_key.to_sym]
+                        puts "Didn't set foreign key #{foreign_key.to_sym} on #{clazz} with #{assoc_id} because it was already set to #{value[foreign_key.to_sym]}" if "#{assoc_id}" != "#{value[foreign_key.to_sym]}"
+                      else
+                        puts "Set foreign key #{foreign_key.to_sym} on #{clazz} with #{assoc_id} with value from id in JSON hash sent as #{key_sym}"
+                        value[foreign_key.to_sym] = assoc_id
+                      end
                     else
-                      puts "Set foreign key #{foreign_key.to_sym} on #{clazz} with #{assoc_id} with value from id in JSON hash sent as #{key_sym}"
-                      result[foreign_key.to_sym] = assoc_id
+                      puts "Didn't set foreign key #{foreign_key.to_sym} on #{clazz} because there was no id in JSON of in association #{key_sym}"
                     end
                   else
-                    puts "Didn't set foreign key #{foreign_key.to_sym} on #{clazz} because there was no id in JSON of in association #{key_sym}"
+                    puts "Couldn't set #{foreign_key.to_sym.inspect} on #{clazz} with the id from association JSON because it wasn't in the list of allowed attributes to mass assign: #{accessible_attributes.join(', ')}. To intuit ids from association JSON from it, add attr_accessible #{foreign_key.to_sym.inspect} to #{clazz}. To avoid this warning, either set restful_json_scavenge_bad_associations_for_id_only to false, or stop sending association json for #{key.to_sym}."
                   end
-                else
-                  puts "Couldn't set #{foreign_key.to_sym.inspect} on #{clazz} with the id from association JSON because it wasn't allowed."
                 end
               end
             end
           end
-        end
-        
-        # Ignore the attributes that are misspelled or otherwise not accessible, because in the emitted json, things
-        # may have been included that just can't be updated.
-        if restful_json_ignore_bad_attributes_and_associations
-          if result.is_a?(Hash)
-            result.keys.each do |key|
-              key_sym_without_suffix = (key.end_with?('_attributes') ? key.chomp('_attributes') : key).to_sym
-              if !collected_accepts_nested_attributes_for.include?(key_sym_without_suffix) || !accessible_attributes.include(key)
-                puts "Removing #{key} from the #{clazz} part of JSON because it isn't in accepts_nested_attributes_for or accessible attributes"
-                result.delete(key)
+
+          puts "After restful_json_scavenge_bad_associations_for_id_only: #{value}" if restful_json_scavenge_bad_associations_for_id_only
+          
+          # Ignore the attributes that are misspelled or otherwise not accessible, because in the emitted json, things
+          # may have been included that just can't be updated.
+          if restful_json_ignore_bad_attributes
+            if value.is_a?(Hash)
+              value.keys.each do |key|
+                key_sym_without_suffix = (key.end_with?('_attributes') ? key.chomp('_attributes') : key).to_sym
+                if !collected_accepts_nested_attributes_for.include?(key_sym_without_suffix) && !accessible_attributes.include?(key)
+                  puts "Removing #{key} from the #{clazz} part of JSON because it isn't in accepts_nested_attributes_for and isn't in accessible attributes"
+                  value.delete(key)
+                end
               end
             end
           end
-        end
-        
-        # Append _attributes to associations that haven't gotten the axe yet, and expand those associations.
-        if restful_json_suffix_attributes
-          if result.is_a?(Array)
-            result = result.collect{|v|convert_parsed_json(clazz, v)}
-          elsif result.is_a?(Hash)
-            converted_result = {}
-            result.keys.each do |key|
-              if association_name_sym_to_class.keys.include?(key.to_sym)
-                converted_result["#{key}_attributes".to_sym] = convert_parsed_json(association_name_sym_to_association[key.to_sym].class_name.constantize, value[key])
-              else
-                converted_result[key] = value[key]
+
+          puts "After restful_json_ignore_bad_attributes: #{value}" if restful_json_ignore_bad_attributes
+          
+          # Append _attributes to associations that haven't gotten the axe yet, and expand those associations.
+          if restful_json_suffix_attributes
+            if value.is_a?(Array)
+              value = value.collect{|v|convert_parsed_json(clazz, v)}
+            elsif value.is_a?(Hash)
+              converted_value = {}
+              value.keys.each do |key|
+                if association_name_sym_to_association.keys.include?(key.to_sym)
+                  converted_value["#{key}_attributes".to_sym] = convert_parsed_json(association_name_sym_to_association[key.to_sym].class_name.constantize, value[key])
+                else
+                  converted_value[key] = value[key]
+                end
               end
+              value = converted_value
             end
-            result = converted_result
           end
+
+          puts "After restful_json_suffix_attributes: #{value}" if restful_json_suffix_attributes
+
+          puts "Time to do requested conversions: #{Time.now - start} sec"
+
+          puts "Converted request json: #{value}"
         end
         
-        result
+        value
       end
     end
   end

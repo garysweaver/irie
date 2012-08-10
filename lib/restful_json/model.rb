@@ -5,6 +5,7 @@ module RestfulJson
     included do
       class_attribute :_as_json_includes, instance_writer: false
       class_attribute :_as_json_excludes, instance_writer: false
+      class_attribute :_collected_accepts_nested_attributes_for, instance_writer: false
     end
 
     module ClassMethods
@@ -16,10 +17,10 @@ module RestfulJson
         unless attr_names.nil?
           if attr_names.is_a?(Array)
             attr_names.each do |attr_name|
-              @@__accepts_nested_attributes_for << attr_name if attr_name.is_a?(Symbol)
+              self._collected_accepts_nested_attributes_for << attr_name if attr_name.is_a?(Symbol)
             end
           elsif attr_names.is_a?(Symbol)
-            @@__accepts_nested_attributes_for << attr_name
+            self._collected_accepts_nested_attributes_for << attr_name
           end
         end
 
@@ -28,17 +29,13 @@ module RestfulJson
         super(attr_names)
       end
 
-      def as_json_includes (*attr_names)
+      def as_json_includes(*attr_names)
         self._as_json_includes = Array.wrap(attr_names)
       end
       alias_method :default_as_json_includes, :as_json_includes
 
-      def as_json_excludes (*attr_names)
+      def as_json_excludes(*attr_names)
         self._as_json_excludes = Array.wrap(attr_names)
-      end
-
-      def collected_accepts_nested_attributes_for
-        @@__accepts_nested_attributes_for
       end
     end
 

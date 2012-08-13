@@ -11,8 +11,8 @@ module RestfulJson
       RestfulJson::Options.output
       options_hash = RestfulJson::Options.to_hash
       options_hash.keys.each do |key|
-        class_attribute member, instance_writer: false
-        self.send("#{member}=".to_sym, options_hash[key])
+        class_attribute key, instance_writer: false
+        self.send("#{key}=".to_sym, options_hash[key])
       end
     end
 

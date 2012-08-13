@@ -122,9 +122,9 @@ module RestfulJson
         # ?only=name,status will send as_json({restful_json_only: ['name','status']}) which forces :only and no associations for a simpler view
         # in addition, we're only selecting these fields in the query in index_it
         options = {}
-        options[:restful_json_include] = params[:include].split(self.value_split).collect{|s|s.to_sym} if params[:include]
-        options[:restful_json_no_includes] = true if params[:no_includes]
-        options[:restful_json_only] = params[:only].split(value_split).collect{|s|s.to_sym} if params[:only]
+        options[:restful_json_include] = params[:include].split(self.value_split).collect{|s|s.to_sym} if params[:include] && self.supported_functions.include?('include')
+        options[:restful_json_no_includes] = true if params[:no_includes] && self.supported_functions.include?('no_includes')
+        options[:restful_json_only] = params[:only].split(value_split).collect{|s|s.to_sym} if params[:only] && self.supported_functions.include?('only')
         # this is a collection to avoid circular references
         options[:restful_json_ancestors] = []
         options
@@ -177,7 +177,7 @@ module RestfulJson
         t = @model_class.arel_table
         value = @model_class.scoped
         # if "only" request param specified, only return those fields- this is important for uniq to be useful
-        if params[:only]
+        if params[:only] && self.supported_functions.include?('only')
           value.select(params[:only].split(self.value_split).collect{|s|s.to_sym})
         end
         
@@ -185,7 +185,9 @@ module RestfulJson
         allowed_activerecord_model_attribute_keys.each do |attribute_key|
           puts "Finding #{@model_class}"
           param = params[attribute_key]
-          value = value.where(attribute_key => convert_request_param_value_for_filtering(attribute_key, param)) if param.present?
+          if self.supported_arel_predications.include?('eq')
+            value = value.where(attribute_key => convert_request_param_value_for_filtering(attribute_key, param)) if param.present?
+          end
           # supported AREL predications are suffix of ^ and predication in the parameter name
           self.supported_arel_predications.each do |arel_predication|
             param = params["#{attribute_key}#{self.arel_predication_split}#{arel_predication}"]
@@ -198,22 +200,22 @@ module RestfulJson
         end
         
         # AREL equivalent of SQL OFFSET
-        if params[:skip]
+        if params[:skip] && self.supported_functions.include?('skip')
           value = value.take(params[:skip])
         end
         
         # AREL equivalent of SQL LIMIT
-        if params[:take]
+        if params[:take] && self.supported_functions.include?('take')
           value = value.take(params[:take])
         end
         
         # ?uniq= will return unique records
-        if params[:uniq]
+        if params[:uniq] && self.supported_functions.include?('uniq')
           value = value.uniq
         end
 
         # ?count= will return a count
-        if params[:count]
+        if params[:count] && self.supported_functions.include?('count')
           value = value.count
         end
         # Sorts can either be specified by sortby=color&sortby=shape or comma-delimited like sortby=color,shape, or some combination.
@@ -221,7 +223,7 @@ module RestfulJson
         # Sort direction can be specified across all sorts in the request by sort=asc or sort=desc, or the sort can be specified by
         # + or - at the beginning of the sortby, like sortby=+color,-shape to specify ascending sort on color and descending sort on
         # shape.
-        #sortby=params[:sortby]
+        #sortby=params[:sortby] && self.supported_functions.include?('sortby')
         #if sortby
         #  expanded_sortby_array=[]
         #  sortby.each do |sortparam|

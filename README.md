@@ -9,9 +9,9 @@ RESTful JSON makes creating RESTful services that query your ActiveRecord models
 
 It also helps you produce DRY models and controllers, is very configurable in the environment.rb, model, and controller level, *and* lets you easily extend and override just the parts of the models and controllers that matter.
 
-This project was started when we looked at Dan Gebhardt's example in [ember_data_example][ember_data_example] and needed something similar for [AngularJS][angular]. Other than projects like [RABL] that let you define JSON views easily, there wasn't anything that we found that make the whole process easier so that you didn't have to define controllers, etc. for commonly used functionality in Javascript implementations. Even though it has only been tested with AngularJS, in theory it should be able to be used with any Javascript framework. Also, if anyone is interested in making it work with Sinatra, etc., let us know.
+This project was started when we looked at Dan Gebhardt's example in [ember_data_example][ember_data_example] and needed something similar for [AngularJS][angular]. We looked at [RABL][rabl] which is recommended if you only need to provide JSON views to the data, but we didn't find anything that made not only the views easier but the controllers as well.
 
-Interested? Let's get started...
+In theory it should be able to be used with any Javascript framework or anything else requiring RESTful services in JSON. If anyone is interested in making it work with Sinatra, etc., let us know.
 
 ### Setup
 
@@ -88,7 +88,7 @@ For example, if Foobar were to have an ActiveRecord attribute called "color" (be
 
     http://localhost:3000/foobars.json?color=blue
 
-Note: Don't use any of these methods to allow or filter anything secure. If a user has access to the controller method, they have access to any format you define with one of these methods via the json_format request parameter or faking referer. The primary reason for these filters are to limit associations- not for security, but to reduce data returned in the request, thereby reducing traffic and time required for response.
+To disable the ability to do this query, remove 'eq' from supported_arel_predications via configuration or setting in the controller.
 
 #### NULL
 
@@ -334,31 +334,32 @@ A basic abstract controller might contain (note: @model_class is automatically s
 In your config/environment.rb or environment specfic configuration, you may specify one or more options in the config hash that will be merged into the following defaults:
 
     RestfulJson::Options.configure({
-          arel_predication_split: '!',
-          cors_access_control_headers: {'Access-Control-Allow-Origin' => '*',
-                                         'Access-Control-Allow-Methods' => 'POST, GET, PUT, DELETE, OPTIONS',
-                                         'Access-Control-Max-Age' => '1728000'},
-          cors_enabled: false,
-          cors_preflight_headers: {'Access-Control-Allow-Origin' => '*',
-                                    'Access-Control-Allow-Methods' => 'POST, GET, PUT, DELETE, OPTIONS',
-                                    'Access-Control-Allow-Headers' => 'X-Requested-With, X-Prototype-Version',
-                                    'Access-Control-Max-Age' => '1728000'},
-          ignore_bad_json_attributes: true,
-          intuit_post_or_put_method: true,
-          # Generated from Arel::Predications.public_instance_methods.collect{|c|c.to_s}.sort. To lockdown a little, defining these specifically.
-          # See: https://github.com/rails/arel/blob/master/lib/arel/predications.rb
-          multiple_value_arel_predications: ['does_not_match_all', 'does_not_match_any', 'eq_all', 'eq_any', 'gt_all', 
-                                              'gt_any', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt_all', 'lt_any', 
-                                              'lteq_all', 'lteq_any', 'matches_all', 'matches_any', 'not_eq_all', 'not_eq_any', 
-                                              'not_in', 'not_in_all', 'not_in_any'],
-          scavenge_bad_associations_for_id_only: true,
-          suffix_json_attributes: true,
-          supported_arel_predications: ['does_not_match', 'does_not_match_all', 'does_not_match_any', 'eq', 'eq_all', 'eq_any', 'gt', 'gt_all', 
-                                         'gt_any', 'gteq', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt', 'lt_all', 'lt_any', 'lteq', 
-                                         'lteq_all', 'lteq_any', 'matches', 'matches_all', 'matches_any', 'not_eq', 'not_eq_all', 'not_eq_any', 
-                                         'not_in', 'not_in_all', 'not_in_any'],
-          value_split: ',',
-          wrapped_json: false
+      arel_predication_split: '!',
+      cors_access_control_headers: {'Access-Control-Allow-Origin' => '*',
+                                     'Access-Control-Allow-Methods' => 'POST, GET, PUT, DELETE, OPTIONS',
+                                     'Access-Control-Max-Age' => '1728000'},
+      cors_enabled: false,
+      cors_preflight_headers: {'Access-Control-Allow-Origin' => '*',
+                                'Access-Control-Allow-Methods' => 'POST, GET, PUT, DELETE, OPTIONS',
+                                'Access-Control-Allow-Headers' => 'X-Requested-With, X-Prototype-Version',
+                                'Access-Control-Max-Age' => '1728000'},
+      ignore_bad_json_attributes: true,
+      intuit_post_or_put_method: true,
+      # Generated from Arel::Predications.public_instance_methods.collect{|c|c.to_s}.sort. To lockdown a little, defining these specifically.
+      # See: https://github.com/rails/arel/blob/master/lib/arel/predications.rb
+      multiple_value_arel_predications: ['does_not_match_all', 'does_not_match_any', 'eq_all', 'eq_any', 'gt_all', 
+                                          'gt_any', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt_all', 'lt_any', 
+                                          'lteq_all', 'lteq_any', 'matches_all', 'matches_any', 'not_eq_all', 'not_eq_any', 
+                                          'not_in', 'not_in_all', 'not_in_any'],
+      scavenge_bad_associations_for_id_only: true,
+      suffix_json_attributes: true,
+      supported_arel_predications: ['does_not_match', 'does_not_match_all', 'does_not_match_any', 'eq', 'eq_all', 'eq_any', 'gt', 'gt_all', 
+                                     'gt_any', 'gteq', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt', 'lt_all', 'lt_any', 'lteq', 
+                                     'lteq_all', 'lteq_any', 'matches', 'matches_all', 'matches_any', 'not_eq', 'not_eq_all', 'not_eq_any', 
+                                     'not_in', 'not_in_all', 'not_in_any'],
+      supported_functions: ['count', 'include', 'no_includes', 'only', 'skip', 'take', 'uniq'],
+      value_split: ',',
+      wrapped_json: false
     })
 
 Any of the controller options you may also specify in the definition of the Controller class, e.g.:
@@ -379,41 +380,22 @@ Any of the controller options you may also specify in the definition of the Cont
                                      'gt_any', 'gteq', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt', 'lt_all', 'lt_any', 'lteq', 
                                      'lteq_all', 'lteq_any', 'matches', 'matches_all', 'matches_any', 'not_eq', 'not_eq_all', 'not_eq_any', 
                                      'not_in', 'not_in_all', 'not_in_any']
+      self.supported_functions = ['count', 'include', 'no_includes', 'only', 'skip', 'take', 'uniq']
       self.value_split = ','
       self.wrapped_json = false
 
 Defaults and what each mean:
 * arel_predication_split: character in the URL that seperates the attribute name from the optional arel predication
-* cors_access_control_headers: a hash of headers to use for each non-preflight response, e.g.:
-
-        RestfulJson::Options.configure do
-          cors_enabled = true
-          cors_access_control_headers = {
-            'Access-Control-Allow-Origin':  '*',
-            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-            'Access-Control-Max-Age': '1728000'
-          }
-        end
-
+* cors_access_control_headers: a hash of headers to use for each non-preflight response
 * cors_enabled: true to enable CORS. If you have javascript/etc. code in the client that is running under a different host or port than Rails server, then you are cross-origin/cross-domain and we handle this with [CORS][cors]. By default, we make CORS just allow everything, so the whole cross-origin/cross-domain thing goes away and you can get to developing locally with your Javascript app that isn't even being served by Rails.
-* cors_preflight_headers: So, if you enabled CORS, then CORS starts with a [preflight request][preflight_request] from the client (the browser), to which we respond with a response. You can customize the values of headers returned in the :cors_preflight_headers option. Then for all other requests to the controller, you can specify headers to be returned in the :cors_access_control_headers option. This is a hash of headers to use for each preflight response. e.g.:
-
-        RestfulJson::Options.configure do
-          cors_enabled = true
-          cors_access_control_headers = {
-            'Access-Control-Allow-Origin':  '*',
-            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'X-Requested-With, X-Prototype-Version',
-            'Access-Control-Max-Age': '1728000'
-          }
-        end
-
+* cors_preflight_headers: So, if you enabled CORS, then CORS starts with a [preflight request][preflight_request] from the client (the browser), to which we respond with a response. You can customize the values of headers returned in the :cors_preflight_headers option. Then for all other requests to the controller, you can specify headers to be returned in the :cors_access_control_headers option. This is a hash of headers to use for each preflight response.
 * ignore_bad_json_attributes: true by default. Ignores keys that aren't accessible attributes or associations that have a accepts_nested_attributes_for. This should be true most likely if wrapped_json is true.
 * intuit_post_or_put_method: if true, anything that comes into the create method with 'id' in the JSON will be sent to update. This way you don't need to put the ID in the URL to do an update and can reuse the same resource URL for create or update.
 * multiple_value_arel_predications: should hopefully never have to modify this. It is a list of predications that can take multiple values, e.g. not_in_all could take multiple values.
 * scavenge_bad_associations_for_id_only: if you pass in a json block for an association that is not accepts_nested_attributes_for, then it will look for 'id' in the root of that block, and if it finds it, it will set the foreign_key of a related belongs_to or has_and_belongs_to_many association if one exists and is mass-assignable.
 * suffix_json_attributes: true to automatically add _attributes to the end of keys in your JSON that correspond to valid associations.
 * supported_arel_predications: an array of arel predications. If you want to lock down what filters people can use to only certain controllers, this would be a way to do it.
+* supported_functions: an array of supported functions. See this document for a description of each function.
 * value_split: when sending multiple values in a filter in the URL, this is the delimiter.
 * wrapped_json: if true, then it will look for the underscored model name in the incoming JSON (in params[:your_model_name]), if false it either expects that everything in params are keys at the root of your JSON or you are sending the JSON in request body
 
@@ -426,4 +408,5 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [as_json]: http://api.rubyonrails.org/classes/ActiveModel/Serializers/JSON.html#method-i-as_json
 [cors]: http://enable-cors.org/
 [preflight_request]: http://www.w3.org/TR/cors/#resource-preflight-requests
+[rabl]: https://github.com/nesquena/rabl/
 [lic]: http://github.com/garysweaver/restful_json/blob/master/LICENSE

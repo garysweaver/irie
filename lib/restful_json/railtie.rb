@@ -6,7 +6,7 @@ module RestfulJson
       ActiveSupport.on_load(:action_controller) do
         puts "Extending #{self} with RestfulJson::Controller"
         # ActionController::Base gets a method that allows controllers to include the new behavior
-        extend RestfulJson::Controller
+        include RestfulJson::Controller # ActiveSupport::Concern
       end
     end
 

@@ -17,6 +17,10 @@ Then run:
 
     bundle install
 
+To stay up-to-date, periodically run:
+
+    bundle update restful_json
+
 ### Usage
 
 So if you had an existing model app/models/foobar.rb:
@@ -158,6 +162,12 @@ To limit the number of rows returned, use 'take'. It is called take, because tak
 
     http://localhost:3000/foobars.json?take=5
 
+#### Count
+
+This is another filter that can be used with the others, but instead of returning the json objects, it returns their count, which is useful for paging to determine how many results you can page through:
+
+    http://localhost:3000/foobars.json?count=
+
 #### Paging results
 
 Combine skip and take for manual completely customized paging.
@@ -185,7 +195,6 @@ Second page of 30 results:
 Third page of 30 results:
 
     http://localhost:3000/foobars.json?skip=60&take=30
-
 
 #### No associations
 
@@ -237,172 +246,170 @@ If an object has already been expanded into its associations, if it is reference
 
 ### Controller
 
-#### Do updates without having to put the id in the URL, just put the id in the JSON
+#### Controller-level configuration
 
-Enabled by default.
+There are class_attributes available to be set for any item in the controller section in the configuration section below. There are a lot, so be sure to read that.
 
-The controller can just figure out whether it is a create by no 'id' being set in the JSON and an update of the 'id' is set. No need to worry about POST, PUT methods or the URL, just POST everything to the create URL.
+In addition, there are some things the controller also lets you set. If you don't want to use the normal FoobarsController or SomeModule::FoobarsController for Foobar model naming convention then you can override the model_class here:
 
-You can change this by setting the RESTFUL_JSON_INTUIT_POST_OR_PUT_METHOD environment variable or the global variable $restful_json_intuit_post_or_put_method in your environment.rb:
+    self.model_class = Foobar
 
-      $restful_json_intuit_post_or_put_method = false
+That will also set the singular and plural model name which is used for wrapping. It is doubtful, but if really needed, you can also configure them also:
 
-Or via overriding the following method on the controller:
-      
-      def restful_json_intuit_post_or_put_method
-        ENV['RESTFUL_JSON_INTUIT_POST_OR_PUT_METHOD'] || $restful_json_intuit_post_or_put_method || true
-      end
-
-#### Scavenge bad associations for ID
-
-Enabled by default.
-
-Use this with restful_json_ignore_bad_attributes and if you pass in JSON with associations set to their full JSON representation, it will mine the JSON for an 'id' which it will then create a key for in the request JSON corresponding to the foreign id that you probably meant to set if the association is a belongs_to or has_and_belongs_to_many.
-
-You can change this by setting the RESTFUL_JSON_SCAVENGE_BAD_ASSOCIATIONS_FOR_ID_ONLY environment variable or the global variable $restful_json_scavenge_bad_associations_for_id_only in your environment.rb:
-
-      $restful_json_scavenge_bad_associations_for_id_only = false
-
-Or via overriding the following method on the controller:
-      
-      def restful_json_scavenge_bad_associations_for_id_only
-        ENV['RESTFUL_JSON_SCAVENGE_BAD_ASSOCIATIONS_FOR_ID_ONLY'] || $restful_json_scavenge_bad_associations_for_id_only || true
-      end
-
-#### Ignore attributes and associations you didn't mean to pass in the JSON
-
-Enabled by default.
-
-You can change this by setting the RESTFUL_JSON_IGNORE_BAD_ATTRIBUTES environment variable or the global variable $restful_json_ignore_bad_attributes in your environment.rb:
-
-      $restful_json_ignore_bad_attributes = false
-
-Or via overriding the following method on the controller:
-      
-      def restful_json_ignore_bad_attributes
-        ENV['RESTFUL_JSON_IGNORE_BAD_ATTRIBUTES'] || $restful_json_ignore_bad_attributes || true
-      end
-      
-#### You don't have to specify *_attributes in POSTed or PUT JSON when using accepts_nested_attributes_for
-
-Enabled by default.
-
-With accepts_nested_attributes_for, Rails/ActiveRecord expects you to specify the key in the provided JSON by suffixing the key with _attributes, e.g. if you want to specify FlightCrewMembers on Airplane, you would have had to have sent in flight_crew_members_attributes instead of flight_crew_members. With restful_json, you only need to pass in flight_crew_members as the key as you'd expect.
-
-You can change this by setting the RESTFUL_JSON_SUFFIX_ATTRIBUTES environment variable or the global variable $restful_json_suffix_attributes in your environment.rb:
-
-      $restful_json_suffix_attributes = false
-
-Or via overriding the following method on the controller:
-      
-      def restful_json_suffix_attributes
-        ENV['RESTFUL_JSON_SUFFIX_ATTRIBUTES'] || $restful_json_suffix_attributes || true
-      end
-
-#### With parameter wrapping
-
-Our AngularJS integration seemed to be easier without any wrapping, so by default RESTful JSON does not wrap response data. You can change this and have it take and specify the singular or plural model name by setting the RESTFUL_JSON_WRAPPED environment variable or the global variable $restful_json_wrapped in your environment.rb:
-
-    $restful_json_wrapped=true
-
-Or in the controller, you can specify:
-
-    def restful_json_wrapped
-      true
-    end
+    self.singular_model_name = 'foobar'
+    self.plural_model_name = 'foobars'
 
 #### Customizing ActiveRecord queries/methods
 
-Basic querying, filtering, and sorting is provided out-of-the-box, so the following shouldn't be needed for basic usage. But, in some cases you might need to just change the implementation. In fact you may choose to do this in all of your controllers if you wish, such that RESTful JSON would only be providing the JSON formatting and, optionally, CORS.
+A lot is provided out-of-the-box, so the following shouldn't usually be needed, but, RESTful JSON was built to be extensible.
 
-To do this, you may implement some or all of the following methods: index_it, show_it, create_it, update_it, and/or destroy_it. These correspond to the index, show, create, update, and destroy methods in the RESTful JSON parent controller.
+Although you can override index, show, create, and update for full control, if anything, you often will just care about how it gets, creates, updates, and destroys data. This can be controlled by overriding the index_it, show_it, create_it, update_it, and/or destroy_it methods. These correspond to the index, show, create, update, and destroy methods in the RESTful JSON parent controller.
 
 For example, a very basic unwrapped implementation (note: @request_json is automatically determined and set by index, show, create, update, and destroy that call these methods):
 
-    def index_it
-      @value = Foo.all
-    end
+    class FoobarsController < ApplicationController
 
-    def show_it
-      @value = Foo.find(params[:id])
-    end
+      acts_as_restful_json
+  
+      def index_it
+        @value = Foo.all
+      end
 
-    def create_it
-      @value = Foo.new(@request_json)
-      @value.save
-    end
+      def show_it
+        @value = Foo.find(params[:id])
+      end
 
-    def update_it
-      @value.update_attributes(@request_json)
-    end
+      def create_it
+        @value = Foo.new(@request_json)
+        @value.save
+      end
 
-    def destroy_it
-      Foo.where(id: params[:id]).first ? Foo.destroy(params[:id]) : true
+      def update_it
+        @value.update_attributes(@request_json)
+      end
+
+      def destroy_it
+        Foo.where(id: params[:id]).first ? Foo.destroy(params[:id]) : true
+      end
+
     end
 
 A basic abstract controller might contain (note: @model_class is automatically set based on controller name in every controller):
 
-    def index_it
-      @value = @model_class.all
+    class AbstractController < ApplicationController
+
+      acts_as_restful_json
+
+      def index_it
+        @value = @model_class.all
+      end
+
+      def show_it
+        @value = @model_class.find(params[:id])
+      end
+
+      def create_it
+        @value = @model_class.new(@request_json)
+        @value.save
+      end
+
+      def update_it
+        @value.update_attributes(@request_json)
+      end
+
+      def destroy_it
+        @model_class.where(id: params[:id]).first ? @model_class.destroy(params[:id]) : true
+      end
+
     end
 
-    def show_it
-      @value = @model_class.find(params[:id])
-    end
+### Configuration
 
-    def create_it
-      @value = @model_class.new(@request_json)
-      @value.save
-    end
+In your config/environment.rb or environment specfic configuration, you may specify one or more options in the config hash that will be merged into the following defaults:
 
-    def update_it
-      @value.update_attributes(@request_json)
-    end
+    RestfulJson::Options.configure({
+          arel_predication_split: '!',
+          cors_access_control_headers: {'Access-Control-Allow-Origin' => '*',
+                                         'Access-Control-Allow-Methods' => 'POST, GET, PUT, DELETE, OPTIONS',
+                                         'Access-Control-Max-Age' => '1728000'},
+          cors_enabled: false,
+          cors_preflight_headers: {'Access-Control-Allow-Origin' => '*',
+                                    'Access-Control-Allow-Methods' => 'POST, GET, PUT, DELETE, OPTIONS',
+                                    'Access-Control-Allow-Headers' => 'X-Requested-With, X-Prototype-Version',
+                                    'Access-Control-Max-Age' => '1728000'},
+          ignore_bad_json_attributes: true,
+          intuit_post_or_put_method: true,
+          # Generated from Arel::Predications.public_instance_methods.collect{|c|c.to_s}.sort. To lockdown a little, defining these specifically.
+          # See: https://github.com/rails/arel/blob/master/lib/arel/predications.rb
+          multiple_value_arel_predications: ['does_not_match_all', 'does_not_match_any', 'eq_all', 'eq_any', 'gt_all', 
+                                              'gt_any', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt_all', 'lt_any', 
+                                              'lteq_all', 'lteq_any', 'matches_all', 'matches_any', 'not_eq_all', 'not_eq_any', 
+                                              'not_in', 'not_in_all', 'not_in_any'],
+          scavenge_bad_associations_for_id_only: true,
+          suffix_json_attributes: true,
+          supported_arel_predications: ['does_not_match', 'does_not_match_all', 'does_not_match_any', 'eq', 'eq_all', 'eq_any', 'gt', 'gt_all', 
+                                         'gt_any', 'gteq', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt', 'lt_all', 'lt_any', 'lteq', 
+                                         'lteq_all', 'lteq_any', 'matches', 'matches_all', 'matches_any', 'not_eq', 'not_eq_all', 'not_eq_any', 
+                                         'not_in', 'not_in_all', 'not_in_any'],
+          value_split: ',',
+          wrapped_json: false
+    })
 
-    def destroy_it
-      @model_class.where(id: params[:id]).first ? @model_class.destroy(params[:id]) : true
-    end
+Any of the controller options you may also specify in the definition of the Controller class, e.g.:
 
-### CORS
+      self.arel_predication_split = '!'
+      self.cors_access_control_headers = nil
+      self.cors_enabled = false
+      self.cors_preflight_headers = nil
+      self.ignore_bad_json_attributes = true
+      self.intuit_post_or_put_method = true
+      self.multiple_value_arel_predications = ['does_not_match_all', 'does_not_match_any', 'eq_all', 'eq_any', 'gt_all', 
+                                          'gt_any', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt_all', 'lt_any', 
+                                          'lteq_all', 'lteq_any', 'matches_all', 'matches_any', 'not_eq_all', 'not_eq_any', 
+                                          'not_in', 'not_in_all', 'not_in_any']
+      self.scavenge_bad_associations_for_id_only = true
+      self.suffix_json_attributes = true
+      self.supported_arel_predications = ['does_not_match', 'does_not_match_all', 'does_not_match_any', 'eq', 'eq_all', 'eq_any', 'gt', 'gt_all', 
+                                     'gt_any', 'gteq', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt', 'lt_all', 'lt_any', 'lteq', 
+                                     'lteq_all', 'lteq_any', 'matches', 'matches_all', 'matches_any', 'not_eq', 'not_eq_all', 'not_eq_any', 
+                                     'not_in', 'not_in_all', 'not_in_any']
+      self.value_split = ','
+      self.wrapped_json = false
 
-If you have javascript/etc. code in the client that is running under a different host or port than Rails server, then you are cross-origin/cross-domain and we handle this with [CORS][cors].
+Defaults and what each mean:
+* arel_predication_split: character in the URL that seperates the attribute name from the optional arel predication
+* cors_access_control_headers: a hash of headers to use for each non-preflight response, e.g.:
 
-By default CORS is disabled, so to enable it you can either set the environment variable RESTFUL_JSON_CORS_ENABLED, or in config/environment.rb or for a specific environment like config/environments/development.rb you can add the following global variable:
-
-    $restful_json_cors_enabled = true
-
-Or in the controller, you can specify:
-
-    def restful_json_cors_enabled
-      true
-    end
-
-By default, we make CORS just allow everything, so the whole cross-origin/cross-domain thing goes away and you can get to developing locally with your Javascript app that isn't even being served by Rails.
-
-##### Advanced CORS usage
-
-So, if you enabled CORS, then CORS starts with a [preflight request][preflight_request] from the client (the browser), to which we respond with a response. You can customize the values of headers returned in the :cors_preflight_headers option. Then for all other requests to the controller, you can specify headers to be returned in the :cors_access_control_headers option.
-
-Here's an example of customizing both:
-
-    class FoobarsController < ApplicationController
-      def initialize
-        restful_json_options({
-          cors_preflight_headers: {
-            'Access-Control-Allow-Origin':  '*',
-            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'X-Requested-With, X-Prototype-Version',
-            'Access-Control-Max-Age': '1728000'
-          },
-          cors_access_control_headers: {
+        RestfulJson::Options.configure do
+          cors_enabled = true
+          cors_access_control_headers = {
             'Access-Control-Allow-Origin':  '*',
             'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
             'Access-Control-Max-Age': '1728000'
           }
-        })
-        super
-      end
-    end
+        end
+
+* cors_enabled: true to enable CORS. If you have javascript/etc. code in the client that is running under a different host or port than Rails server, then you are cross-origin/cross-domain and we handle this with [CORS][cors]. By default, we make CORS just allow everything, so the whole cross-origin/cross-domain thing goes away and you can get to developing locally with your Javascript app that isn't even being served by Rails.
+* cors_preflight_headers: So, if you enabled CORS, then CORS starts with a [preflight request][preflight_request] from the client (the browser), to which we respond with a response. You can customize the values of headers returned in the :cors_preflight_headers option. Then for all other requests to the controller, you can specify headers to be returned in the :cors_access_control_headers option. This is a hash of headers to use for each preflight response. e.g.:
+
+        RestfulJson::Options.configure do
+          cors_enabled = true
+          cors_access_control_headers = {
+            'Access-Control-Allow-Origin':  '*',
+            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'X-Requested-With, X-Prototype-Version',
+            'Access-Control-Max-Age': '1728000'
+          }
+        end
+
+* ignore_bad_json_attributes: true by default. Ignores keys that aren't accessible attributes or associations that have a accepts_nested_attributes_for. This should be true most likely if wrapped_json is true.
+* intuit_post_or_put_method: if true, anything that comes into the create method with 'id' in the JSON will be sent to update. This way you don't need to put the ID in the URL to do an update and can reuse the same resource URL for create or update.
+* multiple_value_arel_predications: should hopefully never have to modify this. It is a list of predications that can take multiple values, e.g. not_in_all could take multiple values.
+* scavenge_bad_associations_for_id_only: if you pass in a json block for an association that is not accepts_nested_attributes_for, then it will look for 'id' in the root of that block, and if it finds it, it will set the foreign_key of a related belongs_to or has_and_belongs_to_many association if one exists and is mass-assignable.
+* suffix_json_attributes: true to automatically add _attributes to the end of keys in your JSON that correspond to valid associations.
+* supported_arel_predications: an array of arel predications. If you want to lock down what filters people can use to only certain controllers, this would be a way to do it.
+* value_split: when sending multiple values in a filter in the URL, this is the delimiter.
+* wrapped_json: if true, then it will look for the underscored model name in the incoming JSON (in params[:your_model_name]), if false it either expects that everything in params are keys at the root of your JSON or you are sending the JSON in request body
 
 ### License
 

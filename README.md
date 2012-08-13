@@ -1,11 +1,17 @@
 RESTful JSON v2 for Rails 3.x
 =====
 
-A gem that loads a class called RestfulJson::Controller that extends your ApplicationController that you can use to easily make controllers in Rails 3.x that dynamically add RESTful JSON methods to your controllers to reduce code clutter and just focus on the javascript (or whatever makes you happy these days) frontend that interacts with it.
+RESTful JSON makes creating RESTful services that query your ActiveRecord models, allow filtering, paging, etc., provide model-specific JSON, and take JSON for one model or a model and some associations to persist, update, and destroy as simple as:
 
-The intent is to allow a simple way to use Rails as a RESTful JSON service backend for a javascript-based front-end. Some believe that you should have the boilerplate code all over your controllers, which you may decide is better for you, but using restful-json will save you some code and opts for a simpler implementation.
+    class FoobarsController < ApplicationController
+      acts_as_restful_json
+    end 
 
-The original controller implementation borrowed heavily from Dan Gebhardt's example in [ember_data_example][ember_data_example], but we are using it with [AngularJS][angular].
+It also helps you produce DRY models and controllers, is very configurable in the environment.rb, model, and controller level, *and* lets you easily extend and override just the parts of the models and controllers that matter.
+
+This project was started when we looked at Dan Gebhardt's example in [ember_data_example][ember_data_example] and needed something similar for [AngularJS][angular]. Other than projects like [RABL] that let you define JSON views easily, there wasn't anything that we found that make the whole process easier so that you didn't have to define controllers, etc. for commonly used functionality in Javascript implementations. Even though it has only been tested with AngularJS, in theory it should be able to be used with any Javascript framework. Also, if anyone is interested in making it work with Sinatra, etc., let us know.
+
+Interested? Let's get started...
 
 ### Setup
 

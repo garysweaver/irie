@@ -236,8 +236,8 @@ In addition, there are some things the controller also lets you set. If you don'
 
 That will also set the singular and plural model name which is used for wrapping. It is doubtful, but if really needed, you can also configure them also:
 
-    self.singular_model_name = 'foobar'
-    self.plural_model_name = 'foobars'
+    self.model_singular_name = 'foobar'
+    self.model_plural_name = 'foobars'
 
 #### Customizing ActiveRecord queries/methods
 

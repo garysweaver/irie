@@ -4,8 +4,8 @@ module RestfulJson
 
     included do
       class_attribute :model_class, instance_writer: false
-      class_attribute :singular_model_name, instance_writer: false
-      class_attribute :plural_model_name, instance_writer: false
+      class_attribute :model_singular_name, instance_writer: false
+      class_attribute :model_plural_name, instance_writer: false
 
       # for each of the keys in the default controller config, make an associated class_attribute and set it to the value of the OpenStruct
       RestfulJson::Options.output
@@ -75,13 +75,13 @@ module RestfulJson
       end
             
       def initialize
-        @singular_model_name = self.singular_model_name || self.class.name.chomp('Controller').split('::').last.singularize
-        @plural_model_name = self.plural_model_name || @singular_model_name.pluralize
-        @model_class = self.model_class || @singular_model_name.constantize
+        @model_singular_name = self.model_singular_name || self.class.name.chomp('Controller').split('::').last.singularize
+        @model_plural_name = self.model_plural_name || @model_singular_name.pluralize
+        @model_class = self.model_class || @model_singular_name.constantize
 
         raise "#{self.class.name} assumes that #{@model_class} extends ActiveRecord::Base, but it didn't. Please fix, or remove this constraint." unless @model_class.ancestors.include?(ActiveRecord::Base)
 
-        puts "'#{self}' set @model_class=#{@model_class}, @singular_model_name=#{@singular_model_name}, @plural_model_name=#{@plural_model_name}"
+        puts "'#{self}' set @model_class=#{@model_class}, @model_singular_name=#{@model_singular_name}, @model_plural_name=#{@model_plural_name}"
       end
       
       def allowed_activerecord_model_attribute_keys

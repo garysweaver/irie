@@ -228,7 +228,7 @@ If an object has already been expanded into its associations, if it is reference
 
 #### Controller-level configuration
 
-There are class_attributes available to be set for any item in the controller section in the configuration section below. There are a lot, so be sure to read that.
+There are class_attributes available to be set for any item in the controller section in the Configuration section below.
 
 In addition, there are some things the controller also lets you set. If you don't want to use the normal FoobarsController or SomeModule::FoobarsController for Foobar model naming convention then you can override the model_class here:
 

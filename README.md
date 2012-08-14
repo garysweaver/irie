@@ -305,9 +305,7 @@ A basic abstract controller might contain (note: @model_class is automatically s
 
     end
 
-### Configuration
-
-#### Options
+### Configuration Options
 
 ##### arel_predication_split
 
@@ -361,7 +359,7 @@ When sending multiple values in a filter in the URL, this is the delimiter.
 
 If true, then it will look for the underscored model name in the incoming JSON (in params[:your_model_name]), if false it either expects that everything in params are keys at the root of your JSON or you are sending the JSON in request body
 
-#### Application configuration
+#### Configuring all controllers
 
 In your config/environment.rb or environment specfic configuration, you may specify one or more options in the config hash that will be merged into the following defaults:
 
@@ -394,7 +392,7 @@ In your config/environment.rb or environment specfic configuration, you may spec
       wrapped_json: false
     })
 
-#### Controller configuration
+#### Configuring specific controllers
 
 Any of the controller options you may also specify in the definition of the Controller class, e.g.:
 

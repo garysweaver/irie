@@ -7,11 +7,13 @@ RESTful JSON makes creating RESTful services that query your ActiveRecord models
       acts_as_restful_json
     end 
 
-It also helps you produce DRY models and controllers, is very configurable in the environment.rb, model, and controller level, *and* lets you easily extend and override just the parts of the models and controllers that matter.
+It also helps you produce DRY models and controllers, is very configurable in the environment.rb, model, and controller level, *and* lets you easily extend and override just the parts of the models and controllers that matter. In theory it should be able to be used with any Javascript framework or anything else requiring RESTful services in JSON.
 
-This project was started when we looked at Dan Gebhardt's example in [ember_data_example][ember_data_example] and needed something similar for [AngularJS][angular]. We looked at [RABL][rabl] which is recommended if you only need to provide JSON views to the data, but we didn't find anything that made not only the views easier but the controllers as well.
+A lot is still subject to change. [Strong Parameters][strong_parameters] is being integrated with Rails 4 as an eventual replacement for mass assignment, so we'd like to start using that. We might also start requiring some sort of authentication so there is concept of user or role, start using [CanCan][cancan] for authorization, [ActiveModel::Serializers][active_model_serializers] to replace the [as_json][as_json] extension, and maybe add support for versioning.
 
-In theory it should be able to be used with any Javascript framework or anything else requiring RESTful services in JSON. If anyone is interested in making it work with Sinatra, etc., let us know.
+Thanks much to the informative post, [State of Writing API Servers with Rails][state_of_rails_apis] and the original [ember_data_example][ember_data_example] project the first version heavily borrowed from. (We use [AngularJS][angular], but we have done what we could easily to support ember and other JS frameworks.)
+
+The overall goal of the project is to make providing RESTful JSON APIs via Rails for use in javascript frameworks as simple as possible, while still letting you override the base functionality when needed. Stay tuned and please let us know if you'd like to contribute.
 
 ### Setup
 
@@ -408,5 +410,9 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [as_json]: http://api.rubyonrails.org/classes/ActiveModel/Serializers/JSON.html#method-i-as_json
 [cors]: http://enable-cors.org/
 [preflight_request]: http://www.w3.org/TR/cors/#resource-preflight-requests
+[state_of_rails_apis]: http://broadcastingadam.com/2012/03/state_of_rails_apis/
+[strong_parameters]: https://github.com/rails/strong_parameters
+[cancan]: https://github.com/ryanb/cancan
+[active_model_serializers]: https://github.com/josevalim/active_model_serializers
 [rabl]: https://github.com/nesquena/rabl/
 [lic]: http://github.com/garysweaver/restful_json/blob/master/LICENSE

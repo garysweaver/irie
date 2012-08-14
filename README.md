@@ -108,43 +108,15 @@ If you want to change this behavior for a specific param or for all, you may imp
 
 #### Support for AREL predications
 
-By specifying a character that identifies an AREL predication is suffixed to the request parameter name after a character you can customize, you can help filter data even further:
+By specifying a character that identifies an [AREL predication][arel] is suffixed to the request parameter name after a character you can customize, you can help filter data even further:
 
     http://localhost:3000/foobars.json?foo_date!gteq=2012-08-08
 
-We currently support the following AREL predications: does_not_match, does_not_match_all, does_not_match_any, eq, eq_all, eq_any, gt, gt_all, gt_any, gteq, gteq_all, gteq_any, in, in_all, in_any, lt, lt_all, lt_any, lteq, lteq_all, lteq_any, matches, matches_all, matches_any, not_eq, not_eq_all, not_eq_any, not_in, not_in_all, and not_in_any:
+We currently try to support all AREL predications, even the ones that take multiple values:
 
     http://localhost:3000/foobars.json?foo_date!eq_any=2012-08-08,2012-09-09
 
-To limit AREL predications that are supported, you can override supported_arel_predications(attr_name=nil) in your controller if you want. Here are the defaults:
-
-    def supported_arel_predications(attr_name=nil)
-      ['does_not_match', 'does_not_match_all', 'does_not_match_any', 'eq', 'eq_all', 'eq_any', 'gt', 'gt_all', 
-        'gt_any', 'gteq', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt', 'lt_all', 'lt_any', 'lteq', 
-        'lteq_all', 'lteq_any', 'matches', 'matches_all', 'matches_any', 'not_eq', 'not_eq_all', 'not_eq_any', 
-        'not_in', 'not_in_all', 'not_in_any']
-    end
-
-To change the AREL predication delimiter in the controller, change the '!' to something else:
-
-    def arel_predication_split
-      '!'
-    end
-
-To change the split for multiple values in the controller, change the ',' to something else:
-
-    def value_split
-      ','
-    end
-
-For some predications, we don't split, just to not split for something we can't take a multiple value for anyway. Here are the defaults:
-
-    def multiple_value_arel_predications(attr_name=nil)
-      ['does_not_match_all', 'does_not_match_any', 'eq_all', 'eq_any', 'gt_all', 
-       'gt_any', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt_all', 'lt_any', 
-       'lteq_all', 'lteq_any', 'matches_all', 'matches_any', 'not_eq_all', 'not_eq_any', 
-       'not_in', 'not_in_all', 'not_in_any']
-    end
+To override what predications are supported application-wide or per controller, as well as URL delimiters and what predications support multiple values, see the Configuration section of this document.
 
 #### Only
 
@@ -408,6 +380,7 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [ember_data_example]: https://github.com/dgeb/ember_data_example/blob/master/app/controllers/contacts_controller.rb
 [angular]: http://angularjs.org/
 [as_json]: http://api.rubyonrails.org/classes/ActiveModel/Serializers/JSON.html#method-i-as_json
+[arel]: https://github.com/rails/arel/blob/master/lib/arel/predications.rb
 [cors]: http://enable-cors.org/
 [preflight_request]: http://www.w3.org/TR/cors/#resource-preflight-requests
 [state_of_rails_apis]: http://broadcastingadam.com/2012/03/state_of_rails_apis/

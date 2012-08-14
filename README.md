@@ -100,7 +100,7 @@ To specify a null value for filtering or predication value, by default you can u
     http://localhost:3000/foobars.json?color=null
     http://localhost:3000/foobars.json?color=nil
 
-If you want to change this behavior for a specific param or for all, you may implement convert_request_param_value_for_filtering in your controller. For example, if empty params or those only containing only spaces should be null, e.g. 'http://localhost:3000/foobars.json?color=' or http://localhost:3000/foobars.json?color=  ', then you'd put this into the controller:
+If you want to change this behavior for a specific param or for all, you may implement convert_request_param_value_for_filtering in your controller. For example, if empty params or those only containing only spaces should be null, then you'd put this into the controller:
 
     def convert_request_param_value_for_filtering(attr_name, value)
       value && ['NULL','null','nil',''].include?(value.strip) ? nil : value

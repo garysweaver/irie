@@ -220,7 +220,7 @@ Most of the time when working with a RESTful service, you'll want it to return t
 
     as_json_excludes :foo, :bars
 
-##### Circular references avoided
+#### It avoids circular references
 
 If an object has already been expanded into its associations, if it is referenced again, as_json only emits JSON for the object's accessible attributes, not its associations.
 

@@ -247,6 +247,12 @@ The RESTful JSON's default implementation of these should be fine, but, RESTful 
 
 Although you can override index, show, create, and update for full control, if anything, you often will just care about how it gets, creates, updates, and destroys data. This can be controlled by overriding the index_it, show_it, create_it, update_it, and/or destroy_it methods. These correspond to the index, show, create, update, and destroy methods in the RESTful JSON parent controller.
 
+There are a handful of variables that you use in a RESTful JSON controller:
+* **params**: this is a hash of request parameters along with a few other things.
+* **@model\_class**: the Ruby class object for the model which it either gets from self.model_class you set or using the singular form of the controller class name without "Controller" at the end.
+* **@request\_json**: the parsed json as a hash. How it gets this depends on the wrapped_json configuration parameter.
+* **@value**: the default implementations of the index, show, create, and update methods expect you to set this to the instance that should be converted to JSON and returned to the client.
+
 For example, a very basic unwrapped implementation (note: @request_json is automatically determined and set by index, show, create, update, and destroy that call these methods):
 
     class FoobarsController < ApplicationController

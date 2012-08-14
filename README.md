@@ -307,7 +307,7 @@ A basic abstract controller might contain (note: @model_class is automatically s
 
 ### Configuration
 
-Here are the options:
+Here are the options available for the application and each controller:
 
 #### arel_predication_split
 
@@ -361,7 +361,7 @@ When sending multiple values in a filter in the URL, this is the delimiter.
 
 If true, then it will look for the underscored model name in the incoming JSON (in params[:your_model_name]), if false it either expects that everything in params are keys at the root of your JSON or you are sending the JSON in request body
 
-### Configuring all controllers
+### Application-wide configuration
 
 In your config/environment.rb or environment specfic configuration, you may specify one or more options in the config hash that will be merged into the following defaults:
 
@@ -394,7 +394,7 @@ In your config/environment.rb or environment specfic configuration, you may spec
       wrapped_json: false
     })
 
-#### Configuring specific controllers
+#### Configuring a specific controller
 
 Any of the controller options you may also specify in the definition of the Controller class, e.g.:
 
@@ -417,6 +417,8 @@ Any of the controller options you may also specify in the definition of the Cont
       self.supported_functions = ['count', 'include', 'no_includes', 'only', 'skip', 'take', 'uniq']
       self.value_split = ','
       self.wrapped_json = false
+
+You can also configure these in a base class and inheritance should work properly since these are Rails class_attributes.
 
 ### License
 

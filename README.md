@@ -426,6 +426,32 @@ Any of the controller options you may also specify in the definition of the Cont
 
 You can also configure these in a base class and inheritance should work properly since these are Rails class_attributes.
 
+#### Troubleshooting
+
+If you want times to come back with the right timezone and format, try doing this in your environment.rb or somewhere else where it will load before the services:
+
+    # Without this, Time.zone.now will not be right
+    Time.zone = "America/New_York"
+    # Without this, JSON time may not contain timezone
+    module ActiveSupport
+      class TimeWithZone
+        def as_json(options = nil)
+          "#{in_time_zone('America/New_York')}"
+        end
+      end
+    end
+
+Or you could use the Javascript default format:
+
+    module ActiveSupport
+      class TimeWithZone
+        def as_json(options = nil)
+          # returns UTC time in JS format, e.g. "2012-08-12T00:00:00-0400"
+          "#{utc.strftime('%Y-%m-%dT%H:%M:%S.%3NZ')}"
+        end
+      end
+    end
+
 ### License
 
 Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].

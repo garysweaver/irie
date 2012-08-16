@@ -45,7 +45,7 @@ module RestfulJson
     # of the primary key or array of keys. Also, if this instance has already been output in an ancestoral as_json, then no
     # associations are included.
     def as_json(options = {})
-      puts "restful_json's as_json called with options=#{options.inspect}"
+      puts "restful_json's as_json called with options=#{options.inspect} and inspect=#{inspect}"
       
       unless options[:restful_json_ancestors].is_a?(Array)
         puts "as_json not called with an array in options[:restful_json_ancestors] so taking a wild guess and just calling super(#{options})"

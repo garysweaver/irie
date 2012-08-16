@@ -8,8 +8,7 @@ module RestfulJson
       class_attribute :model_plural_name, instance_writer: false
 
       # for each of the keys in the default controller config, make an associated class_attribute and set it to the value of the OpenStruct
-      RestfulJson::Options.output
-      options_hash = RestfulJson::Options.to_hash
+      options_hash = RestfulJson::Options.controller
       options_hash.keys.each do |key|
         class_attribute key, instance_writer: false
         self.send("#{key}=".to_sym, options_hash[key])

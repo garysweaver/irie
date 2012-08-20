@@ -1,17 +1,32 @@
 RESTful JSON v2 for Rails 3.x
 =====
 
-RESTful JSON makes creating RESTful services that query your ActiveRecord models, allow filtering, paging, etc., provide model-specific JSON, and take JSON for one model or a model and some associations to persist, update, and destroy as simple as:
+RESTful JSON makes creating RESTful services as easy as:
 
     class FoobarsController < ApplicationController
       acts_as_restful_json
     end 
 
-It also helps you produce DRY models and controllers, is very configurable in the environment.rb, model, and controller level, *and* lets you easily extend and override just the parts of the models and controllers that matter. In theory it should be able to be used with any Javascript framework or anything else requiring RESTful services in JSON.
+And if you have this in config/routes.rb:
 
-A lot is still subject to change. [Strong Parameters][strong_parameters] is being integrated with Rails 4 as an eventual replacement for mass assignment, so we'd like to start using that. We might also start requiring some sort of authentication so there is concept of user or role, start using [CanCan][cancan] for authorization, [ActiveModel::Serializers][active_model_serializers] to replace the [as_json][as_json] extension, and maybe add support for versioning.
+    resources :foobars, :constraints => {:format => /json/}, :defaults => {:format => 'json'}
 
-Thanks much to the informative post, [State of Writing API Servers with Rails][state_of_rails_apis] and the original [ember_data_example][ember_data_example] project the first version heavily borrowed from. (We use [AngularJS][angular], but we have done what we could easily to support ember and other JS frameworks.)
+Now you can get all blue Foobars that expire after 8/20/2012 as JSON:
+
+    http://localhost:3000/foobars?color=blue&expired_at!gteq=2012-08-20
+
+Or get the total count and page the results:
+
+    http://localhost:3000/foobars.json?color=blue&expired_at!gteq=2012-08-20&count=
+    http://localhost:3000/foobars.json?color=blue&expired_at!gteq=2012-08-20&skip=0&take=15
+
+It's also very configurable both globally and via class attributes on the controllers.
+
+### Future
+
+A lot is still subject to change in the next major version. [Strong Parameters][strong_parameters] is being integrated with Rails 4 as an eventual replacement for mass assignment, so we'd like to start using that. We might also start requiring some sort of authentication so there is concept of user or role, start using [CanCan][cancan] for authorization, [ActiveModel::Serializers][active_model_serializers] to replace the [as_json][as_json] extension, and maybe add support for versioning.
+
+Thanks much to the informative post, [State of Writing API Servers with Rails][state_of_rails_apis] and the original [ember_data_example][ember_data_example] project the first version heavily borrowed from. We use [AngularJS][angular], but we have done what we could easily to support ember and other Javascript frameworks.
 
 The overall goal of the project is to make providing RESTful JSON APIs via Rails for use in javascript frameworks as simple as possible, while still letting you override the base functionality when needed. Stay tuned and please let us know if you'd like to contribute.
 
@@ -29,60 +44,6 @@ To stay up-to-date, periodically run:
 
     bundle update restful_json
 
-#### Formatting Dates, Times, DateTimes (and TimeWithZone)
-
-Set your time zone in the class in config/application.rb:
-
-        # times are stored in DB as UTC, but we should indicate what timezone we are in
-        config.time_zone = 'America/New_York'
-
-If you are unsure what the time zone name to use is, list them by doing:
-
-    rails c
-
-Then:
-
-    ActiveSupport::TimeZone.all.each do |tz|; puts "#{tz.name}"; end; nil
-
-Or if you need to see the offset for each to choose it:
-
-    ActiveSupport::TimeZone.all.each do |tz|; puts "#{tz}"; end; nil
-
-Then, override rails defaults to return the Javascript default format for datetimes for date, time, datetimes. Other format examples commented so you can return date, time, datetime with zone if you need that instead. Put the following in config/environment.rb or somewhere under config/initializers/:
-
-    class Time
-      def as_json(options = nil) #:nodoc:
-        # return UTC time in Javascript format, e.g. "2012-08-12T04:00:00.000Z"
-        "#{utc.strftime('%Y-%m-%dT%H:%M:%S.%3NZ')}"
-        # return UTC time in format: 2012-08-20T13:24:59+0000
-        #"#{utc.strftime('%Y-%m-%dT%H:%M:%S%z')}"
-        # return time in current zone in format: 2012-08-20T09:26:47-0400
-        #"#{strftime('%Y-%m-%dT%H:%M:%S%z')}"
-      end
-    end
-
-    class Date
-      def as_json(options = nil) #:nodoc:
-        # return UTC time in Javascript format, e.g. "2012-08-12T04:00:00.000Z"
-        "#{to_time(:utc).strftime('%Y-%m-%dT%H:%M:%S.%3NZ')}"
-        # return UTC time in format: 2012-08-20T13:24:59+0000
-        #"#{to_time(:utc).strftime('%Y-%m-%dT%H:%M:%S%z')}"
-        # return time in current zone in format: 2012-08-20T09:26:47-0400
-        #"#{to_time.strftime('%Y-%m-%dT%H:%M:%S%z')}"
-      end
-    end
-
-    class DateTime
-      def as_json(options = nil) #:nodoc:
-        # return UTC time in Javascript format, e.g. "2012-08-12T04:00:00.000Z"
-        "#{utc.strftime('%Y-%m-%dT%H:%M:%S.%3NZ')}"
-        # return UTC time in format: 2012-08-20T13:24:59+0000
-        #"#{utc.strftime('%Y-%m-%dT%H:%M:%S%z')}"
-        # return time in current zone in format: 2012-08-20T09:26:47-0400
-        #"#{strftime('%Y-%m-%dT%H:%M:%S%z')}"
-      end
-    end
-
 ### Usage
 
 So if you had an existing model app/models/foobar.rb:
@@ -96,9 +57,9 @@ You would do this in app/controllers/foobar_controller.rb:
       acts_as_restful_json
     end
 
-Then in config/routes.rb, you would add the following. This will set up normal Rails resourceful routes to the Foobar resource, and restrict it to only serving json format:
+Then in config/routes.rb, you would add the following. This will set up normal Rails resourceful routes to the Foobar resource, restrict it to only serving json format, and remove the requirement to specify the .json extension:
 
-    resources :foobars, :constraints => {:format => /json/}
+    resources :foobars, :constraints => {:format => /json/}, :defaults => {:format => 'json'}
 
 That's it. Now you can serve up some Javascript in one of your views that hits the RESTful services that have been defined.
 
@@ -116,25 +77,25 @@ Take a look at the output of 'rake routes' to see the paths for /foobar and then
 
 For our example above, you could then list all Foobars with a GET to what equates to the "list" command:
 
-    http://localhost:3000/foobars.json
+    http://localhost:3000/foobars
 
 To find out what the JSON to use as the 'foobar' parameter value, you could create one first in Rails console and then get that or call to_json on it in the console.
 
 Get a Foobar with id '1' with a GET method call to the following:
 
-    http://localhost:3000/foobars/1.json
+    http://localhost:3000/foobars/1
 
 Create a Foobar with with a POST method call to the following, setting the JSON of a new Foobar as input/request parameter 'foobar':
 
-    http://localhost:3000/foobars/new.json
+    http://localhost:3000/foobars
 
 Update a Foobar with id '1' with a PUT method call to the following:
 
-    http://localhost:3000/foobar/1.json
+    http://localhost:3000/foobar/1
 
 Destroy a Foobar with id '1' with a DELETE method call to the following:
 
-    http://localhost:3000/foobar/1.json
+    http://localhost:3000/foobar/1
 
 #### Filtering
 
@@ -142,7 +103,7 @@ Attributes marked as accessible in the model can be queried by specifying the va
 
 For example, if Foobar were to have an ActiveRecord attribute called "color" (because the backing database table has a column named color), you could do:
 
-    http://localhost:3000/foobars.json?color=blue
+    http://localhost:3000/foobars?color=blue
 
 To disable the ability to do this query, remove 'eq' from supported_arel_predications via configuration or setting in the controller.
 
@@ -150,9 +111,9 @@ To disable the ability to do this query, remove 'eq' from supported_arel_predica
 
 To specify a null value for filtering or predication value, by default you can use NULL, null, or nil, so any of these would mean you want to find Foobars where the color is not set:
 
-    http://localhost:3000/foobars.json?color=NULL
-    http://localhost:3000/foobars.json?color=null
-    http://localhost:3000/foobars.json?color=nil
+    http://localhost:3000/foobars?color=NULL
+    http://localhost:3000/foobars?color=null
+    http://localhost:3000/foobars?color=nil
 
 If you want to change this behavior for a specific param or for all, you may implement convert_request_param_value_for_filtering in your controller. For example, if empty params or those only containing only spaces should be null, then you'd put this into the controller:
 
@@ -164,11 +125,11 @@ If you want to change this behavior for a specific param or for all, you may imp
 
 By specifying a character that identifies an [AREL predication][arel] is suffixed to the request parameter name after a character you can customize, you can help filter data even further:
 
-    http://localhost:3000/foobars.json?foo_date!gteq=2012-08-08
+    http://localhost:3000/foobars?foo_date!gteq=2012-08-08
 
 We currently try to support all AREL predications, even the ones that take multiple values:
 
-    http://localhost:3000/foobars.json?foo_date!eq_any=2012-08-08,2012-09-09
+    http://localhost:3000/foobars?foo_date!eq_any=2012-08-08,2012-09-09
 
 To override what predications are supported application-wide or per controller, as well as URL delimiters and what predications support multiple values, see the Configuration section of this document.
 
@@ -176,19 +137,19 @@ To override what predications are supported application-wide or per controller, 
 
 To return a simple view of a model, use the only param. This limits both the select in the SQL used and the json returned. e.g. to return the name and color attributes of foobars:
 
-    http://localhost:3000/foobars.json?only=name,color
+    http://localhost:3000/foobars?only=name,color
 
 #### Uniq
 
 To return a simple view of a model, use the uniq param. This limits both the select in the SQL used and the json returned. e.g. to return unique/distinct colors of foobars:
 
-    http://localhost:3000/foobars.json?only=color&uniq=
+    http://localhost:3000/foobars?only=color&uniq=
 
 #### Skip
 
 To skip rows returned, use 'skip'. It is called take, because skip is the AREL equivalent of SQL OFFSET:
 
-    http://localhost:3000/foobars.json?skip=5
+    http://localhost:3000/foobars?skip=5
 
 #### Take
 
@@ -200,7 +161,7 @@ To limit the number of rows returned, use 'take'. It is called take, because tak
 
 This is another filter that can be used with the others, but instead of returning the json objects, it returns their count, which is useful for paging to determine how many results you can page through:
 
-    http://localhost:3000/foobars.json?count=
+    http://localhost:3000/foobars?count=
 
 #### Paging results
 
@@ -208,39 +169,39 @@ Combine skip and take for manual completely customized paging.
 
 Get the first page of 15 results:
 
-    http://localhost:3000/foobars.json?take=15
+    http://localhost:3000/foobars?take=15
 
 Second page of 15 results:
 
-    http://localhost:3000/foobars.json?skip=15&take=15
+    http://localhost:3000/foobars?skip=15&take=15
 
 Third page of 15 results:
 
-    http://localhost:3000/foobars.json?skip=30&take=15
+    http://localhost:3000/foobars?skip=30&take=15
 
 First page of 30 results:
 
-    http://localhost:3000/foobars.json?take=30
+    http://localhost:3000/foobars?take=30
 
 Second page of 30 results:
 
-    http://localhost:3000/foobars.json?skip=30&take=30
+    http://localhost:3000/foobars?skip=30&take=30
 
 Third page of 30 results:
 
-    http://localhost:3000/foobars.json?skip=60&take=30
+    http://localhost:3000/foobars?skip=60&take=30
 
 #### No associations
 
 To return a view of a model without associations, even if those associations are defined to be displayed via as_json_includes, use the no_associations param. e.g. to return the foobars accessible attributes only:
 
-    http://localhost:3000/foobars.json?no_includes=
+    http://localhost:3000/foobars?no_includes=
 
 #### Some associations
 
 To return a view of a model with only certain associations that you have rights to see, use the associations param. e.g. if the foo, bar, boo, and far associations are exposed via as_json_includes and you only want to show the foos and bars:
 
-    http://localhost:3000/foobars.json?include=foos,bars
+    http://localhost:3000/foobars?include=foos,bars
 
 ### Models
 
@@ -479,6 +440,62 @@ Any of the controller options you may also specify in the definition of the Cont
       self.wrapped_json = false
 
 You can also configure these in a base class and inheritance should work properly since these are Rails class_attributes.
+
+#### Dates, Times, DateTimes (and TimeWithZone)
+
+A lot of times you just want a consistent format for date, time, or datetime, and want it to indicate the timezone.
+
+So, set your time zone in the class in config/application.rb:
+
+        # times are stored in DB as UTC, but we should indicate what timezone we are in
+        config.time_zone = 'America/New_York'
+
+If you are unsure what the time zone name to use is, list them by doing:
+
+    rails c
+
+Then:
+
+    ActiveSupport::TimeZone.all.each do |tz|; puts "#{tz.name}"; end; nil
+
+Or if you need to see the offset for each to choose it:
+
+    ActiveSupport::TimeZone.all.each do |tz|; puts "#{tz}"; end; nil
+
+Then, override Rails defaults to return the Javascript default format for datetimes for date, time, datetimes by putting the following in config/environment.rb or in a some_name.rb file somewhere under config/initializers/ or a subdirectory:
+
+    class Time
+      def as_json(options = nil) #:nodoc:
+        # return UTC time in Javascript format, e.g. "2012-08-12T04:00:00.000Z"
+        "#{utc.strftime('%Y-%m-%dT%H:%M:%S.%3NZ')}"
+        # return UTC time in format: 2012-08-20T13:24:59+0000
+        #"#{utc.strftime('%Y-%m-%dT%H:%M:%S%z')}"
+        # return time in current zone in format: 2012-08-20T09:26:47-0400
+        #"#{strftime('%Y-%m-%dT%H:%M:%S%z')}"
+      end
+    end
+
+    class Date
+      def as_json(options = nil) #:nodoc:
+        # return UTC time in Javascript format, e.g. "2012-08-12T04:00:00.000Z"
+        "#{to_time(:utc).strftime('%Y-%m-%dT%H:%M:%S.%3NZ')}"
+        # return UTC time in format: 2012-08-20T13:24:59+0000
+        #"#{to_time(:utc).strftime('%Y-%m-%dT%H:%M:%S%z')}"
+        # return time in current zone in format: 2012-08-20T09:26:47-0400
+        #"#{to_time.strftime('%Y-%m-%dT%H:%M:%S%z')}"
+      end
+    end
+
+    class DateTime
+      def as_json(options = nil) #:nodoc:
+        # return UTC time in Javascript format, e.g. "2012-08-12T04:00:00.000Z"
+        "#{utc.strftime('%Y-%m-%dT%H:%M:%S.%3NZ')}"
+        # return UTC time in format: 2012-08-20T13:24:59+0000
+        #"#{utc.strftime('%Y-%m-%dT%H:%M:%S%z')}"
+        # return time in current zone in format: 2012-08-20T09:26:47-0400
+        #"#{strftime('%Y-%m-%dT%H:%M:%S%z')}"
+      end
+    end
 
 ### License
 

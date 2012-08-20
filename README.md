@@ -59,10 +59,6 @@ Then, override rails defaults to return the Javascript default format for dateti
         # return time in current zone in format: 2012-08-20T09:26:47-0400
         #"#{strftime('%Y-%m-%dT%H:%M:%S%z')}"
       end
-
-      def to_s(format = :default) #:nodoc:
-        "#{utc.strftime('%Y-%m-%dT%H:%M:%S.%3NZ')}"
-      end
     end
 
     class Date
@@ -74,10 +70,6 @@ Then, override rails defaults to return the Javascript default format for dateti
         # return time in current zone in format: 2012-08-20T09:26:47-0400
         #"#{to_time.strftime('%Y-%m-%dT%H:%M:%S%z')}"
       end
-
-      def to_s(format = :default) #:nodoc:
-        "#{to_time(:utc).strftime('%Y-%m-%dT%H:%M:%S.%3NZ')}"
-      end
     end
 
     class DateTime
@@ -88,10 +80,6 @@ Then, override rails defaults to return the Javascript default format for dateti
         #"#{utc.strftime('%Y-%m-%dT%H:%M:%S%z')}"
         # return time in current zone in format: 2012-08-20T09:26:47-0400
         #"#{strftime('%Y-%m-%dT%H:%M:%S%z')}"
-      end
-
-      def to_s(format = :default) #:nodoc:
-        "#{utc.strftime('%Y-%m-%dT%H:%M:%S.%3NZ')}"
       end
     end
 

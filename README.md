@@ -11,16 +11,28 @@ Then optionally set constraints and defaults in config/routes.rb so you don't ne
 
     resources :foobars, :constraints => {:format => /json/}, :defaults => {:format => 'json'}
 
-Start the server and to get all blue Foobars that expire after 8/20/2012 as JSON you just do:
+Then to get all blue Foobars that expire after 8/20/2012 as JSON, you could just get:
 
     http://localhost:3000/foobars?color=blue&expired_at!gteq=2012-08-20
 
-Or to get the total count and page the results:
+Or to get the total count and page the results, you'd get:
 
-    http://localhost:3000/foobars.json?color=blue&expired_at!gteq=2012-08-20&count=
-    http://localhost:3000/foobars.json?color=blue&expired_at!gteq=2012-08-20&skip=0&take=15
+    http://localhost:3000/foobars?color=blue&expired_at!gteq=2012-08-20&count=
+    http://localhost:3000/foobars?color=blue&expired_at!gteq=2012-08-20&skip=0&take=15
 
-It's also very configurable both globally and via class attributes on the controllers.
+And to create or update a Foobar, you can just post/put using [AngularJS][angular], or Ember by setting wrapped_json in config, to:
+
+    http://localhost:3000/foobar
+
+Some highlights:
+* Supports easily returning associations and other methods in JSON.
+* Configurable filtering including full AREL support, nil/null support, standard data types, count, unique, start index (skip), limit (take), only, include, and more.
+* Lock down what attributes and what associated data can be updated by using standard Rails mass assignment security.
+* Session authorization with fully customizable controller and method level restriction.
+* Supports CORS if you'd like to develop the HTML outside of Rails.
+* Configurable globally or per controller with class attributes.
+* Override only what you need to stay DRY.
+* Enable or disable through configuration at the controller level to lock it down.
 
 ### Future
 

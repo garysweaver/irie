@@ -7,15 +7,15 @@ RESTful JSON makes creating RESTful services as easy as:
       acts_as_restful_json
     end 
 
-And if you have this in config/routes.rb:
+Then optionally set constraints and defaults in config/routes.rb so you don't need to specify an extension:
 
     resources :foobars, :constraints => {:format => /json/}, :defaults => {:format => 'json'}
 
-Now you can get all blue Foobars that expire after 8/20/2012 as JSON:
+Start the server and to get all blue Foobars that expire after 8/20/2012 as JSON you just do:
 
     http://localhost:3000/foobars?color=blue&expired_at!gteq=2012-08-20
 
-Or get the total count and page the results:
+Or to get the total count and page the results:
 
     http://localhost:3000/foobars.json?color=blue&expired_at!gteq=2012-08-20&count=
     http://localhost:3000/foobars.json?color=blue&expired_at!gteq=2012-08-20&skip=0&take=15

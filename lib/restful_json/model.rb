@@ -59,7 +59,7 @@ module RestfulJson
       puts "as_json_includes=#{includes}"
       puts "as_json_excludes=#{excludes}"
 
-      accessible_attributes = (self.accessible_attributes.to_a || attributes.keys) - self.protected_attributes.to_a
+      accessible_attributes = (self.class.accessible_attributes.to_a || attributes.keys) - self.class.protected_attributes.to_a
 
       if was_already_as_jsoned || options[:restful_json_no_includes] || options[:restful_json_only]
         puts "avoiding circular reference by just outputting the already as_json'd instance without its associations as_json" if was_already_as_jsoned

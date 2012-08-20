@@ -105,6 +105,10 @@ Update a Foobar with id '1' with a PUT method call to the following:
 
     http://localhost:3000/foobar/1
 
+OR just do a POST or PUT like you would a create and put the id in the JSON:
+
+    http://localhost:3000/foobars
+
 Destroy a Foobar with id '1' with a DELETE method call to the following:
 
     http://localhost:3000/foobar/1

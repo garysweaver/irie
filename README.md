@@ -25,8 +25,8 @@ And to create or update a Foobar, you can just post/put using [AngularJS][angula
     http://localhost:3000/foobar
 
 Some highlights:
-* Able to return associations and other methods in JSON.
 * Filter results with full AREL support, nil/null support, standard data types, count, unique, start index (skip), limit (take), only, include, and more.
+* Return just the object(s) or object(s) and associations, even custom methods, in JSON.
 * Lock down what attributes and what associated data can be updated by using standard Rails mass assignment security.
 * Session authenticated with fully customizable controller and method level restriction to integrate with your authorization solution.
 * Develop client code either in *or* outside of Rails, since CORS can be enabled.

@@ -83,9 +83,8 @@ module RestfulJson
         puts "'#{self}' set @model_class=#{@model_class}, @model_singular_name=#{@model_singular_name}, @model_plural_name=#{@model_plural_name}"
       end
       
-      def allowed_activerecord_model_attribute_keys
-        # Solution from Jeffrey Chupp (a.k.a. 'semanticart') in http://stackoverflow.com/a/1526328/178651
-        @model_class.new.attributes.keys - @model_class.protected_attributes.to_a
+      def allowed_activerecord_model_attribute_keys(clazz)
+        (clazz.accessible_attributes.to_a || clazz.new.attributes.keys) - clazz.protected_attributes.to_a
       end
       
       # If this is a preflight OPTIONS request, then short-circuit the
@@ -181,7 +180,7 @@ module RestfulJson
         end
         
         # handle foo=bar, foo^eq=bar, foo^gt=bar, foo^gteq=bar, etc.
-        allowed_activerecord_model_attribute_keys.each do |attribute_key|
+        allowed_activerecord_model_attribute_keys(@model_class).each do |attribute_key|
           puts "Finding #{@model_class}"
           param = params[attribute_key]
           if self.supported_arel_predications.include?('eq')
@@ -453,7 +452,7 @@ module RestfulJson
           clazz.reflect_on_all_associations.each do |association|
             association_name_sym_to_association[association.name] = association
           end
-          accessible_attributes = clazz.new.attributes.keys - clazz.protected_attributes.to_a
+          accessible_attributes = allowed_activerecord_model_attribute_keys(clazz)
           
           # If you send in an association as a full json object and didn't define it as accepts_nested_attributes_for
           # then you probably either didn't mean to send it or you meant to set this model's foreign id with its id. 

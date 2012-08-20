@@ -59,6 +59,8 @@ module RestfulJson
       puts "as_json_includes=#{includes}"
       puts "as_json_excludes=#{excludes}"
 
+      accessible_attributes = (self.accessible_attributes.to_a || attributes.keys) - self.protected_attributes.to_a
+
       if was_already_as_jsoned || options[:restful_json_no_includes] || options[:restful_json_only]
         puts "avoiding circular reference by just outputting the already as_json'd instance without its associations as_json" if was_already_as_jsoned
         puts "ignoring as_json_includes" if options[:restful_json_no_includes]
@@ -66,8 +68,7 @@ module RestfulJson
 
         # return all accessible attributes
         result = {}
-        # solution to get keys from: http://stackoverflow.com/a/1526328/178651
-        accessible_attributes = self.class.new.attributes.keys - self.class.protected_attributes.to_a
+        
         includes_without_associations = includes.collect{|m|m.to_sym} - self.class.reflect_on_all_associations.collect{|a|a.name.to_sym}
         # add id to list of attributes we want, unless it is explicitly excluded
         attrs = ['id'] + accessible_attributes + includes_without_associations - excludes
@@ -99,6 +100,15 @@ module RestfulJson
           options[:except] = options[:except] + excludes
         else
           options[:except] = as_json_excludes if excludes && excludes.size > 0
+        end
+
+        restricted_attributes = attributes.keys - accessible_attributes
+        if restricted_attributes && restricted_attributes.size > 0
+          if options[:except]
+            options[:except] = (options[:except] + restricted_attributes).collect{|m|m.to_sym}.uniq
+          else
+            options[:except] = restricted_attributes.collect{|m|m.to_sym}
+          end
         end
 
         puts "calling as_json(#{options.inspect})"

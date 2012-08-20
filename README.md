@@ -29,6 +29,73 @@ To stay up-to-date, periodically run:
 
     bundle update restful_json
 
+#### Formatting Dates, Times, DateTimes (and TimeWithZone)
+
+Set your time zone in the class in config/application.rb:
+
+        # times are stored in DB as UTC, but we should indicate what timezone we are in
+        config.time_zone = 'America/New_York'
+
+If you are unsure what the time zone name to use is, list them by doing:
+
+    rails c
+
+Then:
+
+    ActiveSupport::TimeZone.all.each do |tz|; puts "#{tz.name}"; end; nil
+
+Or if you need to see the offset for each to choose it:
+
+    ActiveSupport::TimeZone.all.each do |tz|; puts "#{tz}"; end; nil
+
+Then, override rails defaults to return the Javascript default format for datetimes for date, time, datetimes. Other format examples commented so you can return date, time, datetime with zone if you need that instead. Put the following in config/environment.rb:
+
+    module ActiveSupport
+      class TimeWithZone
+       def as_json(options = nil)
+         # return UTC time in Javascript format, e.g. "2012-08-12T04:00:00.000Z"
+         "#{utc.strftime('%Y-%m-%dT%H:%M:%S.%3NZ')}"
+         # return UTC time in format: 2012-08-20T13:24:59+0000
+         #"#{utc.strftime('%Y-%m-%dT%H:%M:%S%z')}"
+         # return time in current zone in format: 2012-08-20T09:26:47-0400
+         #"#{strftime('%Y-%m-%dT%H:%M:%S%z')}"
+       end
+      end
+
+      class Time
+      def as_json(options = nil) #:nodoc:
+         # return UTC time in Javascript format, e.g. "2012-08-12T04:00:00.000Z"
+         "#{utc.strftime('%Y-%m-%dT%H:%M:%S.%3NZ')}"
+         # return UTC time in format: 2012-08-20T13:24:59+0000
+         #"#{utc.strftime('%Y-%m-%dT%H:%M:%S%z')}"
+         # return time in current zone in format: 2012-08-20T09:26:47-0400
+         #"#{strftime('%Y-%m-%dT%H:%M:%S%z')}"
+      end
+      end
+
+      class Date
+      def as_json(options = nil) #:nodoc:
+         # return UTC time in Javascript format, e.g. "2012-08-12T04:00:00.000Z"
+         "#{to_time(:utc).strftime('%Y-%m-%dT%H:%M:%S.%3NZ')}"
+         # return UTC time in format: 2012-08-20T13:24:59+0000
+         #"#{to_time(:utc)..strftime('%Y-%m-%dT%H:%M:%S%z')}"
+         # return time in current zone in format: 2012-08-20T09:26:47-0400
+         #"#{to_time.strftime('%Y-%m-%dT%H:%M:%S%z')}"
+      end
+      end
+
+      class DateTime
+      def as_json(options = nil) #:nodoc:
+         # return UTC time in Javascript format, e.g. "2012-08-12T04:00:00.000Z"
+         "#{utc.strftime('%Y-%m-%dT%H:%M:%S.%3NZ')}"
+         # return UTC time in format: 2012-08-20T13:24:59+0000
+         #"#{utc.strftime('%Y-%m-%dT%H:%M:%S%z')}"
+         # return time in current zone in format: 2012-08-20T09:26:47-0400
+         #"#{strftime('%Y-%m-%dT%H:%M:%S%z')}"
+      end
+      end
+    end
+
 ### Usage
 
 So if you had an existing model app/models/foobar.rb:
@@ -425,32 +492,6 @@ Any of the controller options you may also specify in the definition of the Cont
       self.wrapped_json = false
 
 You can also configure these in a base class and inheritance should work properly since these are Rails class_attributes.
-
-#### Troubleshooting
-
-If you want times to come back with the right timezone and format, try doing this in your environment.rb or somewhere else where it will load before the services:
-
-    # Without this, Time.zone.now will not be right
-    Time.zone = "America/New_York"
-    # Without this, JSON time may not contain timezone
-    module ActiveSupport
-      class TimeWithZone
-        def as_json(options = nil)
-          "#{in_time_zone('America/New_York')}"
-        end
-      end
-    end
-
-Or you could use the Javascript default format:
-
-    module ActiveSupport
-      class TimeWithZone
-        def as_json(options = nil)
-          # returns UTC time in JS format, e.g. "2012-08-12T00:00:00-0400"
-          "#{utc.strftime('%Y-%m-%dT%H:%M:%S.%3NZ')}"
-        end
-      end
-    end
 
 ### License
 

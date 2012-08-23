@@ -31,7 +31,8 @@ Some highlights:
 * Optional support for [CORS][cors].
 * Application-level configuration, and controller-level configuration via class attributes.
 * Override only what you need to stay DRY.
-* Optionally can return associations and custom methods in JSON, and can update model and associations and their associations, etc. via JSON.
+* Optionally return one or more associations and/or custom methods in JSON.
+* Optionally update associations via JSON.
 
 ### Future
 

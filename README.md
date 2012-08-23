@@ -97,11 +97,11 @@ For our example above, you could then list all Foobars with a GET to what equate
 
     http://localhost:3000/foobars
 
-(To get an idea of what the JSON should look like, use as_json on a model instance in Rails console.)
-
 Get a Foobar with id '1' with a GET method call to the following:
 
     http://localhost:3000/foobars/1
+
+(Tip: Use as_json on a model instance in Rails console to get an idea of what JSON to POST/PUT. If you are wrapping, you need to send in with the singular or plural model name as the request param, otherwise, just PUT/POST the JSON.)
 
 Create a Foobar with with a POST method call to the following, setting the JSON of a new Foobar as input/request parameter 'foobar':
 

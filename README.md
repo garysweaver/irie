@@ -145,13 +145,13 @@ If you want to change this behavior for a specific param or for all, you may imp
 
 #### Support for AREL predications
 
-By specifying a character that identifies an [AREL predication][arel_predications] is suffixed to the request parameter name after a character you can customize, you can help filter data even further:
+Append a '!' and an [AREL predication][arel_predications] to the request parameter name, e.g. to get Foobars with seen_on of 2012-08-08 or later, you'd use:
 
-    http://localhost:3000/foobars?foo_date!gteq=2012-08-08
+    http://localhost:3000/foobars?seen_on!gteq=2012-08-08
 
 We currently try to support all AREL predications, even the ones that take multiple values:
 
-    http://localhost:3000/foobars?foo_date!eq_any=2012-08-08,2012-09-09
+    http://localhost:3000/foobars?seen_on!eq_any=2012-08-08,2012-09-09
 
 To override what predications are supported application-wide or per controller, as well as URL delimiters and what predications support multiple values, see the Configuration section of this document.
 

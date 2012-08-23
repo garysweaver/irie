@@ -31,12 +31,12 @@ Some highlights:
 * Application-level configuration, and controller-level configuration via class attributes.
 * Override only what you need to stay DRY.
 * Configurable support for:
+  * [Cross-origin resource sharing (CORS)][cors].
   * Ignoring non-mass-assignable attributes and associations in incoming JSON for creates/updates.
   * Removing need for "wrapped" JSON, so you don't have to post/put to the plural/singular model name request parameter.
   * Removing need for _attributes suffix to update associations.
   * Returning one or more associations and/or custom methods in JSON.
   * Session authentication with controller and action restriction.
-  * [CORS][cors].
   * Updating associations via JSON.
 
 ### Future

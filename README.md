@@ -97,7 +97,7 @@ For our example above, you could then list all Foobars with a GET to what equate
 
     http://localhost:3000/foobars
 
-To find out what the JSON to use as the 'foobar' parameter value, you could create one first in Rails console and then get that or call to_json on it in the console.
+(To get an idea of what the JSON should look like, use as_json on a model instance in Rails console.)
 
 Get a Foobar with id '1' with a GET method call to the following:
 

@@ -25,14 +25,15 @@ And to create or update a Foobar, you can just post/put using [AngularJS][angula
     http://localhost:3000/foobar
 
 Some highlights:
-* Filter results using URL parameters.
-* Configurable support for [AREL predications][arel_predications], nil/null values in filter, count, unique, start index, limit, only, include, and more.
-* Supports Rails [mass assignment security][mass_assignment_security].
 * Application-level configuration, and controller-level configuration via class attributes.
+* Configurably filter results using URL parameters as desired or lock it down.
 * Override only what you need to stay DRY.
+* Supports Rails [mass assignment security][mass_assignment_security].
 * Configurable support for:
   * [Cross-origin resource sharing (CORS)][cors].
+  * Filtering via [AREL][arel_predications], nil/null values, unique, only, include, and more.
   * Ignoring non-mass-assignable attributes and associations in incoming JSON for creates/updates.
+  * Paging results via count, skip (start index), and take (limit).
   * Removing need for "wrapped" JSON, so you don't have to post/put to the plural/singular model name request parameter.
   * Removing need for _attributes suffix to update associations.
   * Returning one or more associations and/or custom methods in JSON.

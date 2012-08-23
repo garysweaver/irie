@@ -25,10 +25,10 @@ And to create or update a Foobar, you can just post/put using [AngularJS][angula
     http://localhost:3000/foobar
 
 Some highlights:
-* Filter results with full AREL support, nil/null support, count, unique, start index (skip), limit (take), only, include, and more.
-* Lock down what attributes and what associated data can be updated by using standard Rails mass assignment security.
+* Filter results with full [AREL predications][arel_predications] support, nil/null support, count, unique, start index (skip), limit (take), only, include, and more.
+* Lock down what attributes and what associated data can be updated by using standard Rails [mass assignment security][mass_assignment_security].
 * Session authenticated with fully customizable controller and method level restriction to integrate with your authorization solution.
-* Develop client code either in *or* outside of Rails. Can use CORS.
+* Develop client code either in *or* outside of Rails. Can use [CORS][cors].
 * Configure globally or per controller with class attributes.
 * Override only what you need to stay DRY.
 * Enable or disable through configuration at the controller level to lock it down.
@@ -36,7 +36,7 @@ Some highlights:
 
 ### Future
 
-A lot is still subject to change in the next major version. [Strong Parameters][strong_parameters] is being integrated with Rails 4 as an eventual replacement for mass assignment, so we'd like to start using that. We might also start requiring some sort of authentication so there is concept of user or role, start using [CanCan][cancan] for authorization, [ActiveModel::Serializers][active_model_serializers] to replace the [as_json][as_json] extension, and maybe add support for versioning.
+A lot is still subject to change in the next major version. [Strong Parameters][strong_parameters] is being integrated with Rails 4 as an eventual replacement for mass assignment security, and are looking into [ActiveModel::Serializers][active_model_serializers] to replace the [as_json][as_json] extension.
 
 Thanks much to the informative post, [State of Writing API Servers with Rails][state_of_rails_apis] and the original [ember_data_example][ember_data_example] project the first version heavily borrowed from. We use [AngularJS][angular], but we have done what we could easily to support ember and other Javascript frameworks.
 
@@ -139,7 +139,7 @@ If you want to change this behavior for a specific param or for all, you may imp
 
 #### Support for AREL predications
 
-By specifying a character that identifies an [AREL predication][arel] is suffixed to the request parameter name after a character you can customize, you can help filter data even further:
+By specifying a character that identifies an [AREL predication][arel_predications] is suffixed to the request parameter name after a character you can customize, you can help filter data even further:
 
     http://localhost:3000/foobars?foo_date!gteq=2012-08-08
 
@@ -348,7 +348,7 @@ Here are the options available for the application and each controller:
 
 #### arel_predication_split
 
-Character in the URL that seperates the attribute name from the optional arel predication
+The character in the URL that seperates the attribute name from the optional arel predication
 
 #### cors_access_control_headers
 
@@ -356,7 +356,7 @@ A hash of headers to use for each non-preflight response
 
 #### cors_enabled
 
-True to enable CORS. If you have javascript/etc. code in the client that is running under a different host or port than Rails server, then you are cross-origin/cross-domain and we handle this with [CORS][cors]. By default, we make CORS just allow everything, so the whole cross-origin/cross-domain thing goes away and you can get to developing locally with your Javascript app that isn't even being served by Rails.
+True to enable [CORS][cors]. If you have javascript/etc. code in the client that is running under a different host or port than Rails server, then you are cross-origin/cross-domain and we handle this with CORS. By default, we make CORS just allow everything, so the whole cross-origin/cross-domain thing goes away and you can get to developing locally with your Javascript app that isn't even being served by Rails.
 
 #### cors_preflight_headers
 
@@ -520,8 +520,9 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [ember_data_example]: https://github.com/dgeb/ember_data_example/blob/master/app/controllers/contacts_controller.rb
 [angular]: http://angularjs.org/
 [as_json]: http://api.rubyonrails.org/classes/ActiveModel/Serializers/JSON.html#method-i-as_json
-[arel]: https://github.com/rails/arel/blob/master/lib/arel/predications.rb
+[arel_predications]: https://github.com/rails/arel/blob/master/lib/arel/predications.rb
 [cors]: http://enable-cors.org/
+[mass_assignment_security]: http://guides.rubyonrails.org/security.html#mass-assignment
 [preflight_request]: http://www.w3.org/TR/cors/#resource-preflight-requests
 [state_of_rails_apis]: http://broadcastingadam.com/2012/03/state_of_rails_apis/
 [strong_parameters]: https://github.com/rails/strong_parameters

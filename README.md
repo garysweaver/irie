@@ -101,9 +101,7 @@ Get a Foobar with id '1' with a GET method call to the following:
 
     http://localhost:3000/foobars/1
 
-(Tip: Use as_json on a model instance in Rails console to get an idea of what JSON to POST/PUT. If you are wrapping, you need to send in with the singular or plural model name as the request param, otherwise, just PUT/POST the JSON.)
-
-Create a Foobar with with a POST method call to the following, setting the JSON of a new Foobar:
+Create a Foobar with with a POST method call to the following, setting the JSON of a new Foobar with JSON simmilar to what you would have gotten from a GET except without an id:
 
     http://localhost:3000/foobars
 
@@ -256,6 +254,43 @@ Most of the time when working with a RESTful service, you'll want it to return t
 #### Excluding other attributes and associations
 
     as_json_excludes :foo, :bars
+
+#### Different views
+
+Mass assignment security is used in restful_json to define which attributes are both viewed in JSON and can be updated.
+
+By redefining _accessible_attributes[:default] and _as_json_includes = [] or by using protected_attributes and as_json_excludes, you can limit what comes back.
+
+So in this case, if we have a LibrariesController, it will return a Library with name, address, and phone_number, but the LibraryRef that comes back for a Book only has a name:
+
+    class Library < ActiveRecord::Base
+      attr_accessible :name, :address, :phone_number
+
+      has_many :books
+      has_many :librarians
+      
+      as_json_includes :books
+    end
+
+    class LibraryRef < Library
+      be_readonly
+
+      # redefine accessible_attributes (messy way to set- it should have a better way to redefine)
+      self._accessible_attributes[:default] = [:name]
+
+      # redefine as_json_includes (we should probably have a better way to redefine also)
+      self._as_json_includes = []
+    end
+
+    class Book < ActiveRecord::Base
+      attr_accessible :title, :isbn, :checked_out
+
+      belongs_to :library, primary_key: :library_id, class_name: 'LibraryRef'
+      
+      as_json_includes :library
+    end
+
+Here we make the LibraryRef readonly as well through the [be_readonly][be_readonly] gem, just because someone with access to a book in Rails itself probably shouldn't be trying to update its name, even though that would be restricted anyway via the API, since accepts_nested_attributes_for was not used on Book, so it is more of a nicety to make it act like an entity ref in this case. It isn't really necessary, though.
 
 #### It avoids circular references
 
@@ -526,6 +561,7 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [ember_data_example]: https://github.com/dgeb/ember_data_example/blob/master/app/controllers/contacts_controller.rb
 [angular]: http://angularjs.org/
 [as_json]: http://api.rubyonrails.org/classes/ActiveModel/Serializers/JSON.html#method-i-as_json
+[be_readonly]: https://github.com/garysweaver/activerecord-be_readonly
 [arel_predications]: https://github.com/rails/arel/blob/master/lib/arel/predications.rb
 [cors]: http://enable-cors.org/
 [mass_assignment_security]: http://guides.rubyonrails.org/security.html#mass-assignment

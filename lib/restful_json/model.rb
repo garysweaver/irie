@@ -45,14 +45,10 @@ module RestfulJson
     # of the primary key or array of keys. Also, if this instance has already been output in an ancestoral as_json, then no
     # associations are included.
     def as_json(options = {})
-      puts "restful_json's as_json called with options=#{options.inspect} and inspect=#{inspect}"
+      puts "restful_json's as_json called on #{self.class} with options=#{options.inspect}. inspect=#{inspect}"
       
-      unless options[:restful_json_ancestors].is_a?(Array)
-        puts "as_json not called with an array in options[:restful_json_ancestors] so taking a wild guess and just calling super(#{options})"
-        return super(options)
-      end
-      was_already_as_jsoned = options[:restful_json_ancestors].include?(self.object_id)
-      options[:restful_json_ancestors] << self.object_id
+      was_already_as_jsoned = options[:restful_json_ancestors].is_a?(Array) && options[:restful_json_ancestors].include?(self.object_id)
+      options[:restful_json_ancestors] << self.object_id if options[:restful_json_ancestors].is_a?(Array)
 
       includes = self._as_json_includes || []
       excludes = self._as_json_excludes || []
@@ -61,9 +57,10 @@ module RestfulJson
 
       accessible_attributes = (self.class.accessible_attributes.to_a || attributes.keys) - self.class.protected_attributes.to_a
 
-      if was_already_as_jsoned || options[:restful_json_no_includes] || options[:restful_json_only]
+      if was_already_as_jsoned || options[:restful_json_no_includes] || options[:restful_json_only] || !(options[:restful_json_ancestors].is_a?(Array))
+        puts "called without options[:restful_json_ancestors] so can't avoid circular references properly. if this happens to something as part of a restful_json controller request, there is a bug" if !(options[:restful_json_ancestors].is_a?(Array))
         puts "avoiding circular reference by just outputting the already as_json'd instance without its associations as_json" if was_already_as_jsoned
-        puts "ignoring as_json_includes" if options[:restful_json_no_includes]
+        puts "having to ignore options[:restful_json_no_includes]" if options[:restful_json_no_includes]
         puts "restful_json_only=#{options[:restful_json_only]}" if options[:restful_json_only]
 
         # return all accessible attributes
@@ -73,8 +70,14 @@ module RestfulJson
         # add id to list of attributes we want, unless it is explicitly excluded
         attrs = ['id'] + accessible_attributes + includes_without_associations - excludes
         attrs = attrs - options[:except] if options.try(:key?, :except)
+        attrs.delete('')
         attrs.collect{|m|m.to_sym}.uniq.each do |attr_name|
-          result[attr_name] = send(attr_name) if !options[:restful_json_only] || options[:restful_json_only].collect{|v|v.to_sym}.include?(attr_name.to_sym)
+          begin
+            result[attr_name] = send(attr_name) if !options[:restful_json_only] || options[:restful_json_only].collect{|v|v.to_sym}.include?(attr_name.to_sym)
+          rescue => e
+            # not sure why this is happening
+            puts "problem including attribute/method '#{attr_name}': #{e.message} #{e.backtrace}"
+          end
         end
 
         puts "returning accessible attributes #{result.inspect}"

@@ -29,10 +29,9 @@ Some highlights:
 * Lock down what attributes and what associated data can be updated by using standard Rails [mass assignment security][mass_assignment_security].
 * Session authenticated with fully customizable controller and method level restriction to integrate with your authorization solution.
 * Optional support for [CORS][cors].
-* Configure globally or per controller with class attributes.
+* Application-level configuration, and controller-level configuration via class attributes.
 * Override only what you need to stay DRY.
-* Enable or disable through configuration at the controller level to lock it down.
-* Optionally can return associations and custom methods in JSON, and can update assocations.
+* Optionally can return associations and custom methods in JSON, and can update model and associations and their associations, etc. via JSON.
 
 ### Future
 

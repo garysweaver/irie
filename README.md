@@ -25,7 +25,7 @@ And to create or update a Foobar, you can just post/put using [AngularJS][angula
     http://localhost:3000/foobar
 
 Some highlights:
-* Filter results with full [AREL predications][arel_predications] support, nil/null support, count, unique, start index (skip), limit (take), only, include, and more.
+* Filter results with support for [AREL predications][arel_predications], nil/null support, count, unique, start index (skip), limit (take), only, include, and more.
 * Lock down what attributes and what associated data can be updated by using standard Rails [mass assignment security][mass_assignment_security].
 * Session authenticated with fully customizable controller and method level restriction to integrate with your authorization solution.
 * Develop client code either in *or* outside of Rails. Can use [CORS][cors].

@@ -28,15 +28,16 @@ Some highlights:
 * Filter results using URL parameters.
 * Configurable support for [AREL predications][arel_predications], nil/null values in filter, count, unique, start index, limit, only, include, and more.
 * Supports Rails [mass assignment security][mass_assignment_security].
-* (Optional) Ignores non-mass-assignable attributes and associations in incoming JSON for creates/updates.
-* (Optional) Removes need for "wrapped" JSON, so you don't have to post/put to the plural/singular model name request parameter.
-* (Optional) Removes need for _attributes suffix to update associations.
-* (Optional) Returns one or more associations and/or custom methods in JSON.
-* (Optional) Supports session authentication with controller and action restriction.
-* (Optional) Supports [CORS][cors].
-* (Optional) Updates associations via JSON.
 * Application-level configuration, and controller-level configuration via class attributes.
 * Override only what you need to stay DRY.
+* Configurable support for:
+** Ignoring non-mass-assignable attributes and associations in incoming JSON for creates/updates.
+** Removing need for "wrapped" JSON, so you don't have to post/put to the plural/singular model name request parameter.
+** Removing need for _attributes suffix to update associations.
+** Returning one or more associations and/or custom methods in JSON.
+** Session authentication with controller and action restriction.
+** [CORS][cors].
+** Updating associations via JSON.
 
 ### Future
 

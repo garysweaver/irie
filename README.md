@@ -263,16 +263,28 @@ By redefining `_accessible_attributes[:default]` and `_as_json_includes = []` or
 
 So in this case, if we have a LibrariesController, it will return a Library with name, address, and phone_number, but the LibraryRef that comes back for a Book only has a name:
 
-    class Library < ActiveRecord::Base
-      attr_accessible :name, :address, :phone_number
+    module LibraryShared
+      extend ActiveSupport::Concern
 
-      has_many :books
-      has_many :librarians
-      
-      as_json_includes :books
+      included do
+        attr_accessible :name, :address, :phone_number
+
+        has_many :books
+
+        as_json_includes :books
+      end
+
+      module ClassMethods
+      end
+    end
+    
+    class Library < ActiveRecord::Base
+      include LibraryShared
     end
 
     class LibraryRef < Library
+      include LibraryShared
+
       be_readonly
 
       self.table_name = :libraries
@@ -293,6 +305,8 @@ So in this case, if we have a LibrariesController, it will return a Library with
     end
 
 Here we make the LibraryRef readonly as well through the [be_readonly][be_readonly] gem, just because someone with access to a book in Rails itself probably shouldn't be trying to update its name, even though that would be restricted anyway via the API, since `accepts_nested_attributes_for` was not used on Book, so it is more of a nicety to make it act like an entity ref in this case. It isn't really necessary, though.
+
+I tried just making LibraryRef subclass/inherit from Library, but there seems to be a bug in our code or Rails (noted here [#7442][issue7442]) that is causing Library to become LibraryRef. e.g. with the LibrariesController it would return libraries, but after using BooksController that returns a Book with LibraryRef, when you again go to LibrariesController it would return a LibraryRef, or a Library that at least had the same mass assignment security attributes as LibraryRef.
 
 #### It avoids circular references
 
@@ -573,4 +587,5 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [cancan]: https://github.com/ryanb/cancan
 [active_model_serializers]: https://github.com/josevalim/active_model_serializers
 [rabl]: https://github.com/nesquena/rabl/
+[issue7442]: https://github.com/rails/rails/issues/7442
 [lic]: http://github.com/garysweaver/restful_json/blob/master/LICENSE

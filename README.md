@@ -275,6 +275,8 @@ So in this case, if we have a LibrariesController, it will return a Library with
     class LibraryRef < Library
       be_readonly
 
+      self.table_name = :libraries
+
       # redefine accessible_attributes (messy way to set- it should have a better way to redefine)
       self._accessible_attributes[:default] = [:name]
 

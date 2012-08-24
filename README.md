@@ -20,7 +20,7 @@ Or to get the total count and page the results, you'd get:
     http://localhost:3000/foobars?color=blue&expired_at!gteq=2012-08-20&count=
     http://localhost:3000/foobars?color=blue&expired_at!gteq=2012-08-20&skip=0&take=15
 
-And to create or update a Foobar, you can just post/put using [AngularJS][angular], or Ember by setting wrapped_json in config, to:
+And to create or update a Foobar, you can just post/put using [AngularJS][angular], or Ember by setting `wrapped_json` in config, to:
 
     http://localhost:3000/foobar
 
@@ -64,18 +64,18 @@ To stay up-to-date, periodically run:
 
 ### Usage
 
-So if you had an existing model app/models/foobar.rb:
+So if you had an existing model `app/models/foobar.rb`:
 
     class Foobar < ActiveRecord::Base
     end
 
-You would do this in app/controllers/foobar_controller.rb:
+You would do this in `app/controllers/foobar_controller.rb`:
 
     class FoobarsController < ApplicationController
       acts_as_restful_json
     end
 
-Then in config/routes.rb, you would add the following. This will set up normal Rails resourceful routes to the Foobar resource, restrict it to only serving json format, and remove the requirement to specify the .json extension:
+Then in `config/routes.rb`, you would add the following. This will set up normal Rails resourceful routes to the Foobar resource, restrict it to only serving json format, and remove the requirement to specify the .json extension:
 
     resources :foobars, :constraints => {:format => /json/}, :defaults => {:format => 'json'}
 
@@ -89,7 +89,7 @@ Just start the Rails server:
 
 #### Basics
 
-Take a look at the output of 'rake routes' to see the paths for /foobar and then construct URLs to test it:
+Take a look at the output of `rake routes` to see the paths for `/foobar` and then construct URLs to test it:
 
     rake routes
 
@@ -125,7 +125,7 @@ For example, if Foobar were to have an ActiveRecord attribute called "color" (be
 
     http://localhost:3000/foobars?color=blue
 
-To disable the ability to do this query, remove 'eq' from supported_arel_predications via configuration or setting in the controller.
+To disable the ability to do this query, remove 'eq' from `supported_arel_predications` via configuration or setting in the controller.
 
 #### NULL
 
@@ -135,7 +135,7 @@ To specify a null value for filtering or predication value, by default you can u
     http://localhost:3000/foobars?color=null
     http://localhost:3000/foobars?color=nil
 
-If you want to change this behavior for a specific param or for all, you may implement convert_request_param_value_for_filtering in your controller. For example, if empty params or those only containing only spaces should be null, then you'd put this into the controller:
+If you want to change this behavior for a specific param or for all, you may implement `convert_request_param_value_for_filtering` in your controller. For example, if empty params or those only containing only spaces should be null, then you'd put this into the controller:
 
     def convert_request_param_value_for_filtering(attr_name, value)
       value && ['NULL','null','nil',''].include?(value.strip) ? nil : value
@@ -213,23 +213,23 @@ Third page of 30 results:
 
 #### No associations
 
-To return a view of a model without associations, even if those associations are defined to be displayed via as_json_includes, use the no_associations param. e.g. to return the foobars accessible attributes only:
+To return a view of a model without associations, even if those associations are defined to be displayed via `as_json_includes`, use the `no_includes` param. e.g. to return the foobars accessible attributes only:
 
     http://localhost:3000/foobars?no_includes=
 
 #### Some associations
 
-To return a view of a model with only certain associations that you have rights to see, use the associations param. e.g. if the foo, bar, boo, and far associations are exposed via as_json_includes and you only want to show the foos and bars:
+To return a view of a model with only certain associations that you have rights to see, use the associations param. e.g. if the foo, bar, boo, and far associations are exposed via `as_json_includes` and you only want to show the foos and bars:
 
     http://localhost:3000/foobars?include=foos,bars
 
 ### Models
 
-ActiveRecord::Base gets a few new class methods and new as_json behavior!  
+ActiveRecord::Base gets a few new class methods and new `as_json` behavior!  
 
 #### JSON format
 
-as_json is extended to include methods/associations specified in as_json_includes, e.g.:
+`as_json` is extended to include methods/associations specified in `as_json_includes`, e.g.:
 
     as_json_includes :association_name_1, :association_name_2
 
@@ -240,7 +240,7 @@ So, if you want to automatically accept json association data in put/post and in
 
 #### Including non-mass-assignable attributes in the JSON
 
-To include extra non-mass-assignable attributes in the json, add those to as_json_includes. id is a common attribute that needs to be returned in the json but you should be allowed to set:
+To include extra non-mass-assignable attributes in the json, add those to `as_json_includes`. id is a common attribute that needs to be returned in the json but you should be allowed to set:
 
     accepts_nested_attributes_for :association_name_1, :association_name_2
     as_json_includes :association_name_1, :association_name_2
@@ -259,7 +259,7 @@ Most of the time when working with a RESTful service, you'll want it to return t
 
 Mass assignment security is used in restful_json to define which attributes are both viewed in JSON and can be updated.
 
-By redefining _accessible_attributes[:default] and _as_json_includes = [] or by using protected_attributes and as_json_excludes, you can limit what comes back.
+By redefining `_accessible_attributes[:default]` and `_as_json_includes = []` or by using `protected_attributes` and `as_json_excludes`, you can limit what comes back.
 
 So in this case, if we have a LibrariesController, it will return a Library with name, address, and phone_number, but the LibraryRef that comes back for a Book only has a name:
 
@@ -292,11 +292,11 @@ So in this case, if we have a LibrariesController, it will return a Library with
       as_json_includes :library
     end
 
-Here we make the LibraryRef readonly as well through the [be_readonly][be_readonly] gem, just because someone with access to a book in Rails itself probably shouldn't be trying to update its name, even though that would be restricted anyway via the API, since accepts_nested_attributes_for was not used on Book, so it is more of a nicety to make it act like an entity ref in this case. It isn't really necessary, though.
+Here we make the LibraryRef readonly as well through the [be_readonly][be_readonly] gem, just because someone with access to a book in Rails itself probably shouldn't be trying to update its name, even though that would be restricted anyway via the API, since `accepts_nested_attributes_for` was not used on Book, so it is more of a nicety to make it act like an entity ref in this case. It isn't really necessary, though.
 
 #### It avoids circular references
 
-If an object has already been expanded into its associations, if it is referenced again, as_json only emits JSON for the object's accessible attributes, not its associations.
+If an object has already been expanded into its associations, if it is referenced again, `as_json` only emits JSON for the object's accessible attributes, not its associations.
 
 ### Controller
 
@@ -308,7 +308,7 @@ In addition, there are some things the controller also lets you set. If you don'
 
     self.model_class = Foobar
 
-That will also set the singular and plural model name which is used for wrapping. It is doubtful, but if really needed, you can also configure them also:
+That will also set the singular and plural model name which is used for wrapping. It is doubtful, but if really needed, you can also configure them:
 
     self.model_singular_name = 'foobar'
     self.model_plural_name = 'foobars'
@@ -319,15 +319,15 @@ You don't have to specify these methods.
 
 The RESTful JSON's default implementation of these should be fine, but, RESTful JSON was built to be extensible.
 
-Although you can override index, show, create, and update for full control, if anything, you often will just care about how it gets, creates, updates, and destroys data. This can be controlled by overriding the index_it, show_it, create_it, update_it, and/or destroy_it methods. These correspond to the index, show, create, update, and destroy methods in the RESTful JSON parent controller.
+Although you can override index, show, create, and update for full control, if anything, you often will just care about how it gets, creates, updates, and destroys data. This can be controlled by overriding the `index_it`, `show_it`, `create_it`, `update_it`, and/or `destroy_it` methods. These correspond to the index, show, create, update, and destroy methods in the RESTful JSON parent controller.
 
 There are a handful of variables that you use in a RESTful JSON controller:
-* **params**: this is a hash of request parameters along with a few other things.
-* **@model\_class**: the Ruby class object for the model which it either gets from self.model_class you set or using the singular form of the controller class name without "Controller" at the end.
-* **@request\_json**: the parsed json as a hash. How it gets this depends on the wrapped_json configuration parameter.
-* **@value**: the default implementations of the index, show, create, and update methods expect you to set this to the instance that should be converted to JSON and returned to the client.
+* `params`: this is a hash of request parameters along with a few other things.
+* `@model_class`: the Ruby class object for the model which it either gets from self.model_class you set or using the singular form of the controller class name without "Controller" at the end.
+* `@request_json`: the parsed json as a hash. How it gets this depends on the wrapped_json configuration parameter.
+* `@value`: the default implementations of the index, show, create, and update methods expect you to set this to the instance that should be converted to JSON and returned to the client.
 
-For example, a very basic unwrapped implementation (note: @request_json is automatically determined and set by index, show, create, update, and destroy that call these methods):
+For example, a very basic unwrapped implementation (note: `@request_json` is automatically determined and set by index, show, create, update, and destroy that call these methods):
 
     class FoobarsController < ApplicationController
 
@@ -403,11 +403,11 @@ True to enable [CORS][cors]. If you have javascript/etc. code in the client that
 
 #### cors_preflight_headers
 
-So, if you enabled CORS, then CORS starts with a [preflight request][preflight_request] from the client (the browser), to which we respond with a response. You can customize the values of headers returned in the :cors_preflight_headers option. Then for all other requests to the controller, you can specify headers to be returned in the :cors_access_control_headers option. This is a hash of headers to use for each preflight response.
+So, if you enabled CORS, then CORS starts with a [preflight request][preflight_request] from the client (the browser), to which we respond with a response. You can customize the values of headers returned in the `cors_preflight_headers` option. Then for all other requests to the controller, you can specify headers to be returned in the `cors_access_control_headers` option. This is a hash of headers to use for each preflight response.
 
 #### ignore_bad_json_attributes
 
-True by default. Ignores keys that aren't accessible attributes or associations that have a accepts_nested_attributes_for. This should be true most likely if wrapped_json is true.
+True by default. Ignores keys that aren't accessible attributes or associations that have an `accepts_nested_attributes_for`. This should be true most likely if `wrapped_json` is true.
 
 #### intuit_post_or_put_method
 
@@ -419,7 +419,7 @@ Should hopefully never have to modify this. It is a list of predications that ca
 
 #### scavenge_bad_associations_for_id_only
 
-If you pass in a json block for an association that is not accepts_nested_attributes_for, then it will look for 'id' in the root of that block, and if it finds it, it will set the foreign_key of a related belongs_to or has_and_belongs_to_many association if one exists and is mass-assignable.
+If you pass in a json block for an association that is not `accepts_nested_attributes_for`, then it will look for 'id' in the root of that block, and if it finds it, it will set the foreign_key of a related `belongs_to` or `has_and_belongs_to_many` association if one exists and is mass-assignable.
 
 #### suffix_json_attributes
 
@@ -439,11 +439,11 @@ When sending multiple values in a filter in the URL, this is the delimiter.
 
 #### wrapped_json
 
-If true, then it will look for the underscored model name in the incoming JSON (in params[:your_model_name]), if false it either expects that everything in params are keys at the root of your JSON or you are sending the JSON in request body
+If true, then it will look for the underscored model name in the incoming JSON (in `params[:your_model_name]`), if false it either expects that everything in `params` are keys at the root of your JSON or you are sending the JSON in request body
 
 ### Application-wide configuration
 
-In your config/environment.rb or environment specfic configuration, you may specify one or more options in the config hash that will be merged into the following defaults:
+In your `config/environment.rb` or environment specfic configuration, you may specify one or more options in the config hash that will be merged into the following defaults:
 
     RestfulJson::Options.configure({
       arel_predication_split: '!',
@@ -521,7 +521,7 @@ Or if you need to see the offset for each to choose it:
 
     ActiveSupport::TimeZone.all.each do |tz|; puts "#{tz}"; end; nil
 
-Then, override Rails defaults to return the Javascript default format for datetimes for date, time, datetimes by putting the following in config/environment.rb or in a some_name.rb file somewhere under config/initializers/ or a subdirectory:
+Then, override Rails defaults to return the Javascript default format for datetimes for date, time, datetimes by putting the following in `config/environment.rb` or in a some_name.rb file somewhere under `config/initializers/` or a subdirectory:
 
     class Time
       def as_json(options = nil) #:nodoc:

@@ -491,7 +491,7 @@ module RestfulJson
           return nil
         end
 
-        if self.scavenge_bad_associations_for_id_only || self.ignore_bad_json_attributes || self.suffix_json_attributes
+        if self.scavenge_bad_associations || self.ignore_bad_json_attributes || self.suffix_json_attributes
 
           start = Time.now
 
@@ -507,7 +507,7 @@ module RestfulJson
           # If you send in an association as a full json object and didn't define it as accepts_nested_attributes_for
           # then you probably either didn't mean to send it or you meant to set this model's foreign id with its id. 
           # Is this the right assumption? We could make it explicit at some point or make this a configuration option.
-          if self.scavenge_bad_associations_for_id_only
+          if self.scavenge_bad_associations
             fkeys_scavenged = []
             if value.is_a?(Hash)
               value.keys.each do |key|
@@ -527,21 +527,26 @@ module RestfulJson
                   # if this foreign id is settable and it wasn't explicitly set to a non-null value, update it
                   if accessible_attributes.include?(foreign_key.to_s)
                     association_hash = value[key_sym]
-                    assoc_id = association_hash[:id]
-                    # for now we'll assume the id is called id in the passed in json association
-                    if assoc_id
-                      if value[foreign_key.to_sym]
-                        puts "Didn't set foreign key #{foreign_key.to_sym} on #{clazz} with #{assoc_id} because it was already set to #{value[foreign_key.to_sym]}" if "#{assoc_id}" != "#{value[foreign_key.to_sym]}"
+                    if association_hash.nil? || association_hash.is_a?(Hash)
+                      new_value = association_hash ? association_hash[:id] : nil
+                      # if passes in a hash, only set it if :id is specified, or if passing in nil instead of hash. can't support passing in :id in hash as nil,
+                      # because that would imply a create, and can't create unless accepts_nested_attributes_for
+                      if (association_hash && association_hash.key?(:id) && new_value) || association_hash.nil?
+                        if value[foreign_key.to_sym]
+                          puts "Didn't set foreign key #{foreign_key.to_sym} on #{clazz} to #{new_value} because it was already set to #{value[foreign_key.to_sym]}" if "#{new_value}" != "#{value[foreign_key.to_sym]}"
+                        else
+                          comment = association_hash ? " (value from id in JSON hash sent as #{key_sym})" : ''
+                          puts "Set foreign key #{foreign_key.to_sym} on #{clazz} to #{new_value}#{comment}"
+                          value[foreign_key.to_sym] = new_value
+                          fkeys_scavenged << "#{foreign_key}=#{new_value}#{comment}"
+                        end
                       else
-                        puts "Set foreign key #{foreign_key.to_sym} on #{clazz} with #{assoc_id} with value from id in JSON hash sent as #{key_sym}"
-                        value[foreign_key.to_sym] = assoc_id
-                        fkeys_scavenged << "#{foreign_key}=#{assoc_id} (from #{key_sym_without_suffix})"
+                        puts "Didn't set foreign key #{foreign_key.to_sym} on #{clazz} because there was no id in JSON in passed in #{key_sym}, and #{key_sym} was not set to nil."
                       end
                     else
-                      puts "Didn't set foreign key #{foreign_key.to_sym} on #{clazz} because there was no id in JSON of in association #{key_sym}"
-                    end
+                      puts "Didn't set foreign key #{foreign_key.to_sym} on #{clazz} because #{key_sym} was not of nil or Hash type."
                   else
-                    puts "Couldn't set #{foreign_key.to_sym.inspect} on #{clazz} with the id from association JSON because it wasn't in the list of allowed attributes to mass assign: #{accessible_attributes.join(', ')}. To intuit ids from association JSON from it, add attr_accessible #{foreign_key.to_sym.inspect} to #{clazz}. To avoid this warning, either set self.scavenge_bad_associations_for_id_only to false, or stop sending association json for #{key.to_sym}."
+                    puts "Couldn't set #{foreign_key.to_sym.inspect} on #{clazz} with the id from association JSON because it wasn't in the list of allowed attributes to mass assign: #{accessible_attributes.join(', ')}. To intuit ids from association JSON from it, add attr_accessible #{foreign_key.to_sym.inspect} to #{clazz}. To avoid this warning, either set self.scavenge_bad_associations to false, or stop sending association json for #{key.to_sym}."
                   end
                 end
               end
@@ -550,7 +555,7 @@ module RestfulJson
             puts "For #{clazz}'s JSON, set the following (foreign) keys: #{fkeys_scavenged.join(',')} where those keys were for belongs_to or habtm assoc's that weren't already set and had associated JSON data with id attributes" if fkeys_scavenged.size > 0
           end
 
-          puts "After self.scavenge_bad_associations_for_id_only: #{value}" if self.scavenge_bad_associations_for_id_only
+          puts "After self.scavenge_bad_associations: #{value}" if self.scavenge_bad_associations
           
           # Ignore the attributes that are misspelled or otherwise not accessible, because in the emitted json, things
           # may have been included that just can't be updated.

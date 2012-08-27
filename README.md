@@ -433,9 +433,11 @@ If true, anything that comes into the create method with 'id' in the JSON will b
 
 Should hopefully never have to modify this. It is a list of predications that can take multiple values, e.g. not_in_all could take multiple values.
 
-#### scavenge_bad_associations_for_id_only
+#### scavenge_bad_associations
 
 If you pass in a json block for an association that is not `accepts_nested_attributes_for`, then it will look for 'id' in the root of that block, and if it finds it, it will set the foreign_key of a related `belongs_to` or `has_and_belongs_to_many` association if one exists and is mass-assignable.
+
+If you pass in a nil for an association that is not `accepts_nested_attributes_for`, then it will set the foreign_key of a related `belongs_to` or `has_and_belongs_to_many` association to nil (if one exists and is mass-assignable).
 
 #### suffix_json_attributes
 
@@ -479,7 +481,7 @@ In your `config/environment.rb` or environment specfic configuration, you may sp
                                           'gt_any', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt_all', 'lt_any', 
                                           'lteq_all', 'lteq_any', 'matches_all', 'matches_any', 'not_eq_all', 'not_eq_any', 
                                           'not_in', 'not_in_all', 'not_in_any'],
-      scavenge_bad_associations_for_id_only: true,
+      scavenge_bad_associations: true,
       suffix_json_attributes: true,
       supported_arel_predications: ['does_not_match', 'does_not_match_all', 'does_not_match_any', 'eq', 'eq_all', 'eq_any', 'gt', 'gt_all', 
                                      'gt_any', 'gteq', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt', 'lt_all', 'lt_any', 'lteq', 
@@ -504,7 +506,7 @@ Any of the controller options you may also specify in the definition of the Cont
                                           'gt_any', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt_all', 'lt_any', 
                                           'lteq_all', 'lteq_any', 'matches_all', 'matches_any', 'not_eq_all', 'not_eq_any', 
                                           'not_in', 'not_in_all', 'not_in_any']
-      self.scavenge_bad_associations_for_id_only = true
+      self.scavenge_bad_associations = true
       self.suffix_json_attributes = true
       self.supported_arel_predications = ['does_not_match', 'does_not_match_all', 'does_not_match_any', 'eq', 'eq_all', 'eq_any', 'gt', 'gt_all', 
                                      'gt_any', 'gteq', 'gteq_all', 'gteq_any', 'in', 'in_all', 'in_any', 'lt', 'lt_all', 'lt_any', 'lteq', 

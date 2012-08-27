@@ -135,6 +135,7 @@ module RestfulJson
       
       def index
         puts "In #{self.class.name}.index"
+        @errors = nil
         
         unless index_allowed?
           puts "user not allowed to call index on #{self.class.name}"
@@ -152,87 +153,96 @@ module RestfulJson
 
         # how we'd set if we needed to reference in a view
         #instance_variable_set("@#{@__restful_json_model_plural}".to_sym, @value)
-        
         respond_to do |format|
-          format.json { render json: plural_response_json(@value.try(:as_json, json_options)) }
+          if @errors
+            # note: status is magic- automatically sets HTTP code to 422 since status is unprocessable_entity
+            # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
+            format.json { render json: @errors, status: (@error_type || :internal_server_error) }
+          else
+            format.json { render json: plural_response_json(@value.try(:as_json, json_options)) }
+          end
         end
       end
       
       def index_it
-        # TODO: continue to explore filtering, etc. and look into extension of this project to use Sunspot/SOLR.
-        # TODO: Darrel Miller/Ted M. Young suggest reviewing these: http://stackoverflow.com/a/4028874/178651
-        #       http://www.ietf.org/rfc/rfc3986.txt  http://tools.ietf.org/html/rfc6570
-        # TODO: Easier paging. Eugen Paraschiv (a.k.a. baeldung) has a good post here, even though is in context of Spring:
-        #       http://www.baeldung.com/2012/01/18/rest-pagination-in-spring/
-        #       http://www.iana.org/assignments/link-relations/link-relations.
-        #       More on Link header: http://blog.steveklabnik.com/posts/2011-08-07-some-people-understand-rest-and-http
-        #       example of Link header:
-        #       Link: </path/to/resource?other_params_go_here&page=2>; rel="next", </path/to/resource?other_params_go_here&page=9999>; rel="last"
-        #       will_paginate looks like it might be a good match
-        
-        # Using scoped and separate wheres if params present similar to solution provided by
-        # John Gibb in http://stackoverflow.com/a/5820947/178651
-        t = @model_class.arel_table
-        value = @model_class.scoped
-        # if "only" request param specified, only return those fields- this is important for uniq to be useful
-        if params[:only] && self.supported_functions.include?('only')
-          value.select(params[:only].split(self.value_split).collect{|s|s.to_sym})
-        end
-        
-        # handle foo=bar, foo^eq=bar, foo^gt=bar, foo^gteq=bar, etc.
-        allowed_activerecord_model_attribute_keys(@model_class).each do |attribute_key|
-          puts "Finding #{@model_class}"
-          param = params[attribute_key]
-          if self.supported_arel_predications.include?('eq')
-            value = value.where(attribute_key => convert_request_param_value_for_filtering(attribute_key, param)) if param.present?
+        begin
+          # TODO: continue to explore filtering, etc. and look into extension of this project to use Sunspot/SOLR.
+          # TODO: Darrel Miller/Ted M. Young suggest reviewing these: http://stackoverflow.com/a/4028874/178651
+          #       http://www.ietf.org/rfc/rfc3986.txt  http://tools.ietf.org/html/rfc6570
+          # TODO: Easier paging. Eugen Paraschiv (a.k.a. baeldung) has a good post here, even though is in context of Spring:
+          #       http://www.baeldung.com/2012/01/18/rest-pagination-in-spring/
+          #       http://www.iana.org/assignments/link-relations/link-relations.
+          #       More on Link header: http://blog.steveklabnik.com/posts/2011-08-07-some-people-understand-rest-and-http
+          #       example of Link header:
+          #       Link: </path/to/resource?other_params_go_here&page=2>; rel="next", </path/to/resource?other_params_go_here&page=9999>; rel="last"
+          #       will_paginate looks like it might be a good match
+          
+          # Using scoped and separate wheres if params present similar to solution provided by
+          # John Gibb in http://stackoverflow.com/a/5820947/178651
+          t = @model_class.arel_table
+          value = @model_class.scoped
+          # if "only" request param specified, only return those fields- this is important for uniq to be useful
+          if params[:only] && self.supported_functions.include?('only')
+            value.select(params[:only].split(self.value_split).collect{|s|s.to_sym})
           end
-          # supported AREL predications are suffix of ^ and predication in the parameter name
-          self.supported_arel_predications.each do |arel_predication|
-            param = params["#{attribute_key}#{self.arel_predication_split}#{arel_predication}"]
-            if param.present?
-              one_or_more_param = self.multiple_value_arel_predications.include?(arel_predication) ? param.split(value_split).collect{|v|convert_request_param_value_for_filtering(attribute_key, v)} : convert_request_param_value_for_filtering(attribute_key, param)
-              puts ".where(value[#{attribute_key.to_sym.inspect}].call(#{arel_predication.to_sym.inspect}, '#{one_or_more_param}'))"
-              value = value.where(t[attribute_key.to_sym].try(arel_predication.to_sym, one_or_more_param))
+          
+          # handle foo=bar, foo^eq=bar, foo^gt=bar, foo^gteq=bar, etc.
+          allowed_activerecord_model_attribute_keys(@model_class).each do |attribute_key|
+            puts "Finding #{@model_class}"
+            param = params[attribute_key]
+            if self.supported_arel_predications.include?('eq')
+              value = value.where(attribute_key => convert_request_param_value_for_filtering(attribute_key, param)) if param.present?
+            end
+            # supported AREL predications are suffix of ^ and predication in the parameter name
+            self.supported_arel_predications.each do |arel_predication|
+              param = params["#{attribute_key}#{self.arel_predication_split}#{arel_predication}"]
+              if param.present?
+                one_or_more_param = self.multiple_value_arel_predications.include?(arel_predication) ? param.split(value_split).collect{|v|convert_request_param_value_for_filtering(attribute_key, v)} : convert_request_param_value_for_filtering(attribute_key, param)
+                puts ".where(value[#{attribute_key.to_sym.inspect}].call(#{arel_predication.to_sym.inspect}, '#{one_or_more_param}'))"
+                value = value.where(t[attribute_key.to_sym].try(arel_predication.to_sym, one_or_more_param))
+              end
             end
           end
-        end
-        
-        # AREL equivalent of SQL OFFSET
-        if params[:skip] && self.supported_functions.include?('skip')
-          value = value.take(params[:skip])
-        end
-        
-        # AREL equivalent of SQL LIMIT
-        if params[:take] && self.supported_functions.include?('take')
-          value = value.take(params[:take])
-        end
-        
-        # ?uniq= will return unique records
-        if params[:uniq] && self.supported_functions.include?('uniq')
-          value = value.uniq
-        end
+          
+          # AREL equivalent of SQL OFFSET
+          if params[:skip] && self.supported_functions.include?('skip')
+            value = value.take(params[:skip])
+          end
+          
+          # AREL equivalent of SQL LIMIT
+          if params[:take] && self.supported_functions.include?('take')
+            value = value.take(params[:take])
+          end
+          
+          # ?uniq= will return unique records
+          if params[:uniq] && self.supported_functions.include?('uniq')
+            value = value.uniq
+          end
 
-        # ?count= will return a count
-        if params[:count] && self.supported_functions.include?('count')
-          value = value.count
+          # ?count= will return a count
+          if params[:count] && self.supported_functions.include?('count')
+            value = value.count
+          end
+          # Sorts can either be specified by sortby=color&sortby=shape or comma-delimited like sortby=color,shape, or some combination.
+          # The order in the url is the opposite of the order applied, so first sort param is dominant.
+          # Sort direction can be specified across all sorts in the request by sort=asc or sort=desc, or the sort can be specified by
+          # + or - at the beginning of the sortby, like sortby=+color,-shape to specify ascending sort on color and descending sort on
+          # shape.
+          #sortby=params[:sortby] && self.supported_functions.include?('sortby')
+          #if sortby
+          #  expanded_sortby_array=[]
+          #  sortby.each do |sortparam|
+          #    # assuming that since params passed in url that spaces are not being added in comma-delimited sorts
+          #    expanded_sortby_array << sortparam.split(',')
+          #    # TODO: in progress of adding, sorry...
+          #  end
+          #end
+          
+          # could just return value, but trying to be consistent with create/update that need to return flag of success
+          @value = value
+        rescue => e
+          @errors = {'errors': [e]}
         end
-        # Sorts can either be specified by sortby=color&sortby=shape or comma-delimited like sortby=color,shape, or some combination.
-        # The order in the url is the opposite of the order applied, so first sort param is dominant.
-        # Sort direction can be specified across all sorts in the request by sort=asc or sort=desc, or the sort can be specified by
-        # + or - at the beginning of the sortby, like sortby=+color,-shape to specify ascending sort on color and descending sort on
-        # shape.
-        #sortby=params[:sortby] && self.supported_functions.include?('sortby')
-        #if sortby
-        #  expanded_sortby_array=[]
-        #  sortby.each do |sortparam|
-        #    # assuming that since params passed in url that spaces are not being added in comma-delimited sorts
-        #    expanded_sortby_array << sortparam.split(',')
-        #    # TODO: in progress of adding, sorry...
-        #  end
-        #end
-        
-        # could just return value, but trying to be consistent with create/update that need to return flag of success
-        @value = value
       end
       
       # may be overidden in controller to have method-specific access control
@@ -242,6 +252,7 @@ module RestfulJson
       
       def show
         puts "In #{self.class.name}.show"
+        @errors = nil
         
         unless show_allowed?
           puts "user not allowed to call show on #{self.class.name}"
@@ -261,14 +272,24 @@ module RestfulJson
         #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, @value)
         
         respond_to do |format|
-          format.json { render json: single_response_json(@value.try(:as_json, json_options)) }
+          if @errors
+            # note: status is magic- automatically sets HTTP code to 422 since status is unprocessable_entity
+            # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
+            format.json { render json: @errors, status: (@error_type || :internal_server_error) }
+          else
+            format.json { render json: single_response_json(@value.try(:as_json, json_options)) }
+          end
         end
       end
       
       def show_it
-        puts "Attempting to show #{@model_class.try(:name)} with id #{params[:id]}"
-        # could just return value, but trying to be consistent with create/update that need to return flag of success
-        @value = @model_class.find(params[:id])
+        begin
+          puts "Attempting to show #{@model_class.try(:name)} with id #{params[:id]}"
+          # could just return value, but trying to be consistent with create/update that need to return flag of success
+          @value = @model_class.find(params[:id])
+        rescue => e
+          @errors = {'errors': [e]}
+        end
       end
       
       # may be overidden in controller to have method-specific access control
@@ -279,6 +300,7 @@ module RestfulJson
       # POST /#{model_plural}.json
       def create
         puts "In #{self.class.name}.create"
+        @errors = nil
 
         @request_json = parse_request_json
         
@@ -313,7 +335,11 @@ module RestfulJson
         #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, @value)
         
         respond_to do |format|
-          if success
+          if @errors
+            # note: status is magic- automatically sets HTTP code to 422 since status is unprocessable_entity
+            # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
+            format.json { render json: @errors, status: (@error_type || :internal_server_error) }
+          elsif success
             # note: status is magic- automatically sets HTTP code to 201 since status is created
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
             format.json { render json: single_response_json(@value.try(:as_json, json_options)), status: :created, location: @value.as_json(json_options) }
@@ -326,12 +352,16 @@ module RestfulJson
       end
       
       def create_it
-        puts "create_it: @model_class=#{@model_class} @request_json=#{@request_json}"
-        parsed_and_converted_json = convert_parsed_json(@model_class, @request_json)
-        puts "#{@model_class.name}.new(#{parsed_and_converted_json.inspect})"
-        @value = @model_class.new(parsed_and_converted_json)
-        puts "Attempting #{@model_class.name}.save"
-        @value.save
+        begin
+          puts "create_it: @model_class=#{@model_class} @request_json=#{@request_json}"
+          parsed_and_converted_json = convert_parsed_json(@model_class, @request_json)
+          puts "#{@model_class.name}.new(#{parsed_and_converted_json.inspect})"
+          @value = @model_class.new(parsed_and_converted_json)
+          puts "Attempting #{@model_class.name}.save"
+          @value.save
+        rescue => e
+          @errors = {'errors': [e]}
+        end
       end
       
       # may be overidden in controller to have method-specific access control
@@ -342,6 +372,7 @@ module RestfulJson
       # PUT /#{model_plural}/1.json
       def update
         puts "In #{self.class.name}.update"
+        @errors = nil
 
         @request_json = parse_request_json unless @request_json # may be set in create method already
         
@@ -365,7 +396,11 @@ module RestfulJson
         #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, @value)
         
         respond_to do |format|
-          if success
+          if @errors
+            # note: status is magic- automatically sets HTTP code to 422 since status is unprocessable_entity
+            # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
+            format.json { render json: @errors, status: (@error_type || :internal_server_error) }
+          elsif success
             # note: status is magic- automatically sets HTTP code to 200 since status is ok
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
             format.json { render json: single_response_json(@value.try(:as_json, json_options)), status: :ok }
@@ -378,13 +413,17 @@ module RestfulJson
       end
       
       def update_it
-        puts "update_it: @model_class=#{@model_class} @request_json=#{@request_json}"
-        puts "@model_class.find(#{params[:id]})"
-        @value = @model_class.find(params[:id])        
-        parsed_and_converted_json = convert_parsed_json(@model_class, @request_json)        
-        puts "Attempting #{@value}.update_attributes(#{parsed_and_converted_json.inspect})"
-        success = @value.update_attributes(parsed_and_converted_json)
-        success
+        begin
+          puts "update_it: @model_class=#{@model_class} @request_json=#{@request_json}"
+          puts "@model_class.find(#{params[:id]})"
+          @value = @model_class.find(params[:id])        
+          parsed_and_converted_json = convert_parsed_json(@model_class, @request_json)        
+          puts "Attempting #{@value}.update_attributes(#{parsed_and_converted_json.inspect})"
+          success = @value.update_attributes(parsed_and_converted_json)
+          success
+        rescue => e
+          @errors = {'errors': [e]}
+        end
       end
       
       # may be overidden in controller to have method-specific access control
@@ -395,6 +434,7 @@ module RestfulJson
       # DELETE /#{model_plural}/1.json
       def destroy
         puts "In #{self.class.name}.destroy"
+        @errors = nil
         
         unless destroy_allowed?
           puts "user not allowed to call destroy on #{self.class.name}"
@@ -413,15 +453,25 @@ module RestfulJson
         puts "Failed destroy_it but returning ok anyway, as it might have been deleted between the time we checked for it and when we tried to delete it" unless success
 
         respond_to do |format|
-          # note: status is magic- automatically sets HTTP code to 200 since status is ok
-          # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
-          format.json { render json: nil, status: :ok }
+          if @errors
+            # note: status is magic- automatically sets HTTP code to 422 since status is unprocessable_entity
+            # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
+            format.json { render json: @errors, status: (@error_type || :internal_server_error) }
+          else
+            # note: status is magic- automatically sets HTTP code to 200 since status is ok
+            # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
+            format.json { render json: nil, status: :ok }
+          end
         end
       end
       
       def destroy_it
-        puts "Attempting to destroy #{@model_class.try(:name)} with id #{params[:id]}"
-        @model_class.where(id: params[:id]).first ? @model_class.destroy(params[:id]) : true
+        begin
+          puts "Attempting to destroy #{@model_class.try(:name)} with id #{params[:id]}"
+          @model_class.where(id: params[:id]).first ? @model_class.destroy(params[:id]) : true
+        rescue => e
+          @errors = {'errors': [e]}
+        end
       end
       
       # Because most of the time having to specify (name)_attributes as the name of a key in the incoming json is a pain,

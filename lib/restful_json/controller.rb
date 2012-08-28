@@ -545,6 +545,7 @@ module RestfulJson
                       end
                     else
                       puts "Didn't set foreign key #{foreign_key.to_sym} on #{clazz} because #{key_sym} was not of nil or Hash type."
+                    end
                   else
                     puts "Couldn't set #{foreign_key.to_sym.inspect} on #{clazz} with the id from association JSON because it wasn't in the list of allowed attributes to mass assign: #{accessible_attributes.join(', ')}. To intuit ids from association JSON from it, add attr_accessible #{foreign_key.to_sym.inspect} to #{clazz}. To avoid this warning, either set self.scavenge_bad_associations to false, or stop sending association json for #{key.to_sym}."
                   end

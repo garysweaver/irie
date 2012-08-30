@@ -459,6 +459,10 @@ When sending multiple values in a filter in the URL, this is the delimiter.
 
 If true, then it will look for the underscored model name in the incoming JSON (in `params[:your_model_name]`), if false it either expects that everything in `params` are keys at the root of your JSON or you are sending the JSON in request body
 
+The standard Rails 3+ way of doing this is setting include_root_in_json on ActiveResource::Base, but I've not tested to see how this affects what we are doing. Maybe you can use this instead as an application-wide default. Perhaps having wrapped_json configurable at the controller-level is still helpful, although that is probably excessive, and might not play well with this configuration setting. I don't know yet, so in the meantime we're assuming you are using the following (default) setting, which can be overriden by the wrapped_json configuration:
+
+    ActiveResource::Base.include_root_in_json = true
+
 ### Application-wide configuration
 
 In your `config/environment.rb` or environment specfic configuration, you may specify one or more options in the config hash that will be merged into the following defaults:

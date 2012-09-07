@@ -44,7 +44,7 @@ Some highlights:
 
 A lot is still subject to change in the next major version. [ROAR][roar] looks great because using representers for both (de)serialization and what gets persisted from incoming JSON is what we've been doing in restful_json, but we're looking to upgrade. [Strong Parameters][strong_parameters] is being integrated with Rails 4 as an eventual replacement for mass assignment security, and are looking into [ActiveModel::Serializers][active_model_serializers] to replace the [as_json][as_json] extension.
 
-Thanks much to the informative post, [State of Writing API Servers with Rails][state_of_rails_apis] and the original [ember_data_example][ember_data_example] project the first version heavily borrowed from. We use [AngularJS][angular], but we have done what we could easily to support ember and other Javascript frameworks.
+Thanks much to the informative post, [State of Writing API Servers with Rails][state_of_rails_apis] and the original [ember_data_example][ember_data_example] project the first version heavily borrowed from. We use [AngularJS][angular], but we have done what we could easily to support [Ember.js][ember] and other Javascript frameworks.
 
 The overall goal of the project is to make providing RESTful JSON APIs via Rails for use in javascript frameworks as simple as possible, while still letting you override the base functionality when needed. Stay tuned and please let us know if you'd like to contribute.
 
@@ -583,6 +583,7 @@ Then, override Rails defaults to return the Javascript default format for dateti
 Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 
 [roar]: https://github.com/apotonick/roar
+[ember]: http://emberjs.com/
 [ember_data_example]: https://github.com/dgeb/ember_data_example/blob/master/app/controllers/contacts_controller.rb
 [angular]: http://angularjs.org/
 [as_json]: http://api.rubyonrails.org/classes/ActiveModel/Serializers/JSON.html#method-i-as_json

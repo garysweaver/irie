@@ -341,7 +341,7 @@ There are a handful of variables that you use in a RESTful JSON controller:
 * `@request_json`: the parsed json as a hash. How it gets this depends on the wrapped_json configuration parameter.
 * `@value`: the default implementations of the index, show, create, and update methods expect you to set this to the instance that should be converted to JSON and returned to the client.
 * `@errors`: if you `begin` and `rescue => e` you can set errors like `@errors = {errors: [e]}` in the rescue block, and these will be returned by default as JSON with HTTP Status Code 500. You do not need to use this for normal validation, etc. errors returned in @value.errors automatically as part of an ActiveRecord create/update, which return an hash of attribute_name/column_name an to array of error messages (even if is a single error message, which is more often the case).
-* `@error_type`: if `@errors` is not nil, it will use this error code. Only use one of the allowed symbols. In `rails c` do `Rack::Utils::SYMBOL_TO_STATUS_CODE` to see a list and see [List of HTTP Status Codes][status_codes] for more info.
+* `@error_type`: if `@errors` is not nil, it will use this error code. Only use one of the allowed symbols. In `rails c` do `require 'pp';pp Rack::Utils::SYMBOL_TO_STATUS_CODE;nil` to see a list and see [List of HTTP Status Codes][status_codes] for more info.
 
 For example, a very basic unwrapped implementation (note: `@request_json` is automatically determined and set by index, show, create, update, and destroy that call these methods):
 
@@ -592,7 +592,7 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [arel_predications]: https://github.com/rails/arel/blob/master/lib/arel/predications.rb
 [cors]: http://enable-cors.org/
 [mass_assignment_security]: http://guides.rubyonrails.org/security.html#mass-assignment
-[preflight_request]: http://www.w3.org/TR/cors/#resource-preflight-requests
+[preflight_request]: http://www.w3.org/TR/statuscors/#resource-preflight-requests
 [state_of_rails_apis]: http://broadcastingadam.com/2012/03/state_of_rails_apis/
 [strong_parameters]: https://github.com/rails/strong_parameters
 [cancan]: https://github.com/ryanb/cancan

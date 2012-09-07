@@ -341,7 +341,7 @@ There are a handful of variables that you use in a RESTful JSON controller:
 * `@request_json`: the parsed json as a hash. How it gets this depends on the wrapped_json configuration parameter.
 * `@value`: the default implementations of the index, show, create, and update methods expect you to set this to the instance that should be converted to JSON and returned to the client.
 * `@errors`: if you `begin` and `rescue => e` you can set errors like `@errors = {errors: [e]}` in the rescue block, and these will be returned by default as JSON with HTTP Status Code 500. You do not need to use this for normal validation, etc. errors returned in @value.errors automatically as part of an ActiveRecord create/update, which return an hash of attribute_name/column_name an to array of error messages (even if is a single error message, which is more often the case).
-* `@error_type`: if `@errors` is not nil, it will use this error code. Only use one of the allowed symbols defined in [Rack::Utils.HTTP_STATUS_CODES][rackutils] also in [Cody's post][http_status_code_sym] and see [List of HTTP Status Codes][status_codes] for more info.
+* `@error_type`: if `@errors` is not nil, it will use this error code. Only use one of the allowed symbols. In `rails c` do `Rack::Utils::SYMBOL_TO_STATUS_CODE` to see a list and see [List of HTTP Status Codes][status_codes] for more info.
 
 For example, a very basic unwrapped implementation (note: `@request_json` is automatically determined and set by index, show, create, update, and destroy that call these methods):
 
@@ -582,7 +582,6 @@ Then, override Rails defaults to return the Javascript default format for dateti
 
 Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 
-[rackutils]: https://github.com/rack/rack/blob/master/lib/rack/utils.rb
 [status_codes]: http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 [roar]: https://github.com/apotonick/roar
 [ember]: http://emberjs.com/
@@ -600,5 +599,4 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [active_model_serializers]: https://github.com/josevalim/active_model_serializers
 [rabl]: https://github.com/nesquena/rabl/
 [issue7442]: https://github.com/rails/rails/issues/7442
-[http_status_code_sym]: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping
 [lic]: http://github.com/garysweaver/restful_json/blob/master/LICENSE

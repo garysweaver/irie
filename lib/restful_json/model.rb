@@ -12,7 +12,7 @@ module RestfulJson
 
       # works just like accepts_nested_attributes_for, except it stores any symbols passed in attr_names
       def accepts_nested_attributes_for(*attr_names)
-        puts "restful_json's accepts_nested_attributes_for called with attr_names=#{attr_names.inspect}"
+        puts "restful_json's accepts_nested_attributes_for called with attr_names=#{attr_names.inspect}" if RestfulJson::Options.debugging?
         
         unless attr_names.nil?
           if attr_names.is_a?(Array)
@@ -24,7 +24,7 @@ module RestfulJson
           end
         end
 
-        puts "collected_accepts_nested_attributes_for = #{collected_accepts_nested_attributes_for.inspect}"
+        puts "collected_accepts_nested_attributes_for = #{collected_accepts_nested_attributes_for.inspect}" if RestfulJson::Options.debugging?
       
         super(attr_names)
       end
@@ -45,7 +45,7 @@ module RestfulJson
     # of the primary key or array of keys. Also, if this instance has already been output in an ancestoral as_json, then no
     # associations are included.
     def as_json(options = {})
-      puts "restful_json's as_json called on #{self.class} with options=#{options.inspect}. inspect=#{inspect}"
+      puts "restful_json's as_json called on #{self.class} with options=#{options.inspect}. inspect=#{inspect}" if RestfulJson::Options.debugging?
       
       # unfollowed_object_ids attribute is to avoid circular references. it is an array of the object_ids whose children we should not output.
       # Rails already tries to handle this via setting the :encoder on the model's options, but I haven't spent the time to figure out why
@@ -55,16 +55,20 @@ module RestfulJson
 
       includes = self._as_json_includes || []
       excludes = self._as_json_excludes || []
-      puts "as_json_includes=#{includes}"
-      puts "as_json_excludes=#{excludes}"
+      if RestfulJson::Options.debugging?
+        puts "as_json_includes=#{includes}"
+        puts "as_json_excludes=#{excludes}"
+      end
 
       accessible_attributes = (self.class.accessible_attributes.to_a || attributes.keys) - self.class.protected_attributes.to_a
 
       if was_already_as_jsoned || options[:restful_json_no_includes] || options[:restful_json_only] || !(options[:unfollowed_object_ids].is_a?(Array))
-        puts "called without options[:unfollowed_object_ids] so can't avoid circular references properly. if this happens to something as part of a restful_json controller request, there is a bug" if !(options[:unfollowed_object_ids].is_a?(Array))
-        puts "avoiding circular reference by just outputting the already as_json'd instance without its associations as_json" if was_already_as_jsoned
-        puts "having to ignore options[:restful_json_no_includes]" if options[:restful_json_no_includes]
-        puts "restful_json_only=#{options[:restful_json_only]}" if options[:restful_json_only]
+        if RestfulJson::Options.debugging?
+          puts "called without options[:unfollowed_object_ids] so can't avoid circular references properly. if this happens to something as part of a restful_json controller request, there is a bug" if !(options[:unfollowed_object_ids].is_a?(Array))
+          puts "avoiding circular reference by just outputting the already as_json'd instance without its associations as_json" if was_already_as_jsoned
+          puts "having to ignore options[:restful_json_no_includes]" if options[:restful_json_no_includes]
+          puts "restful_json_only=#{options[:restful_json_only]}" if options[:restful_json_only]
+        end
 
         # return all accessible attributes
         result = {}
@@ -83,7 +87,7 @@ module RestfulJson
           end
         end
 
-        puts "returning accessible attributes #{result.inspect}"
+        puts "returning accessible attributes #{result.inspect}" if RestfulJson::Options.debugging?
         result
       else
         # otherwise, it includes associations defined as as_json_includes
@@ -117,7 +121,7 @@ module RestfulJson
           end
         end
 
-        puts "calling as_json(#{options.inspect})"
+        puts "calling as_json(#{options.inspect})" if RestfulJson::Options.debugging?
         super(options)
       end
     end

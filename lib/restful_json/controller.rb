@@ -37,9 +37,11 @@ module RestfulJson
       end
 
       def parse_request_json
-        puts "params=#{params.inspect}"
-        puts "request.body.read=#{request.body.read}"
-        puts "will look for #{@__restful_json_model_singular} key in incoming request params" if self.wrapped_json
+        if RestfulJson::Options.debugging?
+          puts "params=#{params.inspect}"
+          puts "request.body.read=#{request.body.read}"
+          puts "will look for #{@__restful_json_model_singular} key in incoming request params" if self.wrapped_json
+        end
         
         request_body_value = request.body.read
         request_body_string = request_body_value ? "#{request_body_value}" : nil
@@ -53,7 +55,7 @@ module RestfulJson
           result = params
         end
 
-        puts "parsed_request_json=#{result}"
+        puts "parsed_request_json=#{result}" if RestfulJson::Options.debugging?
         result
       end
       
@@ -80,7 +82,7 @@ module RestfulJson
 
         raise "#{self.class.name} assumes that #{@model_class} extends ActiveRecord::Base, but it didn't. Please fix, or remove this constraint." unless @model_class.ancestors.include?(ActiveRecord::Base)
 
-        puts "'#{self}' set @model_class=#{@model_class}, @model_singular_name=#{@model_singular_name}, @model_plural_name=#{@model_plural_name}"
+        puts "'#{self}' set @model_class=#{@model_class}, @model_singular_name=#{@model_singular_name}, @model_plural_name=#{@model_plural_name}" if RestfulJson::Options.debugging?
       end
       
       def allowed_activerecord_model_attribute_keys(clazz)
@@ -93,7 +95,7 @@ module RestfulJson
       # http://www.tsheffler.com/blog/?p=428 to allow customization.
       def cors_preflight_check?
         if self.cors_enabled && request.method == :options
-          puts "CORS preflight check"
+          puts "CORS preflight check" if RestfulJson::Options.debugging?
           headers.merge!(self.cors_preflight_headers)
           # CORS returns as text to the browser as a step before the json, so is intentionally text type and not json.
           render :text => '', :content_type => 'text/plain'
@@ -134,11 +136,11 @@ module RestfulJson
       end
       
       def index
-        puts "In #{self.class.name}.index"
+        puts "In #{self.class.name}.index" if RestfulJson::Options.debugging?
         @errors = nil
         
         unless index_allowed?
-          puts "user not allowed to call index on #{self.class.name}"
+          puts "user not allowed to call index on #{self.class.name}" if RestfulJson::Options.debugging?
           respond_to do |format|
             # note: status is magic- automatically sets HTTP code to 403 since status is forbidden
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
@@ -188,7 +190,7 @@ module RestfulJson
           
           # handle foo=bar, foo^eq=bar, foo^gt=bar, foo^gteq=bar, etc.
           allowed_activerecord_model_attribute_keys(@model_class).each do |attribute_key|
-            puts "Finding #{@model_class}"
+            puts "Finding #{@model_class}" if RestfulJson::Options.debugging?
             param = params[attribute_key]
             if self.supported_arel_predications.include?('eq')
               value = value.where(attribute_key => convert_request_param_value_for_filtering(attribute_key, param)) if param.present?
@@ -198,7 +200,7 @@ module RestfulJson
               param = params["#{attribute_key}#{self.arel_predication_split}#{arel_predication}"]
               if param.present?
                 one_or_more_param = self.multiple_value_arel_predications.include?(arel_predication) ? param.split(value_split).collect{|v|convert_request_param_value_for_filtering(attribute_key, v)} : convert_request_param_value_for_filtering(attribute_key, param)
-                puts ".where(value[#{attribute_key.to_sym.inspect}].call(#{arel_predication.to_sym.inspect}, '#{one_or_more_param}'))"
+                puts ".where(value[#{attribute_key.to_sym.inspect}].call(#{arel_predication.to_sym.inspect}, '#{one_or_more_param}'))" if RestfulJson::Options.debugging?
                 value = value.where(t[attribute_key.to_sym].try(arel_predication.to_sym, one_or_more_param))
               end
             end
@@ -251,11 +253,11 @@ module RestfulJson
       end
       
       def show
-        puts "In #{self.class.name}.show"
+        puts "In #{self.class.name}.show" if RestfulJson::Options.debugging?
         @errors = nil
         
         unless show_allowed?
-          puts "user not allowed to call show on #{self.class.name}"
+          puts "user not allowed to call show on #{self.class.name}" if RestfulJson::Options.debugging?
           respond_to do |format|
             # note: status is magic- automatically sets HTTP code to 403 since status is forbidden
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
@@ -284,7 +286,7 @@ module RestfulJson
       
       def show_it
         begin
-          puts "Attempting to show #{@model_class.try(:name)} with id #{params[:id]}"
+          puts "Attempting to show #{@model_class.try(:name)} with id #{params[:id]}" if RestfulJson::Options.debugging?
           # could just return value, but trying to be consistent with create/update that need to return flag of success
           @value = @model_class.find(params[:id])
         rescue => e
@@ -299,7 +301,7 @@ module RestfulJson
       
       # POST /#{model_plural}.json
       def create
-        puts "In #{self.class.name}.create"
+        puts "In #{self.class.name}.create" if RestfulJson::Options.debugging?
         @errors = nil
 
         @request_json = parse_request_json
@@ -307,16 +309,16 @@ module RestfulJson
         if self.intuit_post_or_put_method
           if @request_json && @request_json[:id]
             # We'll assume this is an update because the id was sent in- make it look like it came in via PUT with id param
-            puts "THIS CAME INTO create BUT SINCE @request_json[:id] RETURNED A VALUE, WE WILL SET params[:id] = #{@request_json[:id]} AND CALL update INSTEAD, SINCE self.intuit_post_or_put_method"
+            puts "THIS CAME INTO create BUT SINCE @request_json[:id] RETURNED A VALUE, WE WILL SET params[:id] = #{@request_json[:id]} AND CALL update INSTEAD, SINCE self.intuit_post_or_put_method" if RestfulJson::Options.debugging?
             params[:id] = @request_json[:id]
             return update
           else
-            puts "ASSUMING THIS IS REALLY A create SINCE @request_json was nil or had no :id key: @request_json=#{@request_json}"
+            puts "ASSUMING THIS IS REALLY A create SINCE @request_json was nil or had no :id key: @request_json=#{@request_json}" if RestfulJson::Options.debugging?
           end
         end
         
         unless create_allowed?
-          puts "user not allowed to call create on #{self.class.name}"
+          puts "user not allowed to call create on #{self.class.name}" if RestfulJson::Options.debugging?
           respond_to do |format|
             # note: status is magic- automatically sets HTTP code to 403 since status is forbidden
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
@@ -329,7 +331,9 @@ module RestfulJson
         
         success = create_it
 
-        puts "Failed update_it with errors #{(@value.try(:errors)).inspect}" unless success
+        if RestfulJson::Options.debugging?
+          puts "Failed update_it with errors #{(@value.try(:errors)).inspect}" unless success
+        end
 
         # how we'd set if we needed to reference in a view
         #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, @value)
@@ -353,11 +357,11 @@ module RestfulJson
       
       def create_it
         begin
-          puts "create_it: @model_class=#{@model_class} @request_json=#{@request_json}"
+          puts "create_it: @model_class=#{@model_class} @request_json=#{@request_json}" if RestfulJson::Options.debugging?
           parsed_and_converted_json = convert_parsed_json(@model_class, @request_json)
-          puts "#{@model_class.name}.new(#{parsed_and_converted_json.inspect})"
+          puts "#{@model_class.name}.new(#{parsed_and_converted_json.inspect})" if RestfulJson::Options.debugging?
           @value = @model_class.new(parsed_and_converted_json)
-          puts "Attempting #{@model_class.name}.save"
+          puts "Attempting #{@model_class.name}.save" if RestfulJson::Options.debugging?
           @value.save
         rescue => e
           @errors = {errors: [e]}
@@ -371,13 +375,13 @@ module RestfulJson
       
       # PUT /#{model_plural}/1.json
       def update
-        puts "In #{self.class.name}.update"
+        puts "In #{self.class.name}.update" if RestfulJson::Options.debugging?
         @errors = nil
 
         @request_json = parse_request_json unless @request_json # may be set in create method already
         
         unless update_allowed?
-          puts "user not allowed to call update on #{self.class.name}"
+          puts "user not allowed to call update on #{self.class.name}" if RestfulJson::Options.debugging?
           respond_to do |format|
             # note: status is magic- automatically sets HTTP code to 403 since status is forbidden
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
@@ -390,7 +394,9 @@ module RestfulJson
         
         success = update_it
 
-        puts "Failed update_it with errors #{(@value.try(:errors)).inspect}" unless success
+        if RestfulJson::Options.debugging?
+          puts "Failed update_it with errors #{(@value.try(:errors)).inspect}" unless success
+        end
         
         # how we'd set if we needed to reference in a view
         #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, @value)
@@ -414,11 +420,13 @@ module RestfulJson
       
       def update_it
         begin
-          puts "update_it: @model_class=#{@model_class} @request_json=#{@request_json}"
-          puts "@model_class.find(#{params[:id]})"
+          if RestfulJson::Options.debugging?
+            puts "update_it: @model_class=#{@model_class} @request_json=#{@request_json}"
+            puts "@model_class.find(#{params[:id]})"
+          end
           @value = @model_class.find(params[:id])        
           parsed_and_converted_json = convert_parsed_json(@model_class, @request_json)        
-          puts "Attempting #{@value}.update_attributes(#{parsed_and_converted_json.inspect})"
+          puts "Attempting #{@value}.update_attributes(#{parsed_and_converted_json.inspect})" if RestfulJson::Options.debugging?
           success = @value.update_attributes(parsed_and_converted_json)
           success
         rescue => e
@@ -433,11 +441,11 @@ module RestfulJson
       
       # DELETE /#{model_plural}/1.json
       def destroy
-        puts "In #{self.class.name}.destroy"
+        puts "In #{self.class.name}.destroy" if RestfulJson::Options.debugging?
         @errors = nil
         
         unless destroy_allowed?
-          puts "user not allowed to call destroy on #{self.class.name}"
+          puts "user not allowed to call destroy on #{self.class.name}" if RestfulJson::Options.debugging?
           respond_to do |format|
             # note: status is magic- automatically sets HTTP code to 403 since status is forbidden
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
@@ -450,7 +458,9 @@ module RestfulJson
         
         success = destroy_it
 
-        puts "Failed destroy_it but returning ok anyway, as it might have been deleted between the time we checked for it and when we tried to delete it" unless success
+        if RestfulJson::Options.debugging?
+          puts "Failed destroy_it but returning ok anyway, as it might have been deleted between the time we checked for it and when we tried to delete it" unless success
+        end
 
         respond_to do |format|
           if @errors
@@ -467,7 +477,7 @@ module RestfulJson
       
       def destroy_it
         begin
-          puts "Attempting to destroy #{@model_class.try(:name)} with id #{params[:id]}"
+          puts "Attempting to destroy #{@model_class.try(:name)} with id #{params[:id]}" if RestfulJson::Options.debugging?
           @model_class.where(id: params[:id]).first ? @model_class.destroy(params[:id]) : true
         rescue => e
           @errors = {errors: [e]}
@@ -485,7 +495,7 @@ module RestfulJson
       # Finally we'll just ignore all attributes that the client may not have meant to send in, with the exception of
       # id which will assume the client wanted to update.
       def convert_parsed_json(clazz, value)
-        puts "In convert_parsed_json(#{clazz}, #{value})"
+        puts "In convert_parsed_json(#{clazz}, #{value})" if RestfulJson::Options.debugging?
 
         unless value
           return nil
@@ -495,7 +505,7 @@ module RestfulJson
 
           start = Time.now
 
-          puts "Prior to conversion(s): #{value}"
+          puts "Prior to conversion(s): #{value}" if RestfulJson::Options.debugging?
           
           # Create a reference hash of association names to their classes
           association_name_sym_to_association = {}
@@ -514,7 +524,7 @@ module RestfulJson
                 key_sym = key.to_sym
                 key_sym_without_suffix = (key.end_with?('_attributes') ? key.chomp('_attributes') : key).to_sym
                 if association_name_sym_to_association.keys.include?(key_sym_without_suffix) && !collected_accepts_nested_attributes_for.include?(key_sym_without_suffix)
-                  puts "JSON for #{key_sym} can't be persisted because #{clazz}'s accepts_nested_attributes_for didn't include it, but we're going to scavenge it for an id"
+                  puts "JSON for #{key_sym} can't be persisted because #{clazz}'s accepts_nested_attributes_for didn't include it, but we're going to scavenge it for an id" if RestfulJson::Options.debugging?
                   # scavenge json that isn't accepts_nested_attributes_for for an id
                   association = association_name_sym_to_association[key_sym_without_suffix]
                   foreign_key = association.options[:foreign_key] || association.try(:foreign_key)
@@ -533,36 +543,44 @@ module RestfulJson
                       # because that would imply a create, and can't create unless accepts_nested_attributes_for
                       if (association_hash && association_hash.key?(:id) && new_value) || association_hash.nil?
                         if value[foreign_key.to_sym]
-                          puts "Didn't set foreign key #{foreign_key.to_sym} on #{clazz} to #{new_value} because it was already set to #{value[foreign_key.to_sym]}" if "#{new_value}" != "#{value[foreign_key.to_sym]}"
+                          if RestfulJson::Options.debugging?
+                            puts "Didn't set foreign key #{foreign_key.to_sym} on #{clazz} to #{new_value} because it was already set to #{value[foreign_key.to_sym]}" if "#{new_value}" != "#{value[foreign_key.to_sym]}"
+                          end
                         else
                           comment = association_hash ? " (value from id in JSON hash sent as #{key_sym})" : ''
-                          puts "Set foreign key #{foreign_key.to_sym} on #{clazz} to #{new_value}#{comment}"
+                          puts "Set foreign key #{foreign_key.to_sym} on #{clazz} to #{new_value}#{comment}" if RestfulJson::Options.debugging?
                           value[foreign_key.to_sym] = new_value
                           fkeys_scavenged << "#{foreign_key}=#{new_value}#{comment}"
                         end
                       else
-                        puts "Didn't set foreign key #{foreign_key.to_sym} on #{clazz} because there was no id in JSON in passed in #{key_sym}, and #{key_sym} was not set to nil."
+                        puts "Didn't set foreign key #{foreign_key.to_sym} on #{clazz} because there was no id in JSON in passed in #{key_sym}, and #{key_sym} was not set to nil." if RestfulJson::Options.debugging?
                       end
                     else
-                      puts "Didn't set foreign key #{foreign_key.to_sym} on #{clazz} because #{key_sym} was not of nil or Hash type."
+                      puts "Didn't set foreign key #{foreign_key.to_sym} on #{clazz} because #{key_sym} was not of nil or Hash type." if RestfulJson::Options.debugging?
                     end
                   else
-                    puts "Couldn't set #{foreign_key.to_sym.inspect} on #{clazz} with the id from association JSON because it wasn't in the list of allowed attributes to mass assign: #{accessible_attributes.join(', ')}. To intuit ids from association JSON from it, add attr_accessible #{foreign_key.to_sym.inspect} to #{clazz}. To avoid this warning, either set self.scavenge_bad_associations to false, or stop sending association json for #{key.to_sym}."
+                    puts "Couldn't set #{foreign_key.to_sym.inspect} on #{clazz} with the id from association JSON because it wasn't in the list of allowed attributes to mass assign: #{accessible_attributes.join(', ')}. To intuit ids from association JSON from it, add attr_accessible #{foreign_key.to_sym.inspect} to #{clazz}. To avoid this warning, either set self.scavenge_bad_associations to false, or stop sending association json for #{key.to_sym}." if RestfulJson::Options.debugging?
                   end
                 end
               end
             end
-
-            puts "For #{clazz}'s JSON, set the following (foreign) keys: #{fkeys_scavenged.join(',')} where those keys were for belongs_to or habtm assoc's that weren't already set and had associated JSON data with id attributes" if fkeys_scavenged.size > 0
+            
+            if RestfulJson::Options.debugging?
+              puts "For #{clazz}'s JSON, set the following (foreign) keys: #{fkeys_scavenged.join(',')} where those keys were for belongs_to or habtm assoc's that weren't already set and had associated JSON data with id attributes" if fkeys_scavenged.size > 0
+            end
           end
 
-          puts "After self.scavenge_bad_associations: #{value}" if self.scavenge_bad_associations
+          if RestfulJson::Options.debugging?
+            puts "After self.scavenge_bad_associations: #{value}" if self.scavenge_bad_associations
+          end
           
           # Ignore the attributes that are misspelled or otherwise not accessible, because in the emitted json, things
           # may have been included that just can't be updated.
           if self.ignore_bad_json_attributes
-            puts "#{clazz} accepts_nested_attributes_for: #{collected_accepts_nested_attributes_for.join(',')}"
-            puts "#{clazz} accessible_attributes: #{accessible_attributes.join(',')}"
+            if RestfulJson::Options.debugging?
+              puts "#{clazz} accepts_nested_attributes_for: #{collected_accepts_nested_attributes_for.join(',')}"
+              puts "#{clazz} accessible_attributes: #{accessible_attributes.join(',')}"
+            end
             removed_attributes = []
             if value.is_a?(Hash)
               value.keys.each do |key|
@@ -573,10 +591,14 @@ module RestfulJson
                 end
               end
             end
-            puts "For #{clazz}'s JSON, removed keys: #{removed_attributes.join(',')} that weren't in accepts_nested_attributes_for or accessible_attributes" if removed_attributes.size > 0
+            if RestfulJson::Options.debugging?
+              puts "For #{clazz}'s JSON, removed keys: #{removed_attributes.join(',')} that weren't in accepts_nested_attributes_for or accessible_attributes" if removed_attributes.size > 0
+            end
           end
 
-          puts "After self.ignore_bad_json_attributes: #{value}" if self.ignore_bad_json_attributes
+          if RestfulJson::Options.debugging?
+            puts "After self.ignore_bad_json_attributes: #{value}" if self.ignore_bad_json_attributes
+          end
           
           # Append _attributes to associations that haven't gotten the axe yet, and expand those associations.
           if self.suffix_json_attributes
@@ -595,14 +617,17 @@ module RestfulJson
               end
               value = converted_value
             end
-            puts "For #{clazz}'s JSON, suffixed keys: #{suffixed_attributes.join(',')} that has Hash values and keys that were listed in this classes association names: #{association_name_sym_to_association.keys}" if suffixed_attributes.size > 0
+            
+            if RestfulJson::Options.debugging?
+              puts "For #{clazz}'s JSON, suffixed keys: #{suffixed_attributes.join(',')} that has Hash values and keys that were listed in this classes association names: #{association_name_sym_to_association.keys}" if suffixed_attributes.size > 0
+            end
           end
 
-          puts "After self.suffix_json_attributes: #{value}" if self.suffix_json_attributes
-
-          puts "Time to do requested conversions: #{Time.now - start} sec"
-
-          puts "Converted request json: #{value}"
+          if RestfulJson::Options.debugging?
+            puts "After self.suffix_json_attributes: #{value}" if self.suffix_json_attributes
+            puts "Time to do requested conversions: #{Time.now - start} sec"
+            puts "Converted request json: #{value}" if RestfulJson::Options.debugging?
+          end
         end
         
         value

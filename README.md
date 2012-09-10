@@ -405,59 +405,69 @@ A basic abstract controller might contain (note: @model_class is automatically s
 
 ### Configuration
 
+#### General options
+
+These options are available for the application:
+
+##### Debug
+
+If true, outputs verbose info on the operations of restful_json.
+
+#### Controller options
+
 Here are the options available for the application and each controller:
 
-#### arel_predication_split
+##### arel_predication_split
 
 The character in the URL that seperates the attribute name from the optional arel predication
 
-#### cors_access_control_headers
+##### cors_access_control_headers
 
 A hash of headers to use for each non-preflight response
 
-#### cors_enabled
+##### cors_enabled
 
 True to enable [CORS][cors]. If you have javascript/etc. code in the client that is running under a different host or port than Rails server, then you are cross-origin/cross-domain and we handle this with CORS. By default, we make CORS just allow everything, so the whole cross-origin/cross-domain thing goes away and you can get to developing locally with your Javascript app that isn't even being served by Rails.
 
-#### cors_preflight_headers
+##### cors_preflight_headers
 
 So, if you enabled CORS, then CORS starts with a [preflight request][preflight_request] from the client (the browser), to which we respond with a response. You can customize the values of headers returned in the `cors_preflight_headers` option. Then for all other requests to the controller, you can specify headers to be returned in the `cors_access_control_headers` option. This is a hash of headers to use for each preflight response.
 
-#### ignore_bad_json_attributes
+##### ignore_bad_json_attributes
 
 True by default. Ignores keys that aren't accessible attributes or associations that have an `accepts_nested_attributes_for`. This should be true most likely if `wrapped_json` is true.
 
-#### intuit_post_or_put_method
+##### intuit_post_or_put_method
 
 If true, anything that comes into the create method with 'id' in the JSON will be sent to update. This way you don't need to put the ID in the URL to do an update and can reuse the same resource URL for create or update.
 
-#### multiple_value_arel_predications
+##### multiple_value_arel_predications
 
 Should hopefully never have to modify this. It is a list of predications that can take multiple values, e.g. not_in_all could take multiple values.
 
-#### scavenge_bad_associations
+##### scavenge_bad_associations
 
 If you pass in a json block for an association that is not `accepts_nested_attributes_for`, then it will look for 'id' in the root of that block, and if it finds it, it will set the foreign_key of a related `belongs_to` or `has_and_belongs_to_many` association if one exists and is mass-assignable.
 
 If you pass in a nil for an association that is not `accepts_nested_attributes_for`, then it will set the foreign_key of a related `belongs_to` or `has_and_belongs_to_many` association to nil (if one exists and is mass-assignable).
 
-#### suffix_json_attributes
+##### suffix_json_attributes
 
 True to automatically add _attributes to the end of keys in your JSON that correspond to valid associations.
 
-#### supported_arel_predications
+##### supported_arel_predications
 
 An array of arel predications. If you want to lock down what filters people can use to only certain controllers, this would be a way to do it.
 
-#### supported_functions
+##### supported_functions
 
 An array of supported functions. See this document for a description of each function.
 
-#### value_split
+##### value_split
 
 When sending multiple values in a filter in the URL, this is the delimiter.
 
-#### wrapped_json
+##### wrapped_json
 
 If true, then it will look for the underscored model name in the incoming JSON (in `params[:your_model_name]`), if false it either expects that everything in `params` are keys at the root of your JSON or you are sending the JSON in request body
 
@@ -465,11 +475,15 @@ The standard Rails 3+ way of doing this is setting include_root_in_json on Activ
 
     ActiveResource::Base.include_root_in_json = true
 
-### Application-wide configuration
+#### Application-wide configuration
 
 In your `config/environment.rb` or environment specfic configuration, you may specify one or more options in the config hash that will be merged into the following defaults:
 
     RestfulJson::Options.configure({
+      # General options
+      debug: false,
+
+      # Controller options
       arel_predication_split: '!',
       cors_access_control_headers: {'Access-Control-Allow-Origin' => '*',
                                      'Access-Control-Allow-Methods' => 'POST, GET, PUT, DELETE, OPTIONS',

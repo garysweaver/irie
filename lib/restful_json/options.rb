@@ -35,6 +35,7 @@ module RestfulJson
     }
 
     @@general_options = {
+      debug: false
     }
 
     def self.configure(hash)
@@ -65,6 +66,10 @@ module RestfulJson
 
     def self.model
       @@model_options
+    end
+
+    def self.debugging?
+      @@general_options[:debug]
     end
 
     def self.output

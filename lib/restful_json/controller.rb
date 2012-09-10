@@ -123,8 +123,8 @@ module RestfulJson
         options[:restful_json_include] = params[:include].split(self.value_split).collect{|s|s.to_sym} if params[:include] && self.supported_functions.include?('include')
         options[:restful_json_no_includes] = true if params[:no_includes] && self.supported_functions.include?('no_includes')
         options[:restful_json_only] = params[:only].split(value_split).collect{|s|s.to_sym} if params[:only] && self.supported_functions.include?('only')
-        # this is a collection to avoid circular references
-        options[:restful_json_ancestors] = []
+        # this is to track object_ids that have been output already. unless this is specified, just the model instance will be output.
+        options[:unfollowed_object_ids] = []
         options
       end
       

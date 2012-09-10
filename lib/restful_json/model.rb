@@ -47,8 +47,11 @@ module RestfulJson
     def as_json(options = {})
       puts "restful_json's as_json called on #{self.class} with options=#{options.inspect}. inspect=#{inspect}"
       
-      was_already_as_jsoned = options[:restful_json_ancestors].is_a?(Array) && options[:restful_json_ancestors].include?(self.object_id)
-      options[:restful_json_ancestors] << self.object_id if options[:restful_json_ancestors].is_a?(Array)
+      # unfollowed_object_ids attribute is to avoid circular references. it is an array of the object_ids whose children we should not output.
+      # Rails already tries to handle this via setting the :encoder on the model's options, but I haven't spent the time to figure out why
+      # it wasn't working for me in certain cases yet.
+      was_already_as_jsoned = options[:unfollowed_object_ids].is_a?(Array) && options[:unfollowed_object_ids].include?(self.object_id)
+      options[:unfollowed_object_ids] << self.object_id if options[:unfollowed_object_ids].is_a?(Array)
 
       includes = self._as_json_includes || []
       excludes = self._as_json_excludes || []
@@ -57,8 +60,8 @@ module RestfulJson
 
       accessible_attributes = (self.class.accessible_attributes.to_a || attributes.keys) - self.class.protected_attributes.to_a
 
-      if was_already_as_jsoned || options[:restful_json_no_includes] || options[:restful_json_only] || !(options[:restful_json_ancestors].is_a?(Array))
-        puts "called without options[:restful_json_ancestors] so can't avoid circular references properly. if this happens to something as part of a restful_json controller request, there is a bug" if !(options[:restful_json_ancestors].is_a?(Array))
+      if was_already_as_jsoned || options[:restful_json_no_includes] || options[:restful_json_only] || !(options[:unfollowed_object_ids].is_a?(Array))
+        puts "called without options[:unfollowed_object_ids] so can't avoid circular references properly. if this happens to something as part of a restful_json controller request, there is a bug" if !(options[:unfollowed_object_ids].is_a?(Array))
         puts "avoiding circular reference by just outputting the already as_json'd instance without its associations as_json" if was_already_as_jsoned
         puts "having to ignore options[:restful_json_no_includes]" if options[:restful_json_no_includes]
         puts "restful_json_only=#{options[:restful_json_only]}" if options[:restful_json_only]

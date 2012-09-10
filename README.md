@@ -308,9 +308,11 @@ Here we make the LibraryRef readonly as well through the [be_readonly][be_readon
 
 I tried just making LibraryRef subclass/inherit from Library, but there seems to be a bug in our code or Rails (noted here [#7442][issue7442]) that is causing Library to become LibraryRef. e.g. with the LibrariesController it would return libraries, but after using BooksController that returns a Book with LibraryRef, when you again go to LibrariesController it would return a LibraryRef, or a Library that at least had the same mass assignment security attributes as LibraryRef.
 
-#### It avoids circular references
+#### Avoiding circular references and not outputting json for associations of some objects when as_json is called
 
 If an object has already been expanded into its associations, if it is referenced again, `as_json` only emits JSON for the object's accessible attributes, not its associations.
+
+Because of the circular references check, if you need to call as_json from something else and emit association json, you must specify the `:unfollowed_object_ids` key with an array as the value, e.g. `Foobar.find(123).as_json(unfollowed_object_ids:[])`. Any suggestions for how this could be handled better? I know that there is some support in as_json in Rails (in activesupport/lib/active_support/json/encoding.rb) for circular references, but it didn't work that well for us. There is also a bug somewhere causing as_json to not get called with the associated object's options hash if there is a model subclass involved, and I've run into other issues also with subclasses of models, which is why I've started to use module includes vs. subclassing in models, even though it requires a bit more code.
 
 ### Controller
 

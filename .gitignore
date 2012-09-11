@@ -27,3 +27,6 @@
 
 # Ignore RVM config
 .rvmrc
+
+# Ignore mistakenly committed temp files from Sublime Text 2
+untitled

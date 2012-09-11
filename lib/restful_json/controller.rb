@@ -250,7 +250,7 @@ module RestfulJson
           # could just return value, but trying to be consistent with create/update that need to return flag of success
           @value = value
         rescue => e
-          @errors = {errors: [e]}
+          @errors = {errors: [e.message]}
         end
       end
 
@@ -308,7 +308,7 @@ module RestfulJson
           # could just return value, but trying to be consistent with create/update that need to return flag of success
           @value = @model_class.find(params[:id])
         rescue => e
-          @errors = {errors: [e]}
+          @errors = {errors: [[e.message]]}
         end
       end
 
@@ -403,7 +403,7 @@ module RestfulJson
           puts "Attempting #{@model_class.name}.save" if RestfulJson::Options.debugging?
           @value.save
         rescue => e
-          @errors = {errors: [e]}
+          @errors = {errors: [e.message]}
         end
       end
 
@@ -482,7 +482,7 @@ module RestfulJson
           success = @value.update_attributes(parsed_and_converted_json)
           success
         rescue => e
-          @errors = {errors: [e]}
+          @errors = {errors: [e.message]}
         end
       end
 
@@ -543,7 +543,7 @@ module RestfulJson
           puts "Attempting to destroy #{@model_class.try(:name)} with id #{params[:id]}" if RestfulJson::Options.debugging?
           @model_class.where(id: params[:id]).first ? @model_class.destroy(params[:id]) : true
         rescue => e
-          @errors = {errors: [e]}
+          @errors = {errors: [e.message]}
         end
       end
 

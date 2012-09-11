@@ -151,7 +151,9 @@ module RestfulJson
         
         return if cors_preflight_check?
         
-        index_it
+        before_index_it
+        index_it unless @errors
+        after_index_it unless @errors
 
         # how we'd set if we needed to reference in a view
         #instance_variable_set("@#{@__restful_json_model_plural}".to_sym, @value)
@@ -165,7 +167,12 @@ module RestfulJson
           end
         end
       end
+
+      # anything that needs to happen before the resource index (list) is retrieved
+      def before_index_it
+      end
       
+      # retrieve the resource index (list)
       def index_it
         begin
           # TODO: continue to explore filtering, etc. and look into extension of this project to use Sunspot/SOLR.
@@ -246,12 +253,16 @@ module RestfulJson
           @errors = {errors: [e]}
         end
       end
+
+      # anything that needs to happen after the resource index (list) is retrieved
+      def after_index_it
+      end
       
       # may be overidden in controller to have method-specific access control
       def show_allowed?
         allowed?
       end
-      
+
       def show
         puts "In #{self.class.name}.show" if RestfulJson::Options.debugging?
         @errors = nil
@@ -267,8 +278,10 @@ module RestfulJson
         end
         
         return if cors_preflight_check?
-        
-        show_it
+
+        before_show_it
+        show_it unless @errors
+        after_show_it unless @errors
         
         # how we'd set if we needed to reference in a view
         #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, @value)
@@ -283,7 +296,12 @@ module RestfulJson
           end
         end
       end
+
+      # anything that needs to happen before the resource is retrieved for showing
+      def before_show_it
+      end
       
+      # retrieve the resource for showing
       def show_it
         begin
           puts "Attempting to show #{@model_class.try(:name)} with id #{params[:id]}" if RestfulJson::Options.debugging?
@@ -292,6 +310,10 @@ module RestfulJson
         rescue => e
           @errors = {errors: [e]}
         end
+      end
+
+      # anything that needs to happen after the resource is retrieved for showing
+      def after_show_it
       end
       
       # may be overidden in controller to have method-specific access control
@@ -329,7 +351,9 @@ module RestfulJson
         
         return if cors_preflight_check?
         
-        success = create_it
+        before_create_it
+        success = create_it unless @errors
+        after_create_it unless @errors || !success
 
         if RestfulJson::Options.debugging?
           puts "Failed update_it with errors #{(@value.try(:errors)).inspect}" unless success
@@ -354,7 +378,12 @@ module RestfulJson
           end
         end
       end
+
+      # anything that needs to happen before the resource is created
+      def before_create_it
+      end
       
+      # create the specified resource
       def create_it
         begin
           puts "create_it: @model_class=#{@model_class} @request_json=#{@request_json}" if RestfulJson::Options.debugging?
@@ -366,6 +395,10 @@ module RestfulJson
         rescue => e
           @errors = {errors: [e]}
         end
+      end
+
+      # anything that needs to happen after the resource is created
+      def after_create_it
       end
       
       # may be overidden in controller to have method-specific access control
@@ -392,7 +425,9 @@ module RestfulJson
         
         return if cors_preflight_check?
         
-        success = update_it
+        before_update_it
+        success = update_it unless @errors
+        after_update_it unless @errors || !success
 
         if RestfulJson::Options.debugging?
           puts "Failed update_it with errors #{(@value.try(:errors)).inspect}" unless success
@@ -417,7 +452,12 @@ module RestfulJson
           end
         end
       end
+
+      # anything that needs to happen before the resource is updated
+      def before_update_it
+      end
       
+      # update the specified resource
       def update_it
         begin
           if RestfulJson::Options.debugging?
@@ -432,6 +472,10 @@ module RestfulJson
         rescue => e
           @errors = {errors: [e]}
         end
+      end
+
+      # anything that needs to happen after the resource is updated
+      def after_update_it
       end
       
       # may be overidden in controller to have method-specific access control
@@ -456,7 +500,9 @@ module RestfulJson
         
         return if cors_preflight_check?
         
-        success = destroy_it
+        before_destroy_it
+        success = destroy_it unless @errors
+        after_destroy_it unless @errors || !success
 
         if RestfulJson::Options.debugging?
           puts "Failed destroy_it but returning ok anyway, as it might have been deleted between the time we checked for it and when we tried to delete it" unless success
@@ -474,7 +520,12 @@ module RestfulJson
           end
         end
       end
+
+      # anything that needs to happen before the resource is destroyed
+      def before_destroy_it
+      end
       
+      # destroy the specified resource
       def destroy_it
         begin
           puts "Attempting to destroy #{@model_class.try(:name)} with id #{params[:id]}" if RestfulJson::Options.debugging?
@@ -482,6 +533,10 @@ module RestfulJson
         rescue => e
           @errors = {errors: [e]}
         end
+      end
+
+      # anything that needs to happen after the resource is destroyed
+      def after_destroy_it
       end
       
       # Because most of the time having to specify (name)_attributes as the name of a key in the incoming json is a pain,

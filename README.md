@@ -403,6 +403,30 @@ A basic abstract controller might contain (note: @model_class is automatically s
 
     end
 
+#### Custom processing of incoming, outgoing data
+
+The index, show, create, update, and destroy functions have before_* and after_* method hooks: 
+
+* When index is called on the controller, it calls before_index_it, then if no @errors calls index_it, then if no @errors calls after_index_it.
+* When show is called on the controller, it calls before_show_it, then if no @errors calls show_it, then if no @errors calls after_show_it.
+* When create is called on the controller, it calls before_create_it, then if no @errors calls create_it, then if returns non-nil/non-false and no @errors calls after_create_it.
+* When update is called on the controller, it calls before_update_it, then if no @errors calls update_it, then if returns non-nil/non-false and no @errors calls after_update_it.
+* When destroy is called on the controller, it calls before_destroy_it, then if no @errors calls destroy_it, then if returns non-nil/non-false and no @errors calls after_destroy_it.
+
+So, if the client was sending `{..., 'item_name': 'Pear', ...}` in json to FoobarsController and you want to look up that item_name and add an item_id for it before persisting like `{..., 'item_id': '1234', ...}`, you would do:
+
+      def convert_request_json
+        @request_json['item_id'] = Item.find_by_name(@request_json['item_name']).try(:id)
+      end
+
+      def before_create_it
+        convert_request_json
+      end
+
+      def before_update_it
+        convert_request_json
+      end
+
 ### Configuration
 
 #### General options

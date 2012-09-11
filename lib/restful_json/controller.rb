@@ -351,9 +351,11 @@ module RestfulJson
         
         return if cors_preflight_check?
         
-        before_create_it
+        before_create_or_update_it
+        before_create_it unless @errors
         success = create_it unless @errors
         after_create_it unless @errors || !success
+        after_create_or_update_it unless @errors || !success
 
         if RestfulJson::Options.debugging?
           puts "Failed update_it with errors #{(@value.try(:errors)).inspect}" unless success
@@ -377,6 +379,14 @@ module RestfulJson
             format.json { render json: @value.errors, status: :unprocessable_entity }
           end
         end
+      end
+
+      # anything that needs to happen before the resource is created or updated. this happens before before_create_it/before_update_it.
+      def before_create_or_update_it
+      end
+
+      # anything that needs to happen after the resource is created or updated. this happens after after_create_it/after_update_it.
+      def after_create_or_update_it
       end
 
       # anything that needs to happen before the resource is created
@@ -425,9 +435,11 @@ module RestfulJson
         
         return if cors_preflight_check?
         
-        before_update_it
+        before_create_or_update_it
+        before_update_it unless @errors
         success = update_it unless @errors
         after_update_it unless @errors || !success
+        after_create_or_update_it unless @errors || !success
 
         if RestfulJson::Options.debugging?
           puts "Failed update_it with errors #{(@value.try(:errors)).inspect}" unless success

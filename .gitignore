@@ -30,3 +30,6 @@
 
 # Ignore mistakenly committed temp files from Sublime Text 2
 untitled
+
+# Ignore gems
+**.gem

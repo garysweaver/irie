@@ -407,11 +407,13 @@ A basic abstract controller might contain (note: @model_class is automatically s
 
 The index, show, create, update, and destroy functions have hooks.
 
-So, if the client was sending `{..., 'item_name': 'Pear', ...}` in json to FoobarsController and you want to look up that item_name and add an item_id for it before persisting like `{..., 'item_id': '1234', ...}`, you would do:
+So, if the client was sending an HTTP header called item_name to FoobarsController and you want to look up the item_id for it and set it in the json before persisting like `{..., 'item_id': '1234', ...}`, you would do:
 
       def before_create_or_update_it
-        @request_json['item_id'] = Item.find_by_name(@request_json['item_name']).try(:id)
+        @request_json['item_id'] = Item.find_by_name(request.env['HTTP.item_name']).try(:id)
       end
+
+Note that in addition to doing this by looking at headers you can look at request params with params[:your_request_parameter_name] and can access the incoming json hash with @request_json. However, if you are strictly wanting to do pre-save changes to a model using the model's existing attributes or methods/etc. or anything the model can access, you should consider doing that in a hook on the model (see [ActiveRecord::Callbacks][callbacks]).
 
 ##### Order of hook and *_it function execution
 
@@ -639,6 +641,7 @@ Then, override Rails defaults to return the Javascript default format for dateti
 
 Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 
+[callbacks]: http://api.rubyonrails.org/classes/ActiveRecord/Callbacks.html
 [status_codes]: http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 [roar]: https://github.com/apotonick/roar
 [ember]: http://emberjs.com/

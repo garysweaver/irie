@@ -658,7 +658,7 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [dry]: http://en.wikipedia.org/wiki/Don%27t_repeat_yourself
 [classmeta]: https://github.com/garysweaver/classmeta
 [callbacks]: http://api.rubyonrails.org/classes/ActiveRecord/Callbacks.html
-[rest_apis_must_be_hypertext_driven][http://roy.gbiv.com/untangled/2008/rest-apis-must-be-hypertext-driven]
+[rest_apis_must_be_hypertext_driven]: http://roy.gbiv.com/untangled/2008/rest-apis-must-be-hypertext-driven
 [status_codes]: http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 [roar]: https://github.com/apotonick/roar
 [ember]: http://emberjs.com/

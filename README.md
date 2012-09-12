@@ -54,7 +54,7 @@ Ruby on Rails can be an excellent choice for serving up heavy client-side Javasc
 
 Our take on things has been continuing to evolve, but the overall goal of the project remains to be that providing restful_json APIs via Rails for use in javascript frameworks should be as simple, DRY, fun and flexible as possible. Please let us know if you'd like to contribute.
 
-### Disclaimer for the REST Gestapo
+### Disclaimer
 
 A lot of things are said to implement REST and be RESTful that aren't by Roy T. Fielding's [definition][rest_apis_must_be_hypertext_driven]. Rails controllers' default behavior is a lot closer to Roy's original intent than this project. restful_json is JSON-only and doesn't use hyperlinks or discovery.
 

@@ -50,7 +50,7 @@ Currently we reuse mass assignment security (attr_accessible/attr_protected) for
 
 Thanks much to the informative post, [State of Writing API Servers with Rails][state_of_rails_apis], and the original [ember_data_example][ember_data_example] project the first version heavily borrowed from. We use [AngularJS][angular], but we have done what we could easily to support [Ember.js][ember] and other Javascript frameworks.
 
-Ruby on Rails can be an excellent choice for serving up heavy client-side Javascript, providing a wealth of functionality through available gems for authentication, and providing the ability to make service development almost trivial.
+Ruby on Rails can be an excellent choice for serving up heavy client-side Javascript, providing a wealth of functionality through available gems, and providing the ability to write a gem to make service development trivial.
 
 Our take on things has been continuing to evolve, but the overall goal of the project remains to be that providing RESTful JSON APIs via Rails for use in javascript frameworks should be as simple, DRY, fun and flexible as possible. Please let us know if you'd like to contribute.
 

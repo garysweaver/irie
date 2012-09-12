@@ -27,7 +27,7 @@ And to create or update a Foobar, you can just post/put using [AngularJS][angula
 Some highlights:
 * Application-level configuration, and controller-level configuration via class attributes.
 * Configurably filter results using URL parameters as desired or lock it down.
-* Override only what you need to stay DRY.
+* Override only what you need to stay [DRY][dry].
 * Supports Rails [mass assignment security][mass_assignment_security].
 * Configurable support for:
   * [Cross-origin resource sharing (CORS)][cors].
@@ -42,11 +42,17 @@ Some highlights:
 
 ### Future
 
-A lot is still subject to change in the next major version. [ROAR][roar] looks great because using representers for both (de)serialization and what gets persisted from incoming JSON is what we've been doing in restful_json, but we're looking to upgrade. [Strong Parameters][strong_parameters] is being integrated with Rails 4 as an eventual replacement for mass assignment security, and are looking into [ActiveModel::Serializers][active_model_serializers] to replace the [as_json][as_json] extension.
+A lot is still subject to change in the next major version.
 
-Thanks much to the informative post, [State of Writing API Servers with Rails][state_of_rails_apis] and the original [ember_data_example][ember_data_example] project the first version heavily borrowed from. We use [AngularJS][angular], but we have done what we could easily to support [Ember.js][ember] and other Javascript frameworks.
+Currently we reuse mass assignment security (attr_accessible/attr_protected) for what is allowed to be set and shown in addition to as_json_includes/as_json_excludes on the model for views. This requires different model classes for different views, and through the techniques described in this README and [classmeta][classmeta], it works and is very [DRY][dry], but we'd rather integrate with something more flexible.
 
-The overall goal of the project is to make providing RESTful JSON APIs via Rails for use in javascript frameworks as simple as possible, while still letting you override the base functionality when needed. Stay tuned and please let us know if you'd like to contribute.
+[ROAR][roar] looks great because using representers for both (de)serialization and what gets persisted from incoming JSON is a DRY approach. [Strong Parameters][strong_parameters] is being integrated with Rails 4 as an eventual replacement for mass assignment security, and are looking into [ActiveModel::Serializers][active_model_serializers] to replace the [as_json][as_json] extension. Whatever we use will need to be DRY, flexible, and maintainable.
+
+Thanks much to the informative post, [State of Writing API Servers with Rails][state_of_rails_apis], and the original [ember_data_example][ember_data_example] project the first version heavily borrowed from. We use [AngularJS][angular], but we have done what we could easily to support [Ember.js][ember] and other Javascript frameworks.
+
+Ruby on Rails can be an excellent choice for serving up heavy client-side Javascript, providing a wealth of functionality through available gems for authentication, and providing the ability to make service development almost trivial.
+
+Our take on things has been continuing to evolve, but the overall goal of the project remains to be that providing RESTful JSON APIs via Rails for use in javascript frameworks should be as simple, DRY, fun and flexible as possible. Please let us know if you'd like to contribute.
 
 ### Setup
 
@@ -641,6 +647,8 @@ Then, override Rails defaults to return the Javascript default format for dateti
 
 Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 
+[dry]: http://en.wikipedia.org/wiki/Don%27t_repeat_yourself
+[classmeta]: https://github.com/garysweaver/classmeta
 [callbacks]: http://api.rubyonrails.org/classes/ActiveRecord/Callbacks.html
 [status_codes]: http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 [roar]: https://github.com/apotonick/roar

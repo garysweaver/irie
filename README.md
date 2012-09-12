@@ -1,7 +1,7 @@
-RESTful JSON v2 for Rails 3.x
+restful_json v2 for Rails 3.x
 =====
 
-RESTful JSON makes creating RESTful services as easy as:
+restful_json makes creating JSON APIs that have REST-like behavior as easy as:
 
     class FoobarsController < ApplicationController
       acts_as_restful_json
@@ -52,7 +52,15 @@ Thanks much to the informative post, [State of Writing API Servers with Rails][s
 
 Ruby on Rails can be an excellent choice for serving up heavy client-side Javascript, providing a wealth of functionality through available gems, and providing the ability to write a gem to make service development trivial.
 
-Our take on things has been continuing to evolve, but the overall goal of the project remains to be that providing RESTful JSON APIs via Rails for use in javascript frameworks should be as simple, DRY, fun and flexible as possible. Please let us know if you'd like to contribute.
+Our take on things has been continuing to evolve, but the overall goal of the project remains to be that providing restful_json APIs via Rails for use in javascript frameworks should be as simple, DRY, fun and flexible as possible. Please let us know if you'd like to contribute.
+
+### Disclaimer for the REST Gestapo
+
+A lot of things are said to implement REST and be RESTful that aren't by Roy T. Fielding's [definition][rest_apis_must_be_hypertext_driven]. Rails controllers' default behavior is a lot closer to Roy's original intent than this project. restful_json is JSON-only and doesn't use hyperlinks or discovery.
+
+However, we are trying to stay true to the goal of making it easier to provide services that may at least partially fit the definition enough to be compatible with client code that you might choose to develop using Javascript frameworks that integrate with what they understand to be "RESTful services".
+
+We could change the name of the project to something else, but it works for us!
 
 ### Setup
 
@@ -85,7 +93,7 @@ Then in `config/routes.rb`, you would add the following. This will set up normal
 
     resources :foobars, :constraints => {:format => /json/}, :defaults => {:format => 'json'}
 
-That's it. Now you can serve up some Javascript in one of your views that hits the RESTful services that have been defined.
+That's it. Now you can serve up some Javascript in one of your views that hits the restful_json services that have been defined.
 
 Just start the Rails server:
 
@@ -253,7 +261,7 @@ To include extra non-mass-assignable attributes in the json, add those to `as_js
 
 #### IDs are included by default
 
-Most of the time when working with a RESTful service, you'll want it to return the id of each object. This is done by default. If your object doesn't have an ID or you don't want it included, you can specifically exclude it, e.g.:
+Most of the time when working with a restful_json service, you'll want it to return the id of each object. This is done by default. If your object doesn't have an ID or you don't want it included, you can specifically exclude it, e.g.:
 
     as_json_excludes :id
 
@@ -339,11 +347,11 @@ That will also set the singular and plural model name which is used for wrapping
 
 You don't have to specify these methods.
 
-The RESTful JSON's default implementation of these should be fine, but, RESTful JSON was built to be extensible.
+The restful_json's default implementation of these should be fine, but, restful_json was built to be extensible.
 
-Although you can override index, show, create, and update for full control, if anything, you often will just care about how it gets, creates, updates, and destroys data. This can be controlled by overriding the `index_it`, `show_it`, `create_it`, `update_it`, and/or `destroy_it` methods. These correspond to the index, show, create, update, and destroy methods in the RESTful JSON parent controller.
+Although you can override index, show, create, and update for full control, if anything, you often will just care about how it gets, creates, updates, and destroys data. This can be controlled by overriding the `index_it`, `show_it`, `create_it`, `update_it`, and/or `destroy_it` methods. These correspond to the index, show, create, update, and destroy methods in the restful_json parent controller.
 
-There are a handful of variables that you use in a RESTful JSON controller:
+There are a handful of variables that you use in a restful_json controller:
 * `params`: this is a hash of request parameters along with a few other things.
 * `@model_class`: the Ruby class object for the model which it either gets from self.model_class you set or using the singular form of the controller class name without "Controller" at the end.
 * `@request_json`: the parsed json as a hash. How it gets this depends on the wrapped_json configuration parameter.
@@ -650,6 +658,7 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [dry]: http://en.wikipedia.org/wiki/Don%27t_repeat_yourself
 [classmeta]: https://github.com/garysweaver/classmeta
 [callbacks]: http://api.rubyonrails.org/classes/ActiveRecord/Callbacks.html
+[rest_apis_must_be_hypertext_driven][http://roy.gbiv.com/untangled/2008/rest-apis-must-be-hypertext-driven]
 [status_codes]: http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 [roar]: https://github.com/apotonick/roar
 [ember]: http://emberjs.com/

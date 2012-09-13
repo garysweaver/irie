@@ -1,6 +1,8 @@
 module RestfulJson
   module Controller
     extend ActiveSupport::Concern
+    
+    
 
     included do
       class_attribute :model_class, instance_writer: false
@@ -18,8 +20,12 @@ module RestfulJson
     module ClassMethods
 
       def acts_as_restful_json(options = {})
+        # roar-rails
+        include Roar::Rails::ControllerAdditions
+        respond_to :json
+
+        # our goodness
         include ActsAsRestfulJsonInstanceMethods # intentionally not just InstanceMethods as those would be automatically included via ActiveSupport::Concern
-        #before_filter :sanity_check
         after_filter :after_request
       end
 
@@ -397,7 +403,7 @@ module RestfulJson
       def create_it
         begin
           puts "create_it: @model_class=#{@model_class} @request_json=#{@request_json}" if RestfulJson::Options.debugging?
-          parsed_and_converted_json = convert_parsed_json(@model_class, @request_json)
+          parsed_and_converted_json = convert_input_json(@model_class, @request_json)
           puts "#{@model_class.name}.new(#{parsed_and_converted_json.inspect})" if RestfulJson::Options.debugging?
           @value = @model_class.new(parsed_and_converted_json)
           puts "Attempting #{@model_class.name}.save" if RestfulJson::Options.debugging?
@@ -477,7 +483,7 @@ module RestfulJson
             puts "@model_class.find(#{params[:id]})"
           end
           @value = @model_class.find(params[:id])        
-          parsed_and_converted_json = convert_parsed_json(@model_class, @request_json)        
+          parsed_and_converted_json = convert_input_json(@model_class, @request_json)        
           puts "Attempting #{@value}.update_attributes(#{parsed_and_converted_json.inspect})" if RestfulJson::Options.debugging?
           success = @value.update_attributes(parsed_and_converted_json)
           success
@@ -561,8 +567,8 @@ module RestfulJson
       #
       # Finally we'll just ignore all attributes that the client may not have meant to send in, with the exception of
       # id which will assume the client wanted to update.
-      def convert_parsed_json(clazz, value)
-        puts "In convert_parsed_json(#{clazz}, #{value})" if RestfulJson::Options.debugging?
+      def convert_input_json(clazz, value)
+        puts "In convert_input_json(#{clazz}, #{value})" if RestfulJson::Options.debugging?
 
         unless value
           return nil
@@ -583,7 +589,6 @@ module RestfulJson
           
           # If you send in an association as a full json object and didn't define it as accepts_nested_attributes_for
           # then you probably either didn't mean to send it or you meant to set this model's foreign id with its id. 
-          # Is this the right assumption? We could make it explicit at some point or make this a configuration option.
           if self.scavenge_bad_associations
             fkeys_scavenged = []
             if value.is_a?(Hash)
@@ -671,12 +676,12 @@ module RestfulJson
           if self.suffix_json_attributes
             suffixed_attributes = []
             if value.is_a?(Array)
-              value = value.collect{|v|convert_parsed_json(clazz, v)}
+              value = value.collect{|v|convert_input_json(clazz, v)}
             elsif value.is_a?(Hash)
               converted_value = {}
               value.keys.each do |key|
                 if association_name_sym_to_association.keys.include?(key.to_sym)
-                  converted_value["#{key}_attributes".to_sym] = convert_parsed_json(association_name_sym_to_association[key.to_sym].class_name.constantize, value[key])
+                  converted_value["#{key}_attributes".to_sym] = convert_input_json(association_name_sym_to_association[key.to_sym].class_name.constantize, value[key])
                   suffixed_attributes << key
                 else
                   converted_value[key] = value[key]

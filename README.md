@@ -1,4 +1,4 @@
-restful_json v2 for Rails 3.x
+restful_json v3 for Rails 3.1+
 =====
 
 restful_json makes creating JSON APIs that have REST-like behavior as easy as:

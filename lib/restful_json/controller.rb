@@ -1,8 +1,6 @@
 module RestfulJson
   module Controller
     extend ActiveSupport::Concern
-    
-    
 
     included do
       class_attribute :model_class, instance_writer: false
@@ -89,6 +87,11 @@ module RestfulJson
         raise "#{self.class.name} assumes that #{@model_class} extends ActiveRecord::Base, but it didn't. Please fix, or remove this constraint." unless @model_class.ancestors.include?(ActiveRecord::Base)
 
         puts "'#{self}' set @model_class=#{@model_class}, @model_singular_name=#{@model_singular_name}, @model_plural_name=#{@model_plural_name}" if RestfulJson::Options.debugging?
+      end
+
+      def request_representers
+        @collection_representer = self.collection_representer.named_meta("#{self.class.name}#{@model_class}CollectionRepresenter")
+        @entity_representer = self.entity_representer.named_meta("#{self.class.name}#{@model_class}EntityRepresenter")
       end
       
       def allowed_activerecord_model_attribute_keys(clazz)

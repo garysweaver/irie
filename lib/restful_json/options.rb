@@ -12,6 +12,8 @@ module RestfulJson
                                 'Access-Control-Allow-Methods' => 'POST, GET, PUT, DELETE, OPTIONS',
                                 'Access-Control-Allow-Headers' => 'X-Requested-With, X-Prototype-Version',
                                 'Access-Control-Max-Age' => '1728000'},
+      roar_entity_representer: RestfulJson::Roar::EntityRepresenter,
+      roar_collection_representer: RestfulJson::Roar::CollectionRepresenter
       ignore_bad_json_attributes: true,
       intuit_post_or_put_method: true,
       # Generated from Arel::Predications.public_instance_methods.collect{|c|c.to_s}.sort. To lockdown a little, defining these specifically.

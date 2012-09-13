@@ -1,4 +1,4 @@
-restful_json v2 for Rails 3.x
+restful_json v3 for Rails 3.1+
 =====
 
 restful_json makes creating JSON APIs that have REST-like behavior as easy as:
@@ -46,7 +46,7 @@ A lot is still subject to change in the next major version.
 
 Currently we reuse mass assignment security (attr_accessible/attr_protected) for what is allowed to be set and shown in addition to as_json_includes/as_json_excludes on the model for views. This requires different model classes for different views, and through the techniques described in this README and [classmeta][classmeta], it works and is very [DRY][dry], but we'd rather integrate with something more flexible.
 
-[ROAR][roar] looks great because using representers for both (de)serialization and what gets persisted from incoming JSON is a DRY approach. But, if like us you need to include some associations' json and some of their associations' json, etc., right now I think restful_json would require fewer client requests and less client implementation (vs. hypermedia links). [Strong Parameters][strong_parameters] is being integrated with Rails 4 as an eventual replacement for mass assignment security, and [ActiveModel::Serializers][active_model_serializers] could be an alternative to restful_json's [as_json][as_json] extension, however it isn't very DRY to have to specify the same attributes various times in strong_parameters, ActiveModel::Serializers, AR mass assignment security (attr_accessible and/or attr_protected), and (as Nick Sutterer mentioned) ParamsParser. Whatever we use will need to be DRY, flexible, and maintainable.
+[ROAR][roar] looks great because using representers for both (de)serialization and what gets persisted from incoming JSON is a DRY approach. [Strong Parameters][strong_parameters] is being integrated with Rails 4 as an eventual replacement for mass assignment security, and [ActiveModel::Serializers][active_model_serializers] could be an alternative to restful_json's [as_json][as_json] extension, however it isn't very DRY to have to specify the same attributes various times in strong_parameters, ActiveModel::Serializers, AR mass assignment security (attr_accessible and/or attr_protected), and (as Nick Sutterer mentioned) ParamsParser. Whatever we use will need to be DRY, flexible, and maintainable.
 
 Thanks much to the informative post, [State of Writing API Servers with Rails][state_of_rails_apis], and the original [ember_data_example][ember_data_example] project the first version heavily borrowed from. We use [AngularJS][angular], but we have done what we could easily to support [Ember.js][ember] and other Javascript frameworks.
 

@@ -20,7 +20,7 @@ module RestfulJson
       def acts_as_restful_json(options = {})
         # roar-rails
         include Roar::Rails::ControllerAdditions
-        respond_to :json
+        represents :json
 
         # our goodness
         include ActsAsRestfulJsonInstanceMethods # intentionally not just InstanceMethods as those would be automatically included via ActiveSupport::Concern
@@ -30,7 +30,35 @@ module RestfulJson
     end
     
     module ActsAsRestfulJsonInstanceMethods
-      
+
+      def use_collectionless_representer?
+        params[:no_includes] || params[:only]
+      end
+
+      def entity_representer
+        use_collectionless_representer? ? self.roar_collectionless_entity_representer : self.roar_entity_representer
+      end
+
+      def collection_representer
+        use_collectionless_representer? ? self.roar_collectionless_collection_representer : self.roar_collection_representer
+      end
+
+      def index_representer
+        collection_representer
+      end
+
+      def show_representer
+        entity_representer
+      end
+
+      def create_representer
+        entity_representer
+      end
+
+      def update_representer
+        entity_representer
+      end
+
       # as method so can be overriden
       def convert_request_param_value_for_filtering(attr_name, value)
         value && ['NULL','null','nil'].include?(value) ? nil : value
@@ -44,7 +72,7 @@ module RestfulJson
         if RestfulJson::Options.debugging?
           puts "params=#{params.inspect}"
           puts "request.body.read=#{request.body.read}"
-          puts "will look for #{@__restful_json_model_singular} key in incoming request params" if self.wrapped_json
+          puts "will look for #{@model_singular_name} key in incoming request params" if self.wrapped_json
         end
         
         request_body_value = request.body.read
@@ -52,7 +80,7 @@ module RestfulJson
 
         result = nil
         if self.wrapped_json
-          result = params[@__restful_json_model_singular]
+          result = params[@model_singular_name]
         elsif request_body_string && request_body_string.length >= 2
           result = JSON.parse(request_body_string)
         else
@@ -65,7 +93,7 @@ module RestfulJson
       
       def single_response_json(value)
         if self.wrapped_json
-          {@__restful_json_model_singular.to_sym => value}
+          {@model_singular_name.to_sym => value}
         else
           value
         end
@@ -73,7 +101,7 @@ module RestfulJson
       
       def plural_response_json(value)
         if self.wrapped_json
-          {@__restful_json_model_plural.to_sym => value}
+          {@model_plural_name.to_sym => value}
         else
           value
         end
@@ -87,11 +115,6 @@ module RestfulJson
         raise "#{self.class.name} assumes that #{@model_class} extends ActiveRecord::Base, but it didn't. Please fix, or remove this constraint." unless @model_class.ancestors.include?(ActiveRecord::Base)
 
         puts "'#{self}' set @model_class=#{@model_class}, @model_singular_name=#{@model_singular_name}, @model_plural_name=#{@model_plural_name}" if RestfulJson::Options.debugging?
-      end
-
-      def request_representers
-        @collection_representer = self.collection_representer.named_meta("#{self.class.name}#{@model_class}CollectionRepresenter")
-        @entity_representer = self.entity_representer.named_meta("#{self.class.name}#{@model_class}EntityRepresenter")
       end
       
       def allowed_activerecord_model_attribute_keys(clazz)
@@ -165,14 +188,14 @@ module RestfulJson
         after_index_it unless @errors
 
         # how we'd set if we needed to reference in a view
-        #instance_variable_set("@#{@__restful_json_model_plural}".to_sym, @value)
+        #instance_variable_set("@#{@model_plural_name}".to_sym, @value)
         respond_to do |format|
           if @errors
             # note: status is magic- automatically sets HTTP code to 422 since status is unprocessable_entity
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
             format.json { render json: @errors, status: (@error_type || :internal_server_error) }
           else
-            format.json { render json: plural_response_json(@value.try(:as_json, json_options)) }
+            respond_with @value, :represent_items_with => index_representer
           end
         end
       end
@@ -293,7 +316,7 @@ module RestfulJson
         after_show_it unless @errors
         
         # how we'd set if we needed to reference in a view
-        #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, @value)
+        #instance_variable_set("@#{@model_singular_name}".to_sym, @value)
         
         respond_to do |format|
           if @errors
@@ -301,7 +324,7 @@ module RestfulJson
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
             format.json { render json: @errors, status: (@error_type || :internal_server_error) }
           else
-            format.json { render json: single_response_json(@value.try(:as_json, json_options)) }
+            respond_with @value, :represent_items_with => show_representer
           end
         end
       end
@@ -371,7 +394,7 @@ module RestfulJson
         end
 
         # how we'd set if we needed to reference in a view
-        #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, @value)
+        #instance_variable_set("@#{@model_singular_name}".to_sym, @value)
         
         respond_to do |format|
           if @errors
@@ -380,8 +403,8 @@ module RestfulJson
             format.json { render json: @errors, status: (@error_type || :internal_server_error) }
           elsif success
             # note: status is magic- automatically sets HTTP code to 201 since status is created
-            # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
-            format.json { render json: single_response_json(@value.try(:as_json, json_options)), status: :created, location: @value.as_json(json_options) }
+            # TODO: how do we include this in the response now that we're using roar-rails? status: :created, location: (unwrapped object, if wrapped)
+            respond_with @value, :represent_items_with => index_representer
           else
             # note: status is magic- automatically sets HTTP code to 422 since status is unprocessable_entity
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
@@ -455,7 +478,7 @@ module RestfulJson
         end
         
         # how we'd set if we needed to reference in a view
-        #instance_variable_set("@#{@__restful_json_model_singular}".to_sym, @value)
+        #instance_variable_set("@#{@model_singular_name}".to_sym, @value)
         
         respond_to do |format|
           if @errors
@@ -463,9 +486,8 @@ module RestfulJson
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
             format.json { render json: @errors, status: (@error_type || :internal_server_error) }
           elsif success
-            # note: status is magic- automatically sets HTTP code to 200 since status is ok
-            # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/
-            format.json { render json: single_response_json(@value.try(:as_json, json_options)), status: :ok }
+            # TODO: we were sending status: ok. how do we do that in roar-rails?
+            respond_with @value, :represent_items_with => index_representer
           else
             # note: status is magic- automatically sets HTTP code to 422 since status is unprocessable_entity
             # list of codes and symbols here: http://www.codyfauser.com/2008/7/4/rails-http-status-code-to-symbol-mapping/

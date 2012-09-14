@@ -460,6 +460,28 @@ Note that in addition to doing this by looking at headers you can look at reques
 2. destroy_it if no @errors
 3. after_destroy_it if destroy_it returned non-nil/non-false and no @errors
 
+#### ROAR
+
+[ROAR][roar] (actually roar-rails, but ROAR is the part you'll use) is used for mapping JSON to models for persistence and for JSON deserialization (view) from models.
+
+The representer handles what JSON is taken, persisted, and in some cases, what JSON is spit back out.
+
+The collection representer is usually used for index, and the entity representer is used for the other methods.
+
+By default we use a representer that just contains the accessible attributes and one level of associations, but we hope you'll do more than just that.
+
+Note: representer for index can be overriden for the context of the request ala `respond_with @value, :represent_items_with => index_representer` by overriding the `index_representer` method in your controller, which is executed within index_it.
+
+The representer handles what JSON is taken, persisted, and in some cases, what JSON is spit back out.
+
+Representers for these can be overriden for the context of the request ala `respond_with @value, :represent_items_with => index_representer` by overriding the `show_representer`, `create_representer`, or `update_representer` methods in your controller, which is executed within show_it, create_it, or update_it methods, e.g.
+
+    def index_representer
+      params[:saucy] ? MyProject::SaucyRepresenter : MyProject::BlandRepresenter
+    end
+
+ROAR uses [Representable][representable]. Check out its README to learn how you can map different json key names to different attributes (`property :forename, :from => :i_am_called`), render nil so nils don't come back as false (`property :surename, :render_nil => true`), use coercion (which uses [virtus][virtus]) to effectively define types of json properties (`property :born_at, :type => DateTime, :default => "May 12th, 2012"`), and more. The stuff it writes about 
+
 ### Configuration
 
 #### General options
@@ -501,6 +523,14 @@ If true, anything that comes into the create method with 'id' in the JSON will b
 ##### multiple_value_arel_predications
 
 Should hopefully never have to modify this. It is a list of predications that can take multiple values, e.g. not_in_all could take multiple values.
+
+##### roar_collection_representer
+
+The [ROAR][roar] representer class for model collections. See the ROAR section for details.
+
+##### roar_entity_representer
+
+The [ROAR][roar] representer class for single model instances. See the ROAR section for details.
 
 ##### scavenge_bad_associations
 
@@ -656,11 +686,13 @@ Then, override Rails defaults to return the Javascript default format for dateti
 Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 
 [dry]: http://en.wikipedia.org/wiki/Don%27t_repeat_yourself
+[virtus]: https://github.com/solnic/virtus
 [classmeta]: https://github.com/garysweaver/classmeta
 [callbacks]: http://api.rubyonrails.org/classes/ActiveRecord/Callbacks.html
 [rest_apis_must_be_hypertext_driven]: http://roy.gbiv.com/untangled/2008/rest-apis-must-be-hypertext-driven
 [status_codes]: http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 [roar]: https://github.com/apotonick/roar
+[representable]: https://github.com/apotonick/representable
 [ember]: http://emberjs.com/
 [ember_data_example]: https://github.com/dgeb/ember_data_example/blob/master/app/controllers/contacts_controller.rb
 [angular]: http://angularjs.org/

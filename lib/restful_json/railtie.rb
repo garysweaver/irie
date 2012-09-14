@@ -10,12 +10,12 @@ module RestfulJson
       end
     end
 
-    initializer "restful_json.active_record" do
-      ActiveSupport.on_load(:active_record) do
-        puts "Extending #{self} with RestfulJson::Model" if RestfulJson::Options.debugging?
-        # ActiveRecord::Base gets new behavior
-        include RestfulJson::Model # ActiveSupport::Concern
-      end
-    end
+    #initializer "restful_json.active_record" do
+    #  ActiveSupport.on_load(:active_record) do
+    #    puts "Extending #{self} with RestfulJson::Model" if RestfulJson::Options.debugging?
+    #    # ActiveRecord::Base gets new behavior
+    #    include RestfulJson::Model # ActiveSupport::Concern
+    #  end
+    #end
   end
 end

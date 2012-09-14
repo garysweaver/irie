@@ -474,7 +474,7 @@ Note: representer for index can be overriden for the context of the request ala 
 
 The representer handles what JSON is taken, persisted, and in some cases, what JSON is spit back out.
 
-Representers for these can be overriden for the context of the request ala `respond_with @value, :represent_items_with => index_representer` by overriding the `show_representer`, `create_representer`, or `update_representer` methods in your controller, which is executed within show_it, create_it, or update_it methods, e.g.
+Representers for these can be overriden for the context of the request ala `respond_with @value, :represent_items_with => index_representer` by overriding the `show_representer`, `create_representer`, or `update_representer` methods in your controller to return the right representer module. This method is called within show_it, create_it, or update_it methods, e.g.
 
     def index_representer
       params[:saucy] ? MyProject::SaucyRepresenter : MyProject::BlandRepresenter
@@ -526,11 +526,11 @@ Should hopefully never have to modify this. It is a list of predications that ca
 
 ##### roar_collection_representer
 
-The [ROAR][roar] representer class for model collections. See the ROAR section for details.
+The [ROAR][roar] representer module for model collections. See the ROAR section for details.
 
 ##### roar_entity_representer
 
-The [ROAR][roar] representer class for single model instances. See the ROAR section for details.
+The [ROAR][roar] representer module for single model instances. See the ROAR section for details.
 
 ##### scavenge_bad_associations
 
@@ -566,7 +566,7 @@ The standard Rails 3+ way of doing this is setting include_root_in_json on Activ
 
 In your `config/environment.rb` or environment specfic configuration, you may specify one or more options in the config hash that will be merged into the following defaults:
 
-    RestfulJson::Options.configure({
+    ::RestfulJson::Options.configure({
       # General options
       debug: false,
 

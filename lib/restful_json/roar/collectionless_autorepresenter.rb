@@ -1,7 +1,12 @@
+require 'virtus'
+require 'representable'
+require 'roar'
+require 'roar-rails'
+
 module RestfulJson
   module Roar
-    class CollectionlessAutorepresenter
-      include Roar::Representer::JSON
+    module CollectionlessAutorepresenter
+      include ::Roar::Representer::JSON
 
       def self.autoconfigure(model_class)
         association_name_sym_to_association = {}

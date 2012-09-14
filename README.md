@@ -40,16 +40,6 @@ Some highlights:
   * Session authentication with controller and action restriction.
   * Updating associations via JSON.
 
-### Future
-
-A lot is still subject to change in the next major version.
-
-Currently we reuse mass assignment security (attr_accessible/attr_protected) for what is allowed to be set and shown in addition to as_json_includes/as_json_excludes on the model for views. This requires different model classes for different views, and through the techniques described in this README and [classmeta][classmeta], it works and is very [DRY][dry], but we'd rather integrate with something more flexible.
-
-[ROAR][roar] looks great because using representers for both (de)serialization and what gets persisted from incoming JSON is a DRY approach. [Strong Parameters][strong_parameters] is being integrated with Rails 4 as an eventual replacement for mass assignment security, and [ActiveModel::Serializers][active_model_serializers] could be an alternative to restful_json's [as_json][as_json] extension, however it isn't very DRY to have to specify the same attributes various times in strong_parameters, ActiveModel::Serializers, AR mass assignment security (attr_accessible and/or attr_protected), and (as Nick Sutterer mentioned) ParamsParser. Whatever we use will need to be DRY, flexible, and maintainable.
-
-Thanks much to the informative post, [State of Writing API Servers with Rails][state_of_rails_apis], and the original [ember_data_example][ember_data_example] project the first version heavily borrowed from. We use [AngularJS][angular], but we have done what we could easily to support [Ember.js][ember] and other Javascript frameworks.
-
 Ruby on Rails can be an excellent choice for serving up heavy client-side Javascript, providing a wealth of functionality through available gems, and providing the ability to write a gem to make service development trivial.
 
 Our take on things has been continuing to evolve, but the overall goal of the project remains to be that providing restful_json APIs via Rails for use in javascript frameworks should be as simple, DRY, fun and flexible as possible. Please let us know if you'd like to contribute.
@@ -227,107 +217,16 @@ Third page of 30 results:
 
 #### No associations
 
-To return a view of a model without associations, even if those associations are defined to be displayed via `as_json_includes`, use the `no_includes` param. e.g. to return the foobars accessible attributes only:
+To return a view of a model without associations, use the `no_includes` param. e.g. to return the foobars accessible attributes only:
 
     http://localhost:3000/foobars?no_includes=
 
 #### Some associations
 
-To return a view of a model with only certain associations that you have rights to see, use the associations param. e.g. if the foo, bar, boo, and far associations are exposed via `as_json_includes` and you only want to show the foos and bars:
+To return a view of a model with only certain associations that you have rights to see, use the associations param. e.g. if the foo, bar, boo, and far associations would have been returned, but you only want to show the foos and bars:
 
     http://localhost:3000/foobars?include=foos,bars
-
-### Models
-
-ActiveRecord::Base gets a few new class methods and new `as_json` behavior!  
-
-#### JSON format
-
-`as_json` is extended to include methods/associations specified in `as_json_includes`, e.g.:
-
-    as_json_includes :association_name_1, :association_name_2
-
-So, if you want to automatically accept json association data in put/post and include it in the json that is emitted by the services, you'd do:
-
-    accepts_nested_attributes_for :association_name_1, :association_name_2
-    as_json_includes :association_name_1, :association_name_2
-
-#### Including non-mass-assignable attributes in the JSON
-
-To include extra non-mass-assignable attributes in the json, add those to `as_json_includes`. id is a common attribute that needs to be returned in the json but you should be allowed to set:
-
-    accepts_nested_attributes_for :association_name_1, :association_name_2
-    as_json_includes :association_name_1, :association_name_2
-
-#### IDs are included by default
-
-Most of the time when working with a restful_json service, you'll want it to return the id of each object. This is done by default. If your object doesn't have an ID or you don't want it included, you can specifically exclude it, e.g.:
-
-    as_json_excludes :id
-
-#### Excluding other attributes and associations
-
-    as_json_excludes :foo, :bars
-
-#### Different views
-
-Mass assignment security is used in restful_json to define which attributes are both viewed in JSON and can be updated.
-
-By redefining `_accessible_attributes[:default]` and `_as_json_includes = []` or by using `protected_attributes` and `as_json_excludes`, you can limit what comes back.
-
-So in this case, if we have a LibrariesController, it will return a Library with name, address, and phone_number, but the LibraryRef that comes back for a Book only has a name:
-
-    module LibraryShared
-      extend ActiveSupport::Concern
-
-      included do
-        attr_accessible :name, :address, :phone_number
-
-        has_many :books
-
-        as_json_includes :books
-      end
-
-      module ClassMethods
-      end
-    end
     
-    class Library < ActiveRecord::Base
-      include LibraryShared
-    end
-
-    class LibraryRef < Library
-      include LibraryShared
-
-      be_readonly
-
-      self.table_name = :libraries
-
-      # redefine accessible_attributes (messy way to set- it should have a better way to redefine)
-      self._accessible_attributes[:default] = [:name]
-
-      # redefine as_json_includes (we should probably have a better way to redefine also)
-      self._as_json_includes = []
-    end
-
-    class Book < ActiveRecord::Base
-      attr_accessible :title, :isbn, :checked_out
-
-      belongs_to :library, primary_key: :library_id, class_name: 'LibraryRef'
-      
-      as_json_includes :library
-    end
-
-Here we make the LibraryRef readonly as well through the [be_readonly][be_readonly] gem, just because someone with access to a book in Rails itself probably shouldn't be trying to update its name, even though that would be restricted anyway via the API, since `accepts_nested_attributes_for` was not used on Book, so it is more of a nicety to make it act like an entity ref in this case. It isn't really necessary, though.
-
-I tried just making LibraryRef subclass/inherit from Library, but there seems to be a bug in our code or Rails (noted here [#7442][issue7442]) that is causing Library to become LibraryRef. e.g. with the LibrariesController it would return libraries, but after using BooksController that returns a Book with LibraryRef, when you again go to LibrariesController it would return a LibraryRef, or a Library that at least had the same mass assignment security attributes as LibraryRef.
-
-#### Avoiding circular references and not outputting json for associations of some objects when as_json is called
-
-If an object has already been expanded into its associations, if it is referenced again, `as_json` only emits JSON for the object's accessible attributes, not its associations.
-
-Because of the circular references check, if you need to call as_json from something else and emit association json, you must specify the `:unfollowed_object_ids` key with an array as the value, e.g. `Foobar.find(123).as_json(unfollowed_object_ids:[])`. Any suggestions for how this could be handled better? I know that there is some support in as_json in Rails (in activesupport/lib/active_support/json/encoding.rb) for circular references, but it didn't work that well for us. There is also a bug somewhere causing as_json to not get called with the associated object's options hash if there is a model subclass involved, and I've run into other issues also with subclasses of models, which is why I've started to use module includes vs. subclassing in models, even though it requires a bit more code.
-
 ### Controller
 
 #### Controller-level configuration

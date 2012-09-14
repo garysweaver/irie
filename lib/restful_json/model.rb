@@ -1,4 +1,6 @@
 module RestfulJson
+
+  # TODO: remove this later
   module Model
     extend ActiveSupport::Concern
 

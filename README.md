@@ -20,7 +20,7 @@ Or to get the total count and page the results, you'd get:
     http://localhost:3000/foobars?color=blue&expired_at!gteq=2012-08-20&count=
     http://localhost:3000/foobars?color=blue&expired_at!gteq=2012-08-20&skip=0&take=15
 
-And to create or update a Foobar, you can just post/put using [AngularJS][angular], or Ember by setting `wrapped_json` in config, to:
+And to create or update a Foobar, you can just post/put JSON to:
 
     http://localhost:3000/foobar
 
@@ -34,7 +34,6 @@ Some highlights:
   * Filtering via [AREL][arel_predications], nil/null values, unique, only, include, and more.
   * Ignoring non-mass-assignable attributes and associations in incoming JSON for creates/updates.
   * Paging results via count, skip (start index), and take (limit).
-  * Removing need for "wrapped" JSON, so you don't have to post/put to the plural/singular model name request parameter.
   * Removing need for _attributes suffix to update associations.
   * Returning one or more associations and/or custom methods in JSON.
   * Session authentication with controller and action restriction.
@@ -226,7 +225,25 @@ To return a view of a model without associations, use the `no_includes` param. e
 To return a view of a model with only certain associations that you have rights to see, use the associations param. e.g. if the foo, bar, boo, and far associations would have been returned, but you only want to show the foos and bars:
 
     http://localhost:3000/foobars?include=foos,bars
-    
+
+### Wrapped or unwrapped JSON
+
+The standard Rails 3+ way of doing this is to tell the controller whether or not to convert unwrapped json in the request the following two configuration bit that are found in `config/initializers/wrap_parameters.rb`:
+
+    # Enable parameter wrapping for JSON. You can disable this by setting :format to an empty array.
+    ActiveSupport.on_load(:action_controller) do
+      wrap_parameters format: [:json]
+    end
+
+    # Disable root element in JSON by default.
+    ActiveSupport.on_load(:active_record) do
+      self.include_root_in_json = false
+    end
+
+Summary:
+* `wrap_parameters` controls whether you want the services to expect `{foobars: => ...}` or `{...}`.
+* `include_root_in_json` controls whether you want the services to output `{foobars: => ...}` or `{...}`.
+
 ### Controller
 
 #### Controller-level configuration
@@ -253,7 +270,7 @@ Although you can override index, show, create, and update for full control, if a
 There are a handful of variables that you use in a restful_json controller:
 * `params`: this is a hash of request parameters along with a few other things.
 * `@model_class`: the Ruby class object for the model which it either gets from self.model_class you set or using the singular form of the controller class name without "Controller" at the end.
-* `@request_json`: the parsed json as a hash. How it gets this depends on the wrapped_json configuration parameter.
+* `@request_json`: the parsed json as a hash.
 * `@value`: the default implementations of the index, show, create, and update methods expect you to set this to the instance that should be converted to JSON and returned to the client.
 * `@errors`: if you `begin` and `rescue => e` you can set errors like `@errors = {errors: [e.message]}` in the rescue block, and these will be returned by default as JSON with HTTP Status Code 500. You do not need to use this for normal validation, etc. errors returned in @value.errors automatically as part of an ActiveRecord create/update, which return an hash of attribute_name/column_name an to array of error messages (even if is a single error message, which is more often the case).
 * `@error_type`: if `@errors` is not nil, it will use this error code. Only use one of the allowed symbols. In `rails c` do `require 'pp';pp Rack::Utils::SYMBOL_TO_STATUS_CODE;nil` to see a list and see [List of HTTP Status Codes][status_codes] for more info.
@@ -413,7 +430,7 @@ So, if you enabled CORS, then CORS starts with a [preflight request][preflight_r
 
 ##### ignore_bad_json_attributes
 
-True by default. Ignores keys that aren't accessible attributes or associations that have an `accepts_nested_attributes_for`. This should be true most likely if `wrapped_json` is true.
+True by default. Ignores keys that aren't accessible attributes or associations that have an `accepts_nested_attributes_for`.
 
 ##### intuit_post_or_put_method
 
@@ -453,14 +470,6 @@ An array of supported functions. See this document for a description of each fun
 
 When sending multiple values in a filter in the URL, this is the delimiter.
 
-##### wrapped_json
-
-If true, then it will look for the underscored model name in the incoming JSON (in `params[:your_model_name]`), if false it either expects that everything in `params` are keys at the root of your JSON or you are sending the JSON in request body
-
-The standard Rails 3+ way of doing this is setting include_root_in_json on ActiveResource::Base, but I've not tested to see how this affects what we are doing. Maybe you can use this instead as an application-wide default. Perhaps having wrapped_json configurable at the controller-level is still helpful, although that is probably excessive, and might not play well with this configuration setting. I don't know yet, so in the meantime we're assuming you are using the following (default) setting, which can be overriden by the wrapped_json configuration:
-
-    ActiveResource::Base.include_root_in_json = true
-
 #### Application-wide configuration
 
 In your `config/environment.rb` or environment specfic configuration, you may specify one or more options in the config hash that will be merged into the following defaults:
@@ -494,8 +503,7 @@ In your `config/environment.rb` or environment specfic configuration, you may sp
                                      'lteq_all', 'lteq_any', 'matches', 'matches_all', 'matches_any', 'not_eq', 'not_eq_all', 'not_eq_any', 
                                      'not_in', 'not_in_all', 'not_in_any'],
       supported_functions: ['count', 'include', 'no_includes', 'only', 'skip', 'take', 'uniq'],
-      value_split: ',',
-      wrapped_json: false
+      value_split: ','
     })
 
 #### Configuring a specific controller
@@ -520,7 +528,6 @@ Any of the controller options you may also specify in the definition of the Cont
                                      'not_in', 'not_in_all', 'not_in_any']
       self.supported_functions = ['count', 'include', 'no_includes', 'only', 'skip', 'take', 'uniq']
       self.value_split = ','
-      self.wrapped_json = false
 
 You can also configure these in a base class and inheritance should work properly since these are Rails class_attributes.
 

@@ -77,16 +77,13 @@ module RestfulJson
         if ::RestfulJson::Options.debugging?
           puts "params=#{params.inspect}"
           puts "request.body.read=#{request.body.read}"
-          puts "will look for #{@model_singular_name} key in incoming request params" if self.wrapped_json
         end
         
         request_body_value = request.body.read
         request_body_string = request_body_value ? "#{request_body_value}" : nil
 
         result = nil
-        if self.wrapped_json
-          result = params[@model_singular_name]
-        elsif request_body_string && request_body_string.length >= 2
+        if request_body_string && request_body_string.length >= 2
           result = JSON.parse(request_body_string)
         else
           result = params
@@ -94,22 +91,6 @@ module RestfulJson
 
         puts "parsed_request_json=#{result}" if ::RestfulJson::Options.debugging?
         result
-      end
-      
-      def single_response_json(value)
-        if self.wrapped_json
-          {@model_singular_name.to_sym => value}
-        else
-          value
-        end
-      end
-      
-      def plural_response_json(value)
-        if self.wrapped_json
-          {@model_plural_name.to_sym => value}
-        else
-          value
-        end
       end
             
       def initialize

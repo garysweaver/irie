@@ -36,8 +36,7 @@ module RestfulJson
                                      'lteq_all', 'lteq_any', 'matches', 'matches_all', 'matches_any', 'not_eq', 'not_eq_all', 'not_eq_any', 
                                      'not_in', 'not_in_all', 'not_in_any'],
       supported_functions: ['count', 'include', 'no_includes', 'only', 'skip', 'take', 'uniq'],
-      value_split: ',',
-      wrapped_json: false,
+      value_split: ','
     }
 
     @@model_options = {

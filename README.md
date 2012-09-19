@@ -43,6 +43,10 @@ Ruby on Rails can be an excellent choice for serving up heavy client-side Javasc
 
 Our take on things has been continuing to evolve, but the overall goal of the project remains to be that providing restful_json APIs via Rails for use in javascript frameworks should be as simple, DRY, fun and flexible as possible. Please let us know if you'd like to contribute.
 
+### Alternatives
+
+If you only need to provide a Rest API in Rails (even though you should then consider Sinatra, Node, etc. also), check out [rails-api][rails-api] and see [Railscast #348][railscast348].
+
 ### Disclaimer
 
 A lot of things are said to implement REST and be RESTful that aren't by Roy T. Fielding's [definition][rest_apis_must_be_hypertext_driven]. Rails controllers' default behavior is a lot closer to Roy's original intent than this project. restful_json is JSON-only and doesn't use hyperlinks or discovery.
@@ -613,5 +617,7 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [cancan]: https://github.com/ryanb/cancan
 [active_model_serializers]: https://github.com/josevalim/active_model_serializers
 [rabl]: https://github.com/nesquena/rabl/
+[rails-api]: https://github.com/spastorino/rails-api
+[railscast348]: http://railscasts.com/episodes/348-the-rails-api-gem?view=asciicast 
 [issue7442]: https://github.com/rails/rails/issues/7442
 [lic]: http://github.com/garysweaver/restful_json/blob/master/LICENSE

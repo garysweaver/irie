@@ -428,6 +428,22 @@ A hash of headers to use for each non-preflight response
 
 True to enable [CORS][cors]. If you have javascript/etc. code in the client that is running under a different host or port than Rails server, then you are cross-origin/cross-domain and we handle this with CORS. By default, we make CORS just allow everything, so the whole cross-origin/cross-domain thing goes away and you can get to developing locally with your Javascript app that isn't even being served by Rails.
 
+###### CSRF disabling in Rails as alternative
+
+Note: one way to do this during development without CORS is to disable CSRF protection in your controller, even though it is not recommended.
+
+    protect_from_forgery :except => :create
+
+or
+
+    skip_before_filter :verify_authenticity_token, :except => [:update, :create]
+
+or totally disabling (this disables cross-site request forgery protection, so don't do this unless in a sandboxed development environment that no one will use except you):
+
+    skip_before_filter :verify_authenticity_token
+
+That info from [Turn off CSRF token in rails 3][disablecsrf] in stackoverflow.
+
 ##### cors_preflight_headers
 
 So, if you enabled CORS, then CORS starts with a [preflight request][preflight_request] from the client (the browser), to which we respond with a response. You can customize the values of headers returned in the `cors_preflight_headers` option. Then for all other requests to the controller, you can specify headers to be returned in the `cors_access_control_headers` option. This is a hash of headers to use for each preflight response.
@@ -620,4 +636,5 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [rails-api]: https://github.com/spastorino/rails-api
 [railscast348]: http://railscasts.com/episodes/348-the-rails-api-gem?view=asciicast 
 [issue7442]: https://github.com/rails/rails/issues/7442
+[disablecsrf]: http://stackoverflow.com/questions/5669322/turn-off-csrf-token-in-rails-3
 [lic]: http://github.com/garysweaver/restful_json/blob/master/LICENSE

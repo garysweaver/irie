@@ -28,7 +28,6 @@ module RestfulJson
                                      'not_in', 'not_in_all', 'not_in_any'],
       supported_functions: ['count', 'include', 'no_includes', 'only', 'skip', 'take', 'uniq'],
       value_split: ',',
-      wrapped_json: false,
     }
 
     @@model_options = {

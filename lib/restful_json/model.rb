@@ -8,6 +8,5 @@ module RestfulJson
     module ClassMethods
     end
 
-    end
   end
 end

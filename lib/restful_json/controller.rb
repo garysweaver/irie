@@ -27,7 +27,7 @@ module RestfulJson
     module ActsAsRestfulJsonInstanceMethods
 
       # convenience-actionpack override for CanCan access error to use forbidden status
-      alias_method :on_action_error_restful_json_renamed :on_action_error
+      alias_method :on_action_error_restful_json_renamed, :on_action_error
       def on_action_error(error)
         if error.is_a?(CanCan::AccessDenied)
           respond_with({errors: [error.message]}, location: nil, status: :forbidden)
@@ -42,49 +42,12 @@ module RestfulJson
       end
 
       def parse_request_json
-        if RestfulJson::Options.debugging?
-          puts "params=#{params.inspect}"
-          puts "request.body.read=#{request.body.read}"
-          puts "will look for #{@__restful_json_model_singular} key in incoming request params" if self.wrapped_json
-        end
-        
-        request_body_value = request.body.read
-        request_body_string = request_body_value ? "#{request_body_value}" : nil
-
-        result = nil
-        if self.wrapped_json
-          result = params[@__restful_json_model_singular]
-        elsif request_body_string && request_body_string.length >= 2
-          result = JSON.parse(request_body_string)
-        else
-          result = params
-        end
-
-        puts "parsed_request_json=#{result}" if RestfulJson::Options.debugging?
-        result
-      end
-      
-      def single_response_json(value)
-        if self.wrapped_json
-          {@__restful_json_model_singular.to_sym => value}
-        else
-          value
-        end
-      end
-      
-      def plural_response_json(value)
-        if self.wrapped_json
-          {@__restful_json_model_plural.to_sym => value}
-        else
-          value
-        end
+        request.body.read
       end
             
       def initialize
         @model_class = self.model_class || self.class.name.chomp('Controller').split('::').last.singularize.constantize
-
         raise "#{self.class.name} assumes that #{@model_class} extends ActiveRecord::Base, but it didn't. Please fix, or remove this constraint." unless @model_class.ancestors.include?(ActiveRecord::Base)
-
         puts "'#{self}' set @model_class=#{@model_class}" if RestfulJson::Options.debugging?
       end
       
@@ -141,7 +104,8 @@ module RestfulJson
           index_it unless @errors
           after_index_it unless @errors
 
-          respond_with (@errors ? @errors || @value)
+          result = @errors ? @errors : @value
+          respond_with result
         end
       end
 
@@ -237,7 +201,8 @@ module RestfulJson
           
           puts "Failed show with errors=#{@errors.inspect}" if @errors && RestfulJson::Options.debugging?
           
-          respond_with (@errors ? @errors || @value)
+          result = @errors ? @errors : @value
+          respond_with result
         end
       end
 
@@ -275,7 +240,9 @@ module RestfulJson
           after_create_or_update_it unless @errors || !success
 
           puts "Failed create with errors=#{@errors.inspect}" if (@errors || !success) && RestfulJson::Options.debugging?
-          respond_with (@errors ? @errors || @value)
+          
+          result = @errors ? @errors : @value
+          respond_with result
         end
       end
 
@@ -313,7 +280,9 @@ module RestfulJson
           after_create_or_update_it unless @errors || !success
 
           puts "Failed update with errors=#{@errors.inspect}" if (@errors || !success) && RestfulJson::Options.debugging?
-          respond_with (@errors ? @errors || @value)
+
+          result = @errors ? @errors : @value
+          respond_with result
         end
       end
 
@@ -323,7 +292,7 @@ module RestfulJson
       
       # update the specified resource
       def update_it
-        @value = @model_class.find(params[:id})
+        @value = @model_class.find(params[:id])
         @value.update_attributes(permitted_params)
         @value.save
       end
@@ -341,7 +310,9 @@ module RestfulJson
           after_destroy_it unless @errors || !success
 
           puts "Failed destroy with errors=#{@errors.inspect}" if (@errors || !success) && RestfulJson::Options.debugging?
-          respond_with (@errors ? @errors || @value)
+
+          result = @errors ? @errors : @value
+          respond_with result
         end
       end
 

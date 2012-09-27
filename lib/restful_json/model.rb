@@ -1,6 +1,6 @@
 module RestfulJson
   module Model
-    extend ActiveSupport::Concern
+    extend ::ActiveSupport::Concern
 
     included do
     end

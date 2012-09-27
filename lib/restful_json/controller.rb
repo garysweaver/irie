@@ -13,9 +13,9 @@ module RestfulJson
       class_attribute :model_plural_name, instance_writer: false
 
       # create class attributes for each controller option and set the value to the value in the app configuration
-      RestfulJson.CONTROLLER_OPTIONS.each do |key|
+      RestfulJson::CONTROLLER_OPTIONS.each do |key|
         class_attribute key, instance_writer: false
-        self.send("#{key}=".to_sym, RestfulJson.call(key))
+        self.send("#{key}=".to_sym, RestfulJson.send(key))
       end
     end
 

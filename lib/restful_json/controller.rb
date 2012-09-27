@@ -1,13 +1,16 @@
 require 'restful_json/config'
+require 'active_model_serializers'
+require 'strong_parameters'
 
 module RestfulJson
-  module Controller
-    extend ::ActiveSupport::Concern
-    include ::TwinTurbo::Controller
-    include ::ActionController::Serialization
-    include ::ActionController::StrongParameters
+  module Controller        
+    extend ActiveSupport::Concern
 
     included do
+      include ::ActionController::Serialization
+      include ::ActionController::StrongParameters
+      include ::TwinTurbo::Controller
+
       class_attribute :model_class, instance_writer: false
       class_attribute :model_singular_name, instance_writer: false
       class_attribute :model_plural_name, instance_writer: false

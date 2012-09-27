@@ -14,7 +14,7 @@ module RestfulJson
       ActiveSupport.on_load(:active_record) do
         puts "Extending #{self} with RestfulJson::Model" if RestfulJson.debug?
         # ActiveRecord::Base gets new behavior
-        include RestfulJson::Model # ActiveSupport::Concern
+        include RestfulJson::Model
       end
     end
   end

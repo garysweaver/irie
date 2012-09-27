@@ -26,8 +26,6 @@ in `config/application.rb`:
 
 in `Gemfile`:
 
-    gem 'active_model_serializers', '~> 0.5.2'
-    gem 'strong_parameters', '~> 0.1.4'
     gem 'restful_json', '>= 3.0.0', :git => 'git://github.com/garysweaver/restful_json.git', :branch => 'integrate-twinturbo_strategy_for_param_authr'
 
 This is *not recommended* for rails 3.2.x apps. Since using strong_parameters, we'll probably wrongly assume you are using it which may mean in `application.rb` that you might have:

@@ -71,28 +71,27 @@ module RestfulJson
       end
 
       module ClassMethods
-      end
-
-      def model_class=(val)
-        raise "Yahoo! model_class= called"
-        super
-        model_created_message = "#{model_class} was successfully created.".freeze
-        model_updated_message = "#{model_class} was successfully updated.".freeze
-      end
-    
-      def model_plural_name=(val)
-        raise "Yahoo! model_plural_name= called"
-        super
-        model_plural_name_sym = model_plural_name.to_sym
-        model_at_plural_name = "@#{model_plural_name}".freeze
-        model_plural_name_url = "#{model_plural_name}_url".freeze
-      end
-    
-      def model_singular_name=(val)
-        raise "Yahoo! model_singular_name= called"
-        super
-        model_singular_name_sym = model_singular_name.to_sym
-        model_at_singular_name = "@#{model_singular_name}".freeze
+        def model_class=(val)
+          raise "Yahoo! model_class= called"
+          super
+          model_created_message = "#{model_class} was successfully created.".freeze
+          model_updated_message = "#{model_class} was successfully updated.".freeze
+        end
+      
+        def model_plural_name=(val)
+          raise "Yahoo! model_plural_name= called"
+          super
+          model_plural_name_sym = model_plural_name.to_sym
+          model_at_plural_name = "@#{model_plural_name}".freeze
+          model_plural_name_url = "#{model_plural_name}_url".freeze
+        end
+      
+        def model_singular_name=(val)
+          raise "Yahoo! model_singular_name= called"
+          super
+          model_singular_name_sym = model_singular_name.to_sym
+          model_at_singular_name = "@#{model_singular_name}".freeze
+        end
       end
 
       def initialize
@@ -165,8 +164,8 @@ module RestfulJson
           @value = instance_eval(self.model_at_singular_name)
 
           respond_to do |format|
-            if @model_class.update_attributes(params[self.model_at_singular_name_sym])
-              format.html { redirect_to @model_class, notice: self.model_updated_message }
+            if self.model_class.update_attributes(params[self.model_at_singular_name_sym])
+              format.html { redirect_to self.model_class, notice: self.model_updated_message }
               format.json { head :no_content }
             else
               format.html { render action: EDIT }
@@ -176,10 +175,10 @@ module RestfulJson
       end
 
       def destroy
-          instance_variable_set(self.model_at_singular_name_sym, @model_class.find(params[:id]))
+          instance_variable_set(self.model_at_singular_name_sym, self.model_class.find(params[:id]))
           @value = instance_eval(self.model_at_singular_name)
 
-          @model_class.destroy
+          self.model_class.destroy
 
           respond_to do |format|
             format.html { redirect_to instance_eval(self.model_plural_name_url) }

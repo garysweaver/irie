@@ -1,6 +1,5 @@
 require 'restful_json/version'
 require 'restful_json/config'
-require 'restful_json/concern'
 require 'twinturbo/application_permitter'
 require 'twinturbo/controller'
 require 'restful_json/model'

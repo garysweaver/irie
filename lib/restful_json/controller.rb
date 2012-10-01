@@ -1,5 +1,4 @@
 require 'restful_json/config'
-require 'restful_json/concern'
 require 'active_model_serializers'
 require 'strong_parameters'
 require 'convenient-actionpack'

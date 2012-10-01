@@ -17,6 +17,7 @@ module TwinTurbo
 
     def permitter_class
       begin
+        puts "Attempting to match #{self.class.to_s} which should be a *Controller"
         "#{self.class.to_s.match(/(.+)Controller/)[1].singularize}Permitter".constantize
       rescue NameError
         nil

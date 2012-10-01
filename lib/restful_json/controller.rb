@@ -38,9 +38,11 @@ module RestfulJson
         class_attribute :model_plural_name, instance_writer: true
         class_attribute :model_created_message, instance_writer: true
         class_attribute :model_updated_message, instance_writer: true
+        class_attribute :model_at_plural_name_sym, instance_writer: true
         class_attribute :model_plural_name_sym, instance_writer: true
         class_attribute :model_at_plural_name, instance_writer: true
         class_attribute :model_plural_name_url, instance_writer: true
+        class_attribute :model_at_singular_name_sym, instance_writer: true
         class_attribute :model_singular_name_sym, instance_writer: true
         class_attribute :model_at_singular_name, instance_writer: true
 
@@ -58,11 +60,14 @@ module RestfulJson
         # set strings that shouldn't have to be set more than at initialization time. this should be done in the setter overrides it isn't working yet.
         self.model_created_message = "#{model_class} was successfully created.".freeze
         self.model_updated_message = "#{model_class} was successfully updated.".freeze
-        self.model_plural_name_sym = model_plural_name.to_sym
         self.model_at_plural_name = "@#{model_plural_name}".freeze
+        self.model_at_plural_name_sym = "@#{model_plural_name}".to_sym
+        self.model_at_singular_name = "@#{model_singular_name}".freeze
+        self.model_at_singular_name_sym = "@#{model_plural_name}".to_sym
+        self.model_plural_name_sym = model_plural_name.to_sym
         self.model_plural_name_url = "#{model_plural_name}_url".freeze
         self.model_singular_name_sym = model_singular_name.to_sym
-        self.model_at_singular_name = "@#{model_singular_name}".freeze
+        
       end
 
       module ClassMethods
@@ -108,7 +113,7 @@ module RestfulJson
       end
 
       def show
-          instance_variable_set(self.model_singular_name_sym, self.model_class.find(params[:id]))
+          instance_variable_set(self.model_at_singular_name_sym, self.model_class.find(params[:id]))
           @value = instance_eval(self.model_at_singular_name)
 
           respond_to do |format|
@@ -118,7 +123,7 @@ module RestfulJson
       end
 
       def new
-          instance_variable_set(self.model_singular_name_sym, self.model_class.new)
+          instance_variable_set(self.model_at_singular_name_sym, self.model_class.new)
           @value = instance_eval(self.model_at_singular_name)
 
           respond_to do |format|
@@ -128,7 +133,7 @@ module RestfulJson
       end
 
       def edit
-          instance_variable_set(self.model_singular_name_sym, self.model_class.find(params[:id]))
+          instance_variable_set(self.model_at_singular_name_sym, self.model_class.find(params[:id]))
       end
 
       def create
@@ -138,7 +143,7 @@ module RestfulJson
           puts "self.model_at_singular_name=#{self.model_at_singular_name}"
           puts "params[self.model_singular_name_sym]=#{params[self.model_singular_name_sym]}"
           #puts "params[@model_singular_name_sym]=#{params[self.model_singular_name_sym]}"
-          instance_variable_set(self.model_singular_name_sym, self.model_class.new(params[self.model_singular_name_sym]))
+          instance_variable_set(self.model_at_singular_name_sym, self.model_class.new(params[self.model_singular_name_sym]))
           @value = instance_eval(self.model_at_singular_name)
           puts "@value=#{@value}"
 
@@ -156,11 +161,11 @@ module RestfulJson
       def update
           authorize! :update, self.model_class
 
-          instance_variable_set(self.model_singular_name_sym, self.model_class.find(params[:id]))
+          instance_variable_set(self.model_at_singular_name_sym, self.model_class.find(params[:id]))
           @value = instance_eval(self.model_at_singular_name)
 
           respond_to do |format|
-            if @model_class.update_attributes(params[self.model_singular_name_sym])
+            if @model_class.update_attributes(params[self.model_at_singular_name_sym])
               format.html { redirect_to @model_class, notice: self.model_updated_message }
               format.json { head :no_content }
             else
@@ -171,7 +176,7 @@ module RestfulJson
       end
 
       def destroy
-          instance_variable_set(self.model_singular_name_sym, @model_class.find(params[:id]))
+          instance_variable_set(self.model_at_singular_name_sym, @model_class.find(params[:id]))
           @value = instance_eval(self.model_at_singular_name)
 
           @model_class.destroy

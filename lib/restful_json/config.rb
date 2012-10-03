@@ -7,7 +7,7 @@ module RestfulJson
   ]
   
   class << self
-    attr_accessor CONTROLLER_OPTIONS
+    CONTROLLER_OPTIONS.each{|o|attr_accessor o}
     alias_method :debug?, :debug
     def configure(&blk); class_eval(&blk); end
   end

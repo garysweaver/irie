@@ -37,6 +37,10 @@ module RestfulJson
         class_attribute :model_plural_name, instance_writer: true
         class_attribute :model_created_message, instance_writer: true
         class_attribute :model_updated_message, instance_writer: true
+        class_attribute :param_to_attr_and_arel_predicate, instance_writer: true
+        class_attribute :supported_functions, instance_writer: true
+
+        # TODO: keep? You can blame these on an attempt at premature optimization. Without them aren't there lots of small strings in requests that have to be GC'd, or should we ditch setting instance vars dynamically?
         class_attribute :model_at_plural_name_sym, instance_writer: true
         class_attribute :model_plural_name_sym, instance_writer: true
         class_attribute :model_at_plural_name, instance_writer: true
@@ -70,39 +74,80 @@ module RestfulJson
       end
 
       module ClassMethods
-        def model_class=(val)
-          raise "Yahoo! model_class= called"
-          super
-          model_created_message = "#{model_class} was successfully created.".freeze
-          model_updated_message = "#{model_class} was successfully updated.".freeze
+
+        # Whitelist attributes that are queryable through the operation(s) already defined in can_filter_by_default_using, or can specify attributes:
+        # can_filter_by :attr_name_1, :attr_name_2 # implied using: [eq] if RestfulJson.can_filter_by_default_using = [:eq] 
+        # can_filter_by :attr_name_1, :attr_name_2, using: [:eq, :not_eq]
+        def can_filter_by(*args)
+          options = args.extract_options!
+          predicates = Array.wrap(options[:using] || self.can_filter_by_default_using)
+          predicates.each do |predicate|
+            predicate_sym = predicate.to_sym
+            args.each do |attr|
+              attr_sym = attr.to_sym
+              self.param_to_attr_and_arel_predicate[attr_sym] = [attr_sym, :eq] if predicate_sym == :eq
+              self.param_to_attr_and_arel_predicate["#{attr}#{self.predicate_prefix}#{predicate}".to_sym] = [attr_sym, predicate_sym]
+            end
+          end
         end
-      
-        def model_plural_name=(val)
-          raise "Yahoo! model_plural_name= called"
-          super
-          model_plural_name_sym = model_plural_name.to_sym
-          model_at_plural_name = "@#{model_plural_name}".freeze
-          model_plural_name_url = "#{model_plural_name}_url".freeze
+
+        # Can specify additional functions in the index, e.g.
+        # supports_functions :skip, :uniq, :take, :count
+        def supports_functions(functions)
+          self.supported_functions += Array.wrap(functions)
         end
-      
-        def model_singular_name=(val)
-          raise "Yahoo! model_singular_name= called"
-          super
-          model_singular_name_sym = model_singular_name.to_sym
-          model_at_singular_name = "@#{model_singular_name}".freeze
-        end
+
       end
 
       def initialize
         raise "#{self.class.name} failed to initialize. self.model_class was nil in #{self} which shouldn't happen!" if self.model_class.nil?
         # note: we are overriding class attribute setters locally to attempt to set strings to allow us to set @foos and @foo without additional string creation per request
         raise "#{self.class.name} assumes that #{self.model_class} extends ActiveRecord::Base, but it didn't. Please fix, or remove this constraint." unless self.model_class.ancestors.include?(ActiveRecord::Base)
-        puts "'#{self}' self.model_class=#{self.model_class}, self.model_singular_name=#{self.model_singular_name}, self.model_plural_name=#{self.model_plural_name}" if RestfulJson.debug?
+        puts "'#{self}' self.model_class=#{self.model_class}, self.model_singular_name=#{self.model_singular_name}, self.model_plural_name=#{self.model_plural_name}" if self.debug?
+      end
+
+      def convert_request_param_value_for_filtering(attr_sym, value)
+        value && ['NULL','null','nil'].include?(value) ? nil : value
       end
 
       def index
-        instance_variable_set(self.model_at_plural_name_sym, self.model_class.all)
-        @value = instance_eval(self.model_at_plural_name)
+        t = self.model_class.all.arel_table
+        value = self.model_class.all.scoped
+        self.param_to_attr_and_arel_predicate.keys.each do |param_name|
+          param = params[param_name]
+          if param.present?
+            attr_sym = param_to_attr_and_arel_predicate[param_name][0]
+            predicate_sym = param_to_attr_and_arel_predicate[param_name][1]
+            if predicate_sym == :eq
+              puts ".where(#{attr_sym.inspect} => convert_request_param_value_for_filtering(#{attr_sym.inspect}, #{param.inspect}))" if self.debug?
+              value = value.where(attr_sym => convert_request_param_value_for_filtering(attr, param))
+            else
+              one_or_more_param = param.split(self.filter_split).collect{|v|convert_request_param_value_for_filtering(attr_sym, v)}
+              puts ".where(t[#{attr_sym.inspect}].try(#{predicate_sym.inspect}, #{one_or_more_param.inspect}))" if self.debug?
+              value = value.where(t[attr_sym].try(predicate_sym, one_or_more_param))
+            end
+          end
+        end
+        
+        if params[:skip] && self.supported_functions.include?(:skip)
+          value = value.take(params[:skip])
+        end
+        
+        if params[:take] && self.supported_functions.include?(:take)
+          value = value.take(params[:take])
+        end
+        
+        if params[:uniq] && self.supported_functions.include?(:uniq)
+          value = value.uniq
+        end
+
+        if params[:count] && self.supported_functions.include?(:count)
+          value = value.count
+        end
+        
+        @value = value
+
+        instance_variable_set(self.model_at_plural_name_sym, @value)
 
         respond_to do |format|
           format.html # index.html.erb

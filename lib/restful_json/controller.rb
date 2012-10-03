@@ -71,6 +71,11 @@ module RestfulJson
         self.model_plural_name_url = "#{model_plural_name}_url".freeze
         self.model_singular_name_sym = model_singular_name.to_sym
         
+        self.param_to_attr_and_arel_predicate ||= {}
+        self.supported_functions ||= []
+
+        # this can be overriden, but it is restful_json...
+        respond_to :json
       end
 
       module ClassMethods
@@ -100,6 +105,7 @@ module RestfulJson
       end
 
       def initialize
+        super
         raise "#{self.class.name} failed to initialize. self.model_class was nil in #{self} which shouldn't happen!" if self.model_class.nil?
         # note: we are overriding class attribute setters locally to attempt to set strings to allow us to set @foos and @foo without additional string creation per request
         raise "#{self.class.name} assumes that #{self.model_class} extends ActiveRecord::Base, but it didn't. Please fix, or remove this constraint." unless self.model_class.ancestors.include?(ActiveRecord::Base)
@@ -111,11 +117,11 @@ module RestfulJson
       end
 
       def index
-        t = self.model_class.all.arel_table
-        value = self.model_class.all.scoped
+        t = self.model_class.arel_table
+        value = self.model_class.scoped
         self.param_to_attr_and_arel_predicate.keys.each do |param_name|
           param = params[param_name]
-          if param.present?
+          if param.present? && param_to_attr_and_arel_predicate[param_name]
             attr_sym = param_to_attr_and_arel_predicate[param_name][0]
             predicate_sym = param_to_attr_and_arel_predicate[param_name][1]
             if predicate_sym == :eq
@@ -156,78 +162,42 @@ module RestfulJson
       end
 
       def show
-        instance_variable_set(self.model_at_singular_name_sym, self.model_class.find(params[:id]))
-        @value = instance_eval(self.model_at_singular_name)
-
-        respond_to do |format|
-          format.html # show.html.erb
-          format.json { render json: @value }
-        end
+        @value = self.model_class.find(params[:id])
+        instance_variable_set(self.model_at_singular_name_sym, @value)
+        respond_with @value
       end
 
       def new
-        instance_variable_set(self.model_at_singular_name_sym, self.model_class.new)
-        @value = instance_eval(self.model_at_singular_name)
-
-        respond_to do |format|
-          format.html # new.html.erb
-          format.json { render json: @value }
-        end
+        @value = self.model_class.new
+        respond_with @value
       end
 
       def edit
-        instance_variable_set(self.model_at_singular_name_sym, self.model_class.find(params[:id]))
+        @value = self.model_class.find(params[:id])
+        instance_variable_set(self.model_at_singular_name_sym, @value)
       end
 
       def create
         authorize! :create, self.model_class
-
-        puts "self.model_singular_name_sym=#{self.model_singular_name_sym}"
-        puts "self.model_at_singular_name=#{self.model_at_singular_name}"
-        puts "params[self.model_singular_name_sym]=#{params[self.model_singular_name_sym]}"
-        #puts "params[@model_singular_name_sym]=#{params[self.model_singular_name_sym]}"
-        instance_variable_set(self.model_at_singular_name_sym, self.model_class.new(params[self.model_singular_name_sym]))
-        @value = instance_eval(self.model_at_singular_name)
-        puts "@value=#{@value}"
-
-        respond_to do |format|
-          if data.save
-            format.html { redirect_to @value, notice: self.model_creation_message }
-            format.json { render json: @value, status: :created, location: @value }
-          else
-            format.html { render action: NEW }
-            format.json { render json: @value.errors, status: :unprocessable_entity }
-          end
-        end
+        @value = self.model_class.new(permitted_params)
+        @value.save
+        instance_variable_set(self.model_at_singular_name_sym, @value)
+        respond_with @value
       end
 
       def update
         authorize! :update, self.model_class
-
-        instance_variable_set(self.model_at_singular_name_sym, self.model_class.find(params[:id]))
-        @value = instance_eval(self.model_at_singular_name)
-
-        respond_to do |format|
-          if self.model_class.update_attributes(params[self.model_at_singular_name_sym])
-            format.html { redirect_to self.model_class, notice: self.model_updated_message }
-            format.json { head :no_content }
-          else
-            format.html { render action: EDIT }
-            format.json { render json: @value.errors, status: :unprocessable_entity }
-          end
-        end
+        @value = self.model_class.find(params[:id])
+        self.model_class.update_attributes(permitted_params)
+        instance_variable_set(self.model_at_singular_name_sym, @value)
+        respond_with @value
       end
 
       def destroy
-        instance_variable_set(self.model_at_singular_name_sym, self.model_class.find(params[:id]))
-        @value = instance_eval(self.model_at_singular_name)
-
-        self.model_class.destroy
-
-        respond_to do |format|
-          format.html { redirect_to instance_eval(self.model_plural_name_url) }
-          format.json { head :no_content }
-        end
+        @value = self.model_class.find(params[:id])
+        @value.destroy
+        instance_variable_set(self.model_at_singular_name_sym, @value)
+        respond_with @value
       end
     end
   end

@@ -57,13 +57,14 @@ Which in turn just does this for now for strong_parameters:
 
 A restful_json (ok, it is really neither RESTful, nor is it just JSON- discuss!) controller is a configurable generic Rails 3.1+ controller that does the index, show, create, and update for you.
 
-Everything is well-declared:
+Everything is (fairly) well-declared:
 
     class FoobarsController < ApplicationController  
       acts_as_restful_json
       can_filter_by :foo_id # implied support for ARel eq
       can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt]
       supports_functions :count
+      # respond_to :json, :html # specify if you want more than :json and it should work, in-theory. uses respond_with.
     end
 
 `can_filter_by` means you can send in that request param (via routing or directly, just like normal in Rails) and it will use that in the ARel query (safe from SQL injection and only letting you do what you tell it). `:using` means you can use those ARel predicates for filtering. For a full list of available ones do:

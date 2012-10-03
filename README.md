@@ -3,6 +3,10 @@ restful_json v3 for Rails 3.1+
 
 *v3.0.0 Under development!*
 
+### In alpha
+
+Much of the functionality previously provided is now gone.
+
 ### v3.0.0 Changes/Current Issues
 
 Changes:

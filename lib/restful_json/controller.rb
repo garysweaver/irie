@@ -126,7 +126,7 @@ module RestfulJson
             predicate_sym = param_to_attr_and_arel_predicate[param_name][1]
             if predicate_sym == :eq
               puts ".where(#{attr_sym.inspect} => convert_request_param_value_for_filtering(#{attr_sym.inspect}, #{param.inspect}))" if self.debug?
-              value = value.where(attr_sym => convert_request_param_value_for_filtering(attr, param))
+              value = value.where(attr_sym => convert_request_param_value_for_filtering(attr_sym, param))
             else
               one_or_more_param = param.split(self.filter_split).collect{|v|convert_request_param_value_for_filtering(attr_sym, v)}
               puts ".where(t[#{attr_sym.inspect}].try(#{predicate_sym.inspect}, #{one_or_more_param.inspect}))" if self.debug?

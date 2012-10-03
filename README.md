@@ -3,7 +3,7 @@ restful_json v3 for Rails 3.1+
 
 A restful_json (maybe we'll rename it because it isn't json-specific at the moment) controller is a configurable generic Rails 3.1+ controller that does the index, show, create, and update for you and has stuff for paging, filtering etc. that is mostly declarative to try to help you avoid unintentional crazy or insecure queries on your DB.
 
-It is both Rails 3.1+ and Rails 4 friendly-ish, too.
+It is both Rails 3.1+ and Rails 4 friendly-ish.
 
 Uses Adam Hawkin's [permitter][permitter] code which uses [strong_parameters][strong_parameters] and encourages use of [active_model_serializers][active_model_serializers].
 

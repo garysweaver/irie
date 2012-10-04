@@ -3,6 +3,7 @@ module RestfulJson
     :can_filter_by_default_using, 
     :debug, 
     :filter_split,
+    :incoming_nil_identifier,
     :number_of_records_in_a_page,
     :predicate_prefix
   ]
@@ -18,5 +19,6 @@ RestfulJson.configure do
   self.can_filter_by_default_using = [:eq]
   self.predicate_prefix = '!'
   self.filter_split = ',',
-  self.number_of_records_in_a_page = 15
+  self.number_of_records_in_a_page = 15,
+  self.incoming_nil_identifier = 'nil'
 end

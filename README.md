@@ -34,6 +34,7 @@ or in bulk like:
       self.can_filter_by_default_using = [:eq]
       self.predicate_prefix = '!'
       self.filter_split = ','
+      self.incoming_nil_identifier = 'nil' # useful for updates
     end
 
 #### Controller: Advanced Configuration

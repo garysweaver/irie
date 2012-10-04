@@ -240,6 +240,7 @@ module RestfulJson
 
       def create
         authorize! :create, self.model_class
+        puts "#{self.class.name}.create permitted params #{@permitted_params.inspect}, request.format=#{request.format}" if self.debug?
         @value = self.model_class.new(permitted_params)
         @value.save
         instance_variable_set(self.model_at_singular_name_sym, @value)
@@ -250,6 +251,11 @@ module RestfulJson
       def update
         authorize! :update, self.model_class
         @value = self.model_class.find(params[:id])
+        puts "#{self.class.name}.update permitted params #{@permitted_params.inspect}, request.format=#{request.format}" if self.debug?
+        if self.incoming_nil_identifier
+          permitted_params = nillate(permitted_params)
+          puts "#{self.class.name}.create nillated permitted params #{@permitted_params.inspect}, request.format=#{request.format}" if self.debug?
+        end
         self.model_class.update_attributes(permitted_params)
         instance_variable_set(self.model_at_singular_name_sym, @value)
         puts "#{self.class.name}.update responding with #{@value.inspect}, request.format=#{request.format}" if self.debug?
@@ -262,6 +268,20 @@ module RestfulJson
         instance_variable_set(self.model_at_singular_name_sym, @value)
         puts "#{self.class.name}.destroy responding with #{@value.inspect}, request.format=#{request.format}" if self.debug?
         respond_with @value
+      end
+
+      # convert "nil" in incoming to nil to act as patch, because we're too lazy to worry about IETF JSON Patch/draft-ietf-appsawg-json-patch-03
+      def nillate(value)
+        value = permitted_params[key]
+        if value.is_a?(Hash)
+          permitted_params.keys.each{|k|permitted_params[k]==nillate(permitted_params[k])}
+        elsif value.is_a?(Array)
+          value.map!{|a|nillate(a)}
+        elsif value == self.incoming_nil_identifier
+           nil
+        else
+          value
+        end
       end
     end
   end

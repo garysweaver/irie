@@ -97,8 +97,8 @@ module RestfulJson
             predicate_sym = predicate.to_sym
             args.each do |attr|
               attr_sym = attr.to_sym
-              self.param_to_attr_and_arel_predicate[attr_sym] = [attr_sym, :eq] if predicate_sym == :eq
-              self.param_to_attr_and_arel_predicate["#{attr}#{self.predicate_prefix}#{predicate}".to_sym] = [attr_sym, predicate_sym]
+              self.param_to_attr_and_arel_predicate[attr_sym] = [attr_sym, :eq, options] if predicate_sym == :eq
+              self.param_to_attr_and_arel_predicate["#{attr}#{self.predicate_prefix}#{predicate}".to_sym] = [attr_sym, predicate_sym, options]
             end
           end
         end
@@ -154,7 +154,8 @@ module RestfulJson
           value = custom_query.proc(t, value)
         else
           self.param_to_attr_and_arel_predicate.keys.each do |param_name|
-            param = params[param_name]
+            options = param_to_attr_and_arel_predicate[param_name][2]
+            param = params[param_name] || options[:with_default]
             if param.present? && param_to_attr_and_arel_predicate[param_name]
               puts "applying filter #{param_to_attr_and_arel_predicate[param_name].inspect}" if self.debug?
               attr_sym = param_to_attr_and_arel_predicate[param_name][0]

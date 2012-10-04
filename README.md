@@ -62,7 +62,7 @@ Everything is (fairly) well-declared:
     class FoobarsController < ApplicationController  
       acts_as_restful_json
       can_filter_by :foo_id # implied support for ARel eq
-      can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt]
+      can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt], with_default: Time.now # can specify multiple predicates and default value
       supports_functions :count
       order_by {:foo_date => :asc}, {:bar_date => :desc} # an array of hashes to clearly specify order, as hash keys are often unordered :)
       # respond_to :json, :html # specify if you want more than :json and it should work, in-theory. uses respond_with.
@@ -211,6 +211,18 @@ See also:
     query_for :get_foos, is: {|t,q| q.where(params[:foo] => 'bar').order(t[])}
 
 Note that it is a proc so you can really do whatever you want with it and will have access to other things in the environment or can call another method, etc.
+
+### Routing
+
+Respects regular and nested Rails resourceful routing and controller namespacing, e.g. in `config/routes.rb`:
+
+    MyAwesomeApp::Application.routes.draw do
+      namespace :my_service_controller_module do
+        resources :foobars
+        # why use nested if you only want to provide ways of querying via path
+        match 'bars/:bar_id/foobars(.:format)' => 'foobars#index'
+      end
+    end 
 
 ### License
 

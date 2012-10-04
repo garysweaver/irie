@@ -64,6 +64,7 @@ Everything is (fairly) well-declared:
       can_filter_by :foo_id # implied support for ARel eq
       can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt]
       supports_functions :count
+      order_by {:foo_date => :asc}, {:bar_date => :desc} # an array of hashes to clearly specify order, as hash keys are often unordered :)
       # respond_to :json, :html # specify if you want more than :json and it should work, in-theory. uses respond_with.
     end
 
@@ -163,6 +164,25 @@ Second page of 30 results:
 Third page of 30 results:
 
     http://localhost:3000/foobars?skip=60&take=30
+
+##### Or you specify the query as a lambda
+
+This will override anything else you've done to specify query and may or may not ignore params depending on your implementation, so don't mix them or it will just look confusing:
+
+    # t is self.model_class.arel_table and q is self.model_class.scoped
+    query_for :index, is: {|t,q| q.where(params[:foo] => 'bar').order(t[])}
+
+See also:
+* http://api.rubyonrails.org/classes/ActiveRecord/Relation.html
+* https://github.com/rails/arel
+
+##### Custom action methods via query definition only
+
+`query_for` also will `alias_method (some action), :index` anything other than `:index`, so you can easily create custom non-RESTful action methods:
+
+    query_for :get_foos, is: {|t,q| q.where(params[:foo] => 'bar').order(t[])}
+
+Note that it is a proc so you can really do whatever you want with it and will have access to other things in the environment or can call another method, etc.
 
 ### License
 

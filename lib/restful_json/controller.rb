@@ -39,6 +39,8 @@ module RestfulJson
         class_attribute :model_updated_message, instance_writer: true
         class_attribute :param_to_attr_and_arel_predicate, instance_writer: true
         class_attribute :supported_functions, instance_writer: true
+        class_attribute :order_by, instance_writer: true
+        class_attribute :action_to_query, instance_writer: true
 
         # TODO: keep? You can blame these on an attempt at premature optimization. Without them aren't there lots of small strings in requests that have to be GC'd, or should we ditch setting instance vars dynamically?
         class_attribute :model_at_plural_name_sym, instance_writer: true
@@ -73,6 +75,8 @@ module RestfulJson
         
         self.param_to_attr_and_arel_predicate ||= {}
         self.supported_functions ||= []
+        self.order_by ||= []
+        self.action_to_query ||= {}
 
         # this can be overriden, but it is restful_json...
         respond_to :json
@@ -101,6 +105,25 @@ module RestfulJson
         def supports_functions(functions)
           self.supported_functions += Array.wrap(functions)
         end
+        
+        # See https://github.com/rails/arel
+        # t is self.model_class.arel_table and q is self.model_class.scoped
+        # e.g. query_for :index, is: {|t,q| q.where(params[:foo] => 'bar').order(t[])}
+        def query_for(*args)
+          options = args.extract_options!
+          # TODO: support custom actions to be automaticaly defined
+          args.each do |an_action|
+            if an_action.to_sym == :index
+              if options[:is]
+                self.action_to_query[an_action.to_sym] = options[:is]
+              else
+                puts "must supply an :is option with query_for #{an_action.inspect}"
+              end
+            else
+              alias_method an_action.to_sym, :index
+            end
+          end
+        end
 
       end
 
@@ -116,59 +139,76 @@ module RestfulJson
         value && ['NULL','null','nil'].include?(value) ? nil : value
       end
 
+      # this method be alias_method'd by query_for, so it is more than just index
       def index
         t = self.model_class.arel_table
         value = self.model_class.scoped
-        self.param_to_attr_and_arel_predicate.keys.each do |param_name|
-          param = params[param_name]
-          if param.present? && param_to_attr_and_arel_predicate[param_name]
-            attr_sym = param_to_attr_and_arel_predicate[param_name][0]
-            predicate_sym = param_to_attr_and_arel_predicate[param_name][1]
-            if predicate_sym == :eq
-              puts ".where(#{attr_sym.inspect} => convert_request_param_value_for_filtering(#{attr_sym.inspect}, #{param.inspect}))" if self.debug?
-              value = value.where(attr_sym => convert_request_param_value_for_filtering(attr_sym, param))
-            else
-              one_or_more_param = param.split(self.filter_split).collect{|v|convert_request_param_value_for_filtering(attr_sym, v)}
-              puts ".where(t[#{attr_sym.inspect}].try(#{predicate_sym.inspect}, #{one_or_more_param.inspect}))" if self.debug?
-              value = value.where(t[attr_sym].try(predicate_sym, one_or_more_param))
+
+        custom_query = self.action_to_query[params[:action]]
+        if custom_query
+          custom_query.proc(t, value)
+        else
+          self.param_to_attr_and_arel_predicate.keys.each do |param_name|
+            param = params[param_name]
+            if param.present? && param_to_attr_and_arel_predicate[param_name]
+              attr_sym = param_to_attr_and_arel_predicate[param_name][0]
+              predicate_sym = param_to_attr_and_arel_predicate[param_name][1]
+              if predicate_sym == :eq
+                puts ".where(#{attr_sym.inspect} => convert_request_param_value_for_filtering(#{attr_sym.inspect}, #{param.inspect}))" if self.debug?
+                value = value.where(attr_sym => convert_request_param_value_for_filtering(attr_sym, param))
+              else
+                one_or_more_param = param.split(self.filter_split).collect{|v|convert_request_param_value_for_filtering(attr_sym, v)}
+                puts ".where(t[#{attr_sym.inspect}].try(#{predicate_sym.inspect}, #{one_or_more_param.inspect}))" if self.debug?
+                value = value.where(t[attr_sym].try(predicate_sym, one_or_more_param))
+              end
             end
           end
-        end
-        
-        if params[:skip] && self.supported_functions.include?(:skip)
-          value = value.take(params[:skip])
-        end
-        
-        if params[:take] && self.supported_functions.include?(:take)
-          value = value.take(params[:take])
-        end
-        
-        if params[:uniq] && self.supported_functions.include?(:uniq)
-          value = value.uniq
+          
+          if params[:skip] && self.supported_functions.include?(:skip)
+            value = value.take(params[:skip])
+          end
+          
+          if params[:take] && self.supported_functions.include?(:take)
+            value = value.take(params[:take])
+          end
+          
+          if params[:uniq] && self.supported_functions.include?(:uniq)
+            value = value.uniq
+          end
+
+          if params[:count] && self.supported_functions.include?(:count)
+            value = value.count
+          end
+
+          self.order_by.each do |attr_to_direction|
+            # TODO: this looks nasty, but makes no sense to iterate keys if only single of each
+            value = value.order(t[attr_to_direction.keys[0]].call(attr_to_direction.values[0]))
+          end
         end
 
-        if params[:count] && self.supported_functions.include?(:count)
-          value = value.count
+        if value.is_a?(ActiveRecord::Relation)
+          # imo AMS should really convert the relation into an array before trying to deserialize. There are a number of fixed bugs about this saying is fixed, so I'm confused.
+          value = value.all
         end
         
         @value = value
 
         instance_variable_set(self.model_at_plural_name_sym, @value)
 
-        respond_to do |format|
-          format.html # index.html.erb
-          format.json { render json: @value }
-        end
+        puts "#{self}.index responding with #{@value.inspect}, request.format=#{request.format}"
+        respond_with @value
       end
 
       def show
         @value = self.model_class.find(params[:id])
         instance_variable_set(self.model_at_singular_name_sym, @value)
+        puts "#{self}.show responding with #{@value.inspect}, request.format=#{request.format}"
         respond_with @value
       end
 
       def new
         @value = self.model_class.new
+        puts "#{self}.new responding with #{@value.inspect}, request.format=#{request.format}"
         respond_with @value
       end
 
@@ -182,6 +222,7 @@ module RestfulJson
         @value = self.model_class.new(permitted_params)
         @value.save
         instance_variable_set(self.model_at_singular_name_sym, @value)
+        puts "#{self}.create responding with #{@value.inspect}, request.format=#{request.format}"
         respond_with @value
       end
 
@@ -190,6 +231,7 @@ module RestfulJson
         @value = self.model_class.find(params[:id])
         self.model_class.update_attributes(permitted_params)
         instance_variable_set(self.model_at_singular_name_sym, @value)
+        puts "#{self}.update responding with #{@value.inspect}, request.format=#{request.format}"
         respond_with @value
       end
 
@@ -197,6 +239,7 @@ module RestfulJson
         @value = self.model_class.find(params[:id])
         @value.destroy
         instance_variable_set(self.model_at_singular_name_sym, @value)
+        puts "#{self}.destroy responding with #{@value.inspect}, request.format=#{request.format}"
         respond_with @value
       end
     end

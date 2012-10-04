@@ -191,5 +191,4 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [permitter]: http://broadcastingadam.com/2012/07/parameter_authorization_in_rails_apis/
 [strong_parameters]: https://github.com/rails/strong_parameters
 [active_model_serializers]: https://github.com/josevalim/active_model_serializers
-[strong_parameters]: 
 [lic]: http://github.com/garysweaver/restful_json/blob/master/LICENSE

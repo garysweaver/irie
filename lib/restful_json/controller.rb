@@ -54,7 +54,10 @@ module RestfulJson
         # use values from config
         RestfulJson::CONTROLLER_OPTIONS.each do |key|
           class_attribute key, instance_writer: true
+          puts "set #{key} to #{RestfulJson.send(key)}"
           self.send("#{key}=".to_sym, RestfulJson.send(key))
+          puts "#{key}=#{self.send(key)}"
+          puts "#{key}?=#{self.send("#{key}?".to_sym)}"
         end
         
         # if not set, use controller classname
@@ -102,8 +105,9 @@ module RestfulJson
 
         # Can specify additional functions in the index, e.g.
         # supports_functions :skip, :uniq, :take, :count
-        def supports_functions(functions)
-          self.supported_functions += Array.wrap(functions)
+        def supports_functions(*args)
+          options = args.extract_options! # overkill, sorry
+          self.supported_functions += args
         end
         
         # See https://github.com/rails/arel
@@ -113,13 +117,13 @@ module RestfulJson
           options = args.extract_options!
           # TODO: support custom actions to be automaticaly defined
           args.each do |an_action|
-            if an_action.to_sym == :index
-              if options[:is]
-                self.action_to_query[an_action.to_sym] = options[:is]
-              else
-                puts "must supply an :is option with query_for #{an_action.inspect}"
-              end
+            if options[:is]
+              self.action_to_query[an_action.to_sym] = options[:is]
             else
+              raise "#{self.class.name} must supply an :is option with query_for #{an_action.inspect}"
+            end
+            unless an_action.to_sym == :index
+              puts "#{self.class.name} defining a new method called #{an_action.inspect}" if self.debug?
               alias_method an_action.to_sym, :index
             end
           end
@@ -132,7 +136,7 @@ module RestfulJson
         raise "#{self.class.name} failed to initialize. self.model_class was nil in #{self} which shouldn't happen!" if self.model_class.nil?
         # note: we are overriding class attribute setters locally to attempt to set strings to allow us to set @foos and @foo without additional string creation per request
         raise "#{self.class.name} assumes that #{self.model_class} extends ActiveRecord::Base, but it didn't. Please fix, or remove this constraint." unless self.model_class.ancestors.include?(ActiveRecord::Base)
-        puts "'#{self}' self.model_class=#{self.model_class}, self.model_singular_name=#{self.model_singular_name}, self.model_plural_name=#{self.model_plural_name}" if self.debug?
+        puts "#{self.class.name} initialized with self.model_class=#{self.model_class}, self.model_singular_name=#{self.model_singular_name}, self.model_plural_name=#{self.model_plural_name}" if self.debug?
       end
 
       def convert_request_param_value_for_filtering(attr_sym, value)
@@ -142,15 +146,17 @@ module RestfulJson
       # this method be alias_method'd by query_for, so it is more than just index
       def index
         t = self.model_class.arel_table
-        value = self.model_class.scoped
+        value = self.model_class.scoped # returns ActiveRecord::Relation equivalent to select with no where clause
 
         custom_query = self.action_to_query[params[:action]]
         if custom_query
-          custom_query.proc(t, value)
+          puts "using custom query for #{params[:action].inspect} action" if self.debug?
+          value = custom_query.proc(t, value)
         else
           self.param_to_attr_and_arel_predicate.keys.each do |param_name|
             param = params[param_name]
             if param.present? && param_to_attr_and_arel_predicate[param_name]
+              puts "applying filter #{param_to_attr_and_arel_predicate[param_name].inspect}" if self.debug?
               attr_sym = param_to_attr_and_arel_predicate[param_name][0]
               predicate_sym = param_to_attr_and_arel_predicate[param_name][1]
               if predicate_sym == :eq
@@ -163,52 +169,66 @@ module RestfulJson
               end
             end
           end
+
+          if params[:page] && self.supported_functions.include?(:page)
+            puts "params[:page] = #{params[:page].inspect}" if self.debug?
+            page = params[:page].to_i
+            page = 1 if page < 1 # to avoid people using this as a way to get all records unpaged, as that probably isn't the intent?
+            #TODO: to_s is hack to avoid it becoming an Arel::SelectManager for some reason which not sure what to do with
+            value = value.skip((self.number_of_records_in_a_page * (page - 1)).to_s)
+            value = value.take((self.number_of_records_in_a_page).to_s)
+          end
           
           if params[:skip] && self.supported_functions.include?(:skip)
-            value = value.take(params[:skip])
+            puts "params[:skip] = #{params[:skip].inspect}" if self.debug?
+            value = value.skip(params[:skip])
           end
           
           if params[:take] && self.supported_functions.include?(:take)
+            puts "params[:take] = #{params[:take].inspect}" if self.debug?
             value = value.take(params[:take])
           end
           
           if params[:uniq] && self.supported_functions.include?(:uniq)
+            puts "params[:uniq] = #{params[:uniq].inspect}" if self.debug?
             value = value.uniq
           end
 
+          # these must happen at the end and are independent
           if params[:count] && self.supported_functions.include?(:count)
-            value = value.count
-          end
-
-          self.order_by.each do |attr_to_direction|
-            # TODO: this looks nasty, but makes no sense to iterate keys if only single of each
-            value = value.order(t[attr_to_direction.keys[0]].call(attr_to_direction.values[0]))
+            puts "params[:count] = #{params[:count].inspect}" if self.debug?
+            value = value.count.to_i
+          elsif params[:page_count] && self.supported_functions.include?(:page_count)
+            puts "params[:page_count] = #{params[:page_count].inspect}" if self.debug?
+            count_value = value.count.to_i # this executes the query so nothing else can be done in AREL
+            value = (count_value / self.number_of_records_in_a_page) + (count_value % self.number_of_records_in_a_page ? 1 : 0)
+          else
+            self.order_by.each do |attr_to_direction|
+              # TODO: this looks nasty, but makes no sense to iterate keys if only single of each
+              puts "ordering by #{attr_to_direction.keys[0].inspect}, #{attr_to_direction.values[0].inspect}" if self.debug?
+              value = value.order(t[attr_to_direction.keys[0]].call(attr_to_direction.values[0]))
+            end
+            value = value.to_a
           end
         end
 
-        if value.is_a?(ActiveRecord::Relation)
-          # imo AMS should really convert the relation into an array before trying to deserialize. There are a number of fixed bugs about this saying is fixed, so I'm confused.
-          value = value.all
-        end
-        
         @value = value
-
         instance_variable_set(self.model_at_plural_name_sym, @value)
 
-        puts "#{self}.index responding with #{@value.inspect}, request.format=#{request.format}"
+        puts "#{self.class.name}.index responding with #{@value.inspect}, request.format=#{request.format}" if self.debug?
         respond_with @value
       end
 
       def show
         @value = self.model_class.find(params[:id])
         instance_variable_set(self.model_at_singular_name_sym, @value)
-        puts "#{self}.show responding with #{@value.inspect}, request.format=#{request.format}"
+        puts "#{self.class.name}.show responding with #{@value.inspect}, request.format=#{request.format}" if self.debug?
         respond_with @value
       end
 
       def new
         @value = self.model_class.new
-        puts "#{self}.new responding with #{@value.inspect}, request.format=#{request.format}"
+        puts "#{self.class.name}.new responding with #{@value.inspect}, request.format=#{request.format}" if self.debug?
         respond_with @value
       end
 
@@ -222,7 +242,7 @@ module RestfulJson
         @value = self.model_class.new(permitted_params)
         @value.save
         instance_variable_set(self.model_at_singular_name_sym, @value)
-        puts "#{self}.create responding with #{@value.inspect}, request.format=#{request.format}"
+        puts "#{self.class.name}.create responding with #{@value.inspect}, request.format=#{request.format}" if self.debug?
         respond_with @value
       end
 
@@ -231,7 +251,7 @@ module RestfulJson
         @value = self.model_class.find(params[:id])
         self.model_class.update_attributes(permitted_params)
         instance_variable_set(self.model_at_singular_name_sym, @value)
-        puts "#{self}.update responding with #{@value.inspect}, request.format=#{request.format}"
+        puts "#{self.class.name}.update responding with #{@value.inspect}, request.format=#{request.format}" if self.debug?
         respond_with @value
       end
 
@@ -239,7 +259,7 @@ module RestfulJson
         @value = self.model_class.find(params[:id])
         @value.destroy
         instance_variable_set(self.model_at_singular_name_sym, @value)
-        puts "#{self}.destroy responding with #{@value.inspect}, request.format=#{request.format}"
+        puts "#{self.class.name}.destroy responding with #{@value.inspect}, request.format=#{request.format}" if self.debug?
         respond_with @value
       end
     end

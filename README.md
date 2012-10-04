@@ -125,7 +125,35 @@ This is another filter that can be used with the others, but instead of returnin
 
     http://localhost:3000/foobars?count=
 
-##### Paging
+#### Paging
+
+In controller make sure these are included:
+
+    supports_functions :page, :page_count
+
+To get the first page of results:
+
+    http://localhost:3000/foobars?page=1
+
+To get the second page of results:
+
+    http://localhost:3000/foobars?page=2
+
+To get the total number of pages of results:
+
+    http://localhost:3000/foobars?page_count=
+
+To set page size at application level:
+
+    RestfulJson.number_of_records_in_a_page = 15
+
+To set page size at controller level:
+
+    self.number_of_records_in_a_page = 15
+
+For a better idea of how this works on the backend, look at AREL's skip and take, or see advanced paging.
+
+##### Advanced Paging
 
 In controller make sure these are included:
 

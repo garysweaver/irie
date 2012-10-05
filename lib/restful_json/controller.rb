@@ -253,7 +253,7 @@ module RestfulJson
           permitted_params = replace_with_nils(permitted_params, values_to_replace)
           puts "#{self.class.name}.create nillated permitted params #{@permitted_params.inspect}, request.format=#{request.format}" if self.debug?
         end
-        self.model_class.update_attributes(permitted_params)
+        @value.update_attributes(permitted_params)
         instance_variable_set(self.model_at_singular_name_sym, @value)
         puts "#{self.class.name}.update responding with #{@value.inspect}, request.format=#{request.format}" if self.debug?
         respond_with @value

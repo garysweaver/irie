@@ -11,13 +11,41 @@ Uses Adam Hawkin's [permitter][permitter] code which uses [strong_parameters][st
 
 So, it's subject to change and may be broken.
 
-### Configuration
+### Installation
 
 In your Rails 3.2.8+, < 4.0 app:
 
 in `Gemfile`:
 
     gem 'restful_json', '>= 3.0.0.alpha.2', :git => 'git://github.com/garysweaver/restful_json.git'
+
+You need to setup [cancan][cancan]. Here are the basics:
+
+In your `app/controllers/application_controller.rb` or in your service controllers, make sure `current_user` is set:
+
+    class ApplicationController < ActionController::Base
+      protect_from_forgery
+
+      prepend_before_filter :auth
+
+      def auth
+        # can be whatever model you want, or non-model, but let's assume you have a User model already
+        @current_user = User.new
+      end
+    end
+
+In `app/models/ability.rb`, setup a basic cancan ability. Just for testing we'll allow everything:
+
+    class Ability
+      include CanCan::Ability
+
+      def initialize(user)
+        # see cancan and use its generator to get latest format, etc. of what to use and how you can authorize various models for read, manage, etc.
+        can :manage, :all
+      end
+    end
+
+### Configuration
 
 This is *not recommended* for rails 3.2.x apps. Since using strong_parameters, we'll probably wrongly assume you are using it which may mean in `config/application.rb` that you might have:
 
@@ -36,8 +64,6 @@ or in bulk like:
       self.filter_split = ','
       self.incoming_nil_identifier = 'nil' # useful for updates
     end
-
-Also, you need to setup [cancan][cancan] and whatever you are going to use for authorization that cancan supports so that `current_user` is available.
 
 #### Controller: Advanced Configuration
 

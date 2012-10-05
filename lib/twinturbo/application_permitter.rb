@@ -25,7 +25,7 @@ class ApplicationPermitter
   end
 
   def initialize(params, user, ability = nil)
-    @params, @user, @ablity = params, user, ability
+    @params, @user, @ability = params, user, ability
   end
 
   def permitted_params

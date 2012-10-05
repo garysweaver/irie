@@ -1,24 +1,24 @@
 require 'restful_json/config'
+require 'twinturbo/controller'
 require 'active_model_serializers'
 require 'strong_parameters'
-require 'convenient-actionpack'
+#require 'convenient-actionpack'
+require 'cancan'
 
 module RestfulJson
   module Controller
     extend ActiveSupport::Concern
 
     included do
-      NEW = 'new'
-      EDIT = 'edit'
-      send :include, ::ActiveModel::ForbiddenAttributesProtection
-      send :include, ::ActionController::Serialization
-      send :include, ::ActionController::StrongParameters
-      send :include, ::TwinTurbo::Controller
-      send :include, ::Convenient::Controller
     end
 
     module ClassMethods
       def acts_as_restful_json(options = {})
+        include ::ActionController::Serialization
+        include ::ActionController::StrongParameters
+        include ::CanCan::ControllerAdditions
+        include ::TwinTurbo::Controller
+        #include Convenient::Controller
         include ActsAsRestfulJson
       end
     end
@@ -27,10 +27,6 @@ module RestfulJson
       extend ActiveSupport::Concern
 
       included do
-        #
-        #before_filter :before_request
-        #after_filter :after_request
-
         # create class attributes for each controller option and set the value to the value in the app configuration
         class_attribute :model_class, instance_writer: true
         class_attribute :model_singular_name, instance_writer: true
@@ -252,8 +248,9 @@ module RestfulJson
         authorize! :update, self.model_class
         @value = self.model_class.find(params[:id])
         puts "#{self.class.name}.update permitted params #{@permitted_params.inspect}, request.format=#{request.format}" if self.debug?
-        if self.incoming_nil_identifier
-          permitted_params = nillate(permitted_params)
+        values_to_replace = Array.wrap(self.nullify_incoming_values)
+        if values_to_replace.size > 0
+          permitted_params = replace_with_nils(permitted_params, values_to_replace)
           puts "#{self.class.name}.create nillated permitted params #{@permitted_params.inspect}, request.format=#{request.format}" if self.debug?
         end
         self.model_class.update_attributes(permitted_params)
@@ -270,14 +267,13 @@ module RestfulJson
         respond_with @value
       end
 
-      # convert "nil" in incoming to nil to act as patch, because we're too lazy to worry about IETF JSON Patch/draft-ietf-appsawg-json-patch-03
-      def nillate(value)
+      def replace_with_nils(value, values_to_replace)
         value = permitted_params[key]
         if value.is_a?(Hash)
           permitted_params.keys.each{|k|permitted_params[k]==nillate(permitted_params[k])}
         elsif value.is_a?(Array)
           value.map!{|a|nillate(a)}
-        elsif value == self.incoming_nil_identifier
+        elsif values_to_replace.include?(value)
            nil
         else
           value

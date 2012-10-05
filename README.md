@@ -37,6 +37,8 @@ or in bulk like:
       self.incoming_nil_identifier = 'nil' # useful for updates
     end
 
+Also, you need to setup [cancan][cancan] and whatever you are going to use for authorization that cancan supports so that `current_user` is available.
+
 #### Controller: Advanced Configuration
 
 In the controller for advanced configuration you can set a variety of class attributes with `self.something = ...` in the body of your controller to set model class, variable names, messages, etc. Take a look at the class_attribute definitions in `lib/restful_json/controller.rb`.
@@ -230,6 +232,7 @@ Respects regular and nested Rails resourceful routing and controller namespacing
 Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 
 [permitter]: http://broadcastingadam.com/2012/07/parameter_authorization_in_rails_apis/
+[cancan]: https://github.com/ryanb/cancan
 [strong_parameters]: https://github.com/rails/strong_parameters
 [active_model_serializers]: https://github.com/josevalim/active_model_serializers
 [lic]: http://github.com/garysweaver/restful_json/blob/master/LICENSE

@@ -30,7 +30,7 @@ module RestfulJson
         class_attribute :model_updated_message, instance_writer: true
         class_attribute :param_to_attr_and_arel_predicate, instance_writer: true
         class_attribute :supported_functions, instance_writer: true
-        class_attribute :order_by, instance_writer: true
+        class_attribute :ordered_by, instance_writer: true
         class_attribute :action_to_query, instance_writer: true
 
         # use values from config
@@ -45,7 +45,7 @@ module RestfulJson
 
         self.param_to_attr_and_arel_predicate ||= {}
         self.supported_functions ||= []
-        self.order_by ||= []
+        self.ordered_by ||= []
         self.action_to_query ||= {}
 
         # this can be overriden, but it is restful_json...
@@ -92,6 +92,16 @@ module RestfulJson
               puts "#{self.class.name} defining a new method called #{an_action.inspect}" if self.debug?
               alias_method an_action.to_sym, :index
             end
+          end
+        end
+
+        def order_by(args)
+          if args.is_a?(Array)
+            self.ordered_by += args
+          elsif args.is_a?(Hash)
+            self.ordered_by.merge!(args)
+          else
+            raise ArgumentError.new("order_by takes a hash or array of hashes")
           end
         end
       end
@@ -205,7 +215,7 @@ module RestfulJson
             count_value = value.count.to_i # this executes the query so nothing else can be done in AREL
             value = (count_value / self.number_of_records_in_a_page) + (count_value % self.number_of_records_in_a_page ? 1 : 0)
           else
-            self.order_by.each do |attr_to_direction|
+            self.ordered_by.each do |attr_to_direction|
               # TODO: this looks nasty, but makes no sense to iterate keys if only single of each
               puts "ordering by #{attr_to_direction.keys[0].inspect}, #{attr_to_direction.values[0].inspect}" if self.debug?
               value = value.order(t[attr_to_direction.keys[0]].call(attr_to_direction.values[0]))

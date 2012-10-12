@@ -17,6 +17,5 @@ Gem::Specification.new do |s|
   s.add_dependency 'actionpack'
   s.add_dependency 'activerecord'
   s.add_dependency 'cancan'
-  #s.add_dependency 'convenient-actionpack'
   s.add_dependency 'strong_parameters'
 end

@@ -2,15 +2,11 @@ require 'restful_json/config'
 require 'twinturbo/controller'
 require 'active_model_serializers'
 require 'strong_parameters'
-#require 'convenient-actionpack'
 require 'cancan'
 
 module RestfulJson
   module Controller
     extend ActiveSupport::Concern
-
-    included do
-    end
 
     module ClassMethods
       def acts_as_restful_json(options = {})
@@ -18,7 +14,6 @@ module RestfulJson
         include ::ActionController::StrongParameters
         include ::CanCan::ControllerAdditions
         include ::TwinTurbo::Controller
-        #include Convenient::Controller
         include ActsAsRestfulJson
       end
     end
@@ -58,7 +53,6 @@ module RestfulJson
       end
 
       module ClassMethods
-
         # Whitelist attributes that are queryable through the operation(s) already defined in can_filter_by_default_using, or can specify attributes:
         # can_filter_by :attr_name_1, :attr_name_2 # implied using: [eq] if RestfulJson.can_filter_by_default_using = [:eq] 
         # can_filter_by :attr_name_1, :attr_name_2, using: [:eq, :not_eq]
@@ -100,7 +94,6 @@ module RestfulJson
             end
           end
         end
-
       end
 
       def initialize
@@ -275,7 +268,6 @@ module RestfulJson
         puts "#{self.class.name}.destroy responding with #{@value.inspect}, request.format=#{request.format}" if self.debug?
         respond_with @value
       end
-
     end
   end
 end

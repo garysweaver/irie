@@ -5,15 +5,13 @@ module RestfulJson
     initializer "restful_json.action_controller" do
       ActiveSupport.on_load(:action_controller) do
         puts "Extending #{self} with RestfulJson::Controller" if RestfulJson.debug?
-        # ActionController::Base gets a method that allows controllers to include the new behavior
-        include RestfulJson::Controller # ActiveSupport::Concern
+        include RestfulJson::Controller
       end
     end
 
     initializer "restful_json.active_record" do
       ActiveSupport.on_load(:active_record) do
         puts "Extending #{self} with RestfulJson::Model" if RestfulJson.debug?
-        # ActiveRecord::Base gets new behavior
         include RestfulJson::Model
       end
     end

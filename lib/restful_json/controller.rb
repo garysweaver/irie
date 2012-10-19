@@ -147,7 +147,8 @@ module RestfulJson
         # if the model name is different than the controller name, you need to define methods to return the right urls
 
         class_eval "def #{@model_plural_name}_url; #{@model_plural_name_url_method_name_sym}; end"
-        class_eval "def #{@model_singular_name}(id); #{@model_singular_name_url_method_name_sym}(id); end"
+        #class_eval "def #{@model_singular_name}(id); #{@model_singular_name_url_method_name_sym}(id); end"
+        class_eval "def #{@model_singular_name}_url(record); #{@model_singular_name_url_method_name_sym}(record); end"        
       end
 
       def convert_request_param_value_for_filtering(attr_sym, value)
@@ -162,7 +163,7 @@ module RestfulJson
         custom_query = self.action_to_query[params[:action]]
         if custom_query
           puts "using custom query for #{params[:action].inspect} action" if self.debug?
-          value = custom_query.proc(t, value)
+          value = custom_query.call(t, value)
         else
           self.param_to_attr_and_arel_predicate.keys.each do |param_name|
             options = param_to_attr_and_arel_predicate[param_name][2]
@@ -251,20 +252,16 @@ module RestfulJson
 
       def create
         authorize! :create, @model_class
-        puts "#{self.class.name}.create permitted params #{@permitted_params.inspect}, request.format=#{request.format}"
         @value = @model_class.new(permitted_params)
         @value.save
         instance_variable_set(@model_at_singular_name_sym, @value)
-        puts "#{self.class.name}.create responding with #{@value.inspect}, request.format=#{request.format}"
-        #raise "@value was #{@value.inspect}"
-        raise "@model_singular_name_url_method_name_sym=#{@model_singular_name_url_method_name_sym} @value.id=#{@value.id} but not defined" unless defined?(@model_singular_name_url_method_name_sym)
-        respond_with @value, location: send(@model_singular_name_url_method_name_sym, @value.id)
+        puts "#{self.class.name}.create responding with #{@value.inspect}, request.format=#{request.format}" if self.debug?
+        respond_with @value
       end
 
       def update
         authorize! :update, @model_class
         @value = @model_class.find(params[:id])
-        puts "#{self.class.name}.update permitted params #{@permitted_params.inspect}, request.format=#{request.format}" if self.debug?
         @value.update_attributes(permitted_params)
         instance_variable_set(@model_at_singular_name_sym, @value)
         puts "#{self.class.name}.update responding with #{@value.inspect}, request.format=#{request.format}" if self.debug?

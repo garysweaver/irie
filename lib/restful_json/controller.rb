@@ -159,11 +159,10 @@ module RestfulJson
       def index
         t = @model_class.arel_table
         value = @model_class.scoped # returns ActiveRecord::Relation equivalent to select with no where clause
-
-        custom_query = self.action_to_query[params[:action]]
+        custom_query = self.action_to_query[params[:action].to_sym]
         if custom_query
           puts "using custom query for #{params[:action].inspect} action" if self.debug?
-          value = custom_query.call(t, value)
+          value = custom_query.call(t, value).to_a
         else
           self.param_to_attr_and_arel_predicate.keys.each do |param_name|
             options = param_to_attr_and_arel_predicate[param_name][2]

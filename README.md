@@ -227,7 +227,7 @@ Third page of 30 results:
 This will override anything else you've done to specify query and may or may not ignore params depending on your implementation, so don't mix them or it will just look confusing:
 
     # t is self.model_class.arel_table and q is self.model_class.scoped
-    query_for :index, is: {|t,q| q.where(params[:foo] => 'bar').order(t[])}
+    query_for :index, is: lambda {|t,q| q.where(:status_code => 'green')}
 
 See also:
 * http://api.rubyonrails.org/classes/ActiveRecord/Relation.html
@@ -237,7 +237,8 @@ See also:
 
 `query_for` also will `alias_method (some action), :index` anything other than `:index`, so you can easily create custom non-RESTful action methods:
 
-    query_for :get_foos, is: {|t,q| q.where(params[:foo] => 'bar').order(t[])}
+    # t is self.model_class.arel_table and q is self.model_class.scoped
+    query_for :some_action, is: lambda {|t,q| q.where(:status_code => 'green')}
 
 Note that it is a proc so you can really do whatever you want with it and will have access to other things in the environment or can call another method, etc.
 

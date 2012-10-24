@@ -4,9 +4,11 @@ module TwinTurbo
 
     # the following methods are from Adam Hawkins's post:
     # http://www.broadcastingadam.com/2012/07/parameter_authorization_in_rails_apis/
+    # with modification to only try to call permitted params if is a permitter
     
     def permitted_params
-      @permitted_params ||= permitter.permitted_params
+      # if you send invalid content, it will return an HTTP 20x for a put and a 422 for a post, instead of a 500 for both.
+      @permitted_params ||= safe_permitted_params
     end
 
     def permitter
@@ -17,10 +19,16 @@ module TwinTurbo
 
     def permitter_class
       begin
-        puts "Attempting to match #{self.class.to_s} which should be a *Controller"
-        "#{self.class.to_s.match(/(.+)Controller/)[1].singularize}Permitter".constantize
+        "#{self.class.to_s.match(/(.*?::)?(?<controller_name>.+)Controller/)[:controller_name].singularize}Permitter".constantize
       rescue NameError
         nil
+      end
+    end
+
+    def safe_permitted_params
+      begin
+        permitter.send(:permitted_params)
+      rescue
       end
     end
   end

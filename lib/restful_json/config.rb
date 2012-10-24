@@ -4,7 +4,8 @@ module RestfulJson
     :debug, 
     :filter_split,
     :number_of_records_in_a_page,
-    :predicate_prefix
+    :predicate_prefix,
+    :return_resource
   ]
   
   class << self
@@ -19,4 +20,5 @@ RestfulJson.configure do
   self.predicate_prefix = '!'
   self.filter_split = ','
   self.number_of_records_in_a_page = 15
+  self.return_resource = true
 end

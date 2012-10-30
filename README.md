@@ -13,7 +13,7 @@ So, it's subject to change and may be broken.
 
 ### Installation
 
-In your Rails 3.2.8+, < 4.0 app:
+In your Rails 3.1+, < 4.0 app:
 
 in `Gemfile`:
 
@@ -45,11 +45,17 @@ In `app/models/ability.rb`, setup a basic cancan ability. Just for testing we'll
       end
     end
 
-### Configuration
+### Strong Parameters
 
-This is *not recommended* for rails 3.2.x apps. Since using strong_parameters, we'll probably wrongly assume you are using it which may mean in `config/application.rb` that you might have:
+If you want to now disable the default whitelisting that occurs in later versions of Rails, change the config.active_record.whitelist_attributes property in your config/application.rb:
 
     config.active_record.whitelist_attributes = false
+
+This will allow you to remove / not have to use attr_accessible and do mass assignment inside your code and tests. Instead you will put this information into your permitters.
+
+Note that restful_json automatically includes `ActiveModel::ForbiddenAttributesProtection` on all models as will be done in Rails 4.
+
+### Configuration
 
 in `config/application.rb` you can set config items one at a time like:
 
@@ -68,19 +74,6 @@ or in bulk like:
 #### Controller: Advanced Configuration
 
 In the controller for advanced configuration you can set a variety of class attributes with `self.something = ...` in the body of your controller to set model class, variable names, messages, etc. Take a look at the class_attribute definitions in `lib/restful_json/controller.rb`.
-
-### What happens in your models
-
-Nothing you need to do other than normal stuff, and strong_parameters means no more mass assignment security stuff like attr_accessible or attr_protected.
-
-It does this in a railtie:
-
-    # ActiveRecord::Base gets new behavior
-    include RestfulJson::Model
-
-Which in turn just does this for now for strong_parameters:
-
-    include ::ActiveModel::ForbiddenAttributesProtection
 
 ### What a restful_json controller looks like and what it does
 
@@ -134,7 +127,7 @@ Multiple values are separated by `filter_split` (configurable):
 
     http://localhost:3000/foobars?seen_on!eq_any=2012-08-08,2012-09-09
 
-#### Count
+#### Unique/Distinct
 
 First, declare in the controller:
 
@@ -224,10 +217,20 @@ Third page of 30 results:
 
 ##### Or you specify the query as a lambda
 
-This will override anything else you've done to specify query and may or may not ignore params depending on your implementation, so don't mix them or it will just look confusing:
+This will override anything else you've done to specify query and may or may not ignore params depending on your implementation.
+
+To filter the list where the status_code attribute is 'green':
 
     # t is self.model_class.arel_table and q is self.model_class.scoped
     query_for :index, is: lambda {|t,q| q.where(:status_code => 'green')}
+
+or use the `->` Ruby 1.9 lambda syntax. You can also filter out items that have associations that don't have a certain attribute value (or anything else you can think up with ARel/ActiveRecord relations). To filter the list where the object's apples and pears associations are green:
+
+    query_for :index, is: -> {|t,q|
+      q.joins(:apples, :pears)
+      .where(apples: {color: 'green'})
+      .where(pears: {color: 'green'})
+    }
 
 See also:
 * http://api.rubyonrails.org/classes/ActiveRecord/Relation.html
@@ -238,7 +241,7 @@ See also:
 `query_for` also will `alias_method (some action), :index` anything other than `:index`, so you can easily create custom non-RESTful action methods:
 
     # t is self.model_class.arel_table and q is self.model_class.scoped
-    query_for :some_action, is: lambda {|t,q| q.where(:status_code => 'green')}
+    query_for :some_action, is: -> {|t,q| q.where(:status_code => 'green')}
 
 Note that it is a proc so you can really do whatever you want with it and will have access to other things in the environment or can call another method, etc.
 

@@ -200,6 +200,7 @@ module RestfulJson
 
       def new
         @value = @model_class.new
+        instance_variable_set(@model_at_singular_name_sym, @value)
         respond_with @value
       end
 

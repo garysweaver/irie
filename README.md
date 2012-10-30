@@ -7,9 +7,7 @@ It is both Rails 3.1+ and Rails 4 friendly-ish.
 
 Uses Adam Hawkin's [permitter][permitter] code which uses [strong_parameters][strong_parameters] and encourages use of [active_model_serializers][active_model_serializers].
 
-### In alpha
-
-So, it's subject to change and may be broken.
+This is currently in alpha. It is subject to change and may be broken.
 
 ### Installation
 
@@ -17,7 +15,7 @@ In your Rails 3.1+, < 4.0 app:
 
 in `Gemfile`:
 
-    gem 'restful_json', '>= 3.0.0.alpha.2', :git => 'git://github.com/garysweaver/restful_json.git'
+    gem 'restful_json', '>= 3.0.0.alpha.19', :git => 'git://github.com/garysweaver/restful_json.git'
 
 You need to setup [cancan][cancan]. Here are the basics:
 
@@ -71,21 +69,21 @@ or in bulk like:
       self.incoming_nil_identifier = 'nil' # useful for updates
     end
 
-#### Controller: Advanced Configuration
+#### Advanced Configuration
 
-In the controller for advanced configuration you can set a variety of class attributes with `self.something = ...` in the body of your controller to set model class, variable names, messages, etc. Take a look at the class_attribute definitions in `lib/restful_json/controller.rb`.
+In the controller, you can set a variety of class attributes with `self.something = ...` in the body of your controller to set model class, variable names, messages, etc. Take a look at the class_attribute definitions in `lib/restful_json/controller.rb`.
 
-### What a restful_json controller looks like and what it does
+### Usage
 
-A restful_json (ok, it is really neither RESTful, nor is it just JSON- discuss!) controller is a configurable generic Rails 3.1+ controller that does the index, show, create, and update for you.
+By using `acts_as_restful_json` you have a configurable generic Rails 3.1+ controller that does the index, show, create, and update and other custom actions easily for you.
 
 Everything is (fairly) well-declared:
 
     class FoobarsController < ApplicationController  
       acts_as_restful_json
-      can_filter_by :foo_id # implied support for ARel eq
-      can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt], with_default: Time.now # can specify multiple predicates and default value
-      supports_functions :count
+      can_filter_by :foo_id # implies using: [:eq]
+      can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt], with_default: Time.now # can specify multiple predicates and optionally a default value
+      supports_functions :count, :uniq, :take, :skip, :page, :page_count
       order_by {:foo_date => :asc}, {:bar_date => :desc} # an array of hashes to clearly specify order, as hash keys are often unordered :)
       # respond_to :json, :html # specify if you want more than :json and it should work, in-theory. uses respond_with.
     end
@@ -101,9 +99,7 @@ at time of writing these were:
 
 `supports_functions` lets you do other ARel functions. `:uniq`, `:skip`, `:take`, and `:count`.
 
-### Examples
-
-#### Attribute value filter
+#### Equality Filter by Attribute(s)
 
 First, declare in the controller:
 
@@ -113,7 +109,7 @@ Get Foobars with a foo_id of '1':
 
     http://localhost:3000/foobars?foo_id=1
 
-#### Attribute value filter
+#### Other Filters by Attribute(s)
 
 First, declare in the controller:
 
@@ -127,7 +123,7 @@ Multiple values are separated by `filter_split` (configurable):
 
     http://localhost:3000/foobars?seen_on!eq_any=2012-08-08,2012-09-09
 
-#### Unique/Distinct
+#### Unique (DISTINCT)
 
 First, declare in the controller:
 
@@ -175,7 +171,7 @@ To set page size at controller level:
 
 For a better idea of how this works on the backend, look at AREL's skip and take, or see advanced paging.
 
-##### Advanced Paging
+##### Skip and Take (OFFSET and LIMIT)
 
 In controller make sure these are included:
 
@@ -188,6 +184,8 @@ To skip rows returned, use 'skip'. It is called take, because skip is the AREL e
 To limit the number of rows returned, use 'take'. It is called take, because take is the AREL equivalent of SQL LIMIT:
 
     http://localhost:3000/foobars.json?take=5
+
+##### Variable Paging
 
 Combine skip and take for manual completely customized paging.
 
@@ -215,7 +213,7 @@ Third page of 30 results:
 
     http://localhost:3000/foobars?skip=60&take=30
 
-##### Or you specify the query as a lambda
+##### Custom Queries
 
 This will override anything else you've done to specify query and may or may not ignore params depending on your implementation.
 
@@ -236,7 +234,7 @@ See also:
 * http://api.rubyonrails.org/classes/ActiveRecord/Relation.html
 * https://github.com/rails/arel
 
-##### Custom action methods via query definition only
+##### Custom Actions
 
 `query_for` also will `alias_method (some action), :index` anything other than `:index`, so you can easily create custom non-RESTful action methods:
 

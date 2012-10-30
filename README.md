@@ -77,15 +77,16 @@ In the controller, you can set a variety of class attributes with `self.somethin
 
 By using `acts_as_restful_json` you have a configurable generic Rails 3.1+ controller that does the index, show, create, and update and other custom actions easily for you.
 
-Everything is (fairly) well-declared:
+Everything is well-declared and concise:
 
     class FoobarsController < ApplicationController  
       acts_as_restful_json
+      query_for :index, is: -> {|t,q|q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
       can_filter_by :foo_id # implies using: [:eq]
       can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt], with_default: Time.now # can specify multiple predicates and optionally a default value
       supports_functions :count, :uniq, :take, :skip, :page, :page_count
-      order_by {:foo_date => :asc}, {:bar_date => :desc} # an array of hashes to clearly specify order, as hash keys are often unordered :)
-      # respond_to :json, :html # specify if you want more than :json and it should work, in-theory. uses respond_with.
+      order_by {:foo_date => :asc}, {:bar_date => :desc} # an ordered array of hashes
+      respond_to :json, :html # specify if you want more than :json. It dynamically sets model variables with the right names, e.g. @foobar and @foobars.
     end
 
 `can_filter_by` means you can send in that request param (via routing or directly, just like normal in Rails) and it will use that in the ARel query (safe from SQL injection and only letting you do what you tell it). `:using` means you can use those ARel predicates for filtering. For a full list of available ones do:
@@ -214,8 +215,6 @@ Third page of 30 results:
     http://localhost:3000/foobars?skip=60&take=30
 
 ##### Custom Queries
-
-This will override anything else you've done to specify query and may or may not ignore params depending on your implementation.
 
 To filter the list where the status_code attribute is 'green':
 

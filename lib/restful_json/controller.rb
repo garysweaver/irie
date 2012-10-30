@@ -24,8 +24,8 @@ module RestfulJson
       NILS = ['NULL','null','nil']
 
       included do
-        # override to return json on post and put
-        responders :json if RestfulJson.return_resource
+        # allow override to return json on post and put
+        responders :json
 
         # create class attributes for each controller option and set the value to the value in the app configuration
         class_attribute :model_class, instance_writer: true

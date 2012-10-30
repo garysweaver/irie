@@ -45,7 +45,7 @@ In `app/models/ability.rb`, setup a basic cancan ability. Just for testing we'll
 
 ### Strong Parameters
 
-If you want to now disable the default whitelisting that occurs in later versions of Rails, change the config.active_record.whitelist_attributes property in your config/application.rb:
+If you want to now disable the default whitelisting that occurs in later versions of Rails, change the config.active_record.whitelist_attributes property in your `config/application.rb`:
 
     config.active_record.whitelist_attributes = false
 
@@ -55,18 +55,19 @@ Note that restful_json automatically includes `ActiveModel::ForbiddenAttributesP
 
 ### Configuration
 
-in `config/application.rb` you can set config items one at a time like:
+At the bottom of `config/environment.rb`, you can set config items one at a time like:
 
     RestfulJson.debug = true
 
 or in bulk like:
 
     RestfulJson.configure do
-      self.debug = true
-      self.can_filter_by_default_using = [:eq]
-      self.predicate_prefix = '!'
-      self.filter_split = ','
-      self.incoming_nil_identifier = 'nil' # useful for updates
+      self.can_filter_by_default_using = [:eq] # default for :using in can_filter_by
+      self.debug = false # to output debugging info during request handling
+      self.filter_split = ',' # delimiter for values in request parameter values
+      self.number_of_records_in_a_page = 15 # default number of records to return if using the page request function
+      self.predicate_prefix = '!' # delimiter for ARel predicate in the request parameter name
+      self.return_resource = false # if true, will render resource and HTTP 201 for post/create or resource and HTTP 200 for put/update
     end
 
 #### Advanced Configuration
@@ -82,7 +83,7 @@ Everything is well-declared and concise:
     class FoobarsController < ApplicationController  
       acts_as_restful_json
       query_for :index, is: -> {|t,q|q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
-      can_filter_by :foo_id # implies using: [:eq]
+      can_filter_by :foo_id # implies using: [:eq] because RestfulJson.can_filter_by_default_using = [:eq]
       can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt], with_default: Time.now # can specify multiple predicates and optionally a default value
       supports_functions :count, :uniq, :take, :skip, :page, :page_count
       order_by {:foo_date => :asc}, {:bar_date => :desc} # an ordered array of hashes
@@ -100,13 +101,13 @@ at time of writing these were:
 
 `supports_functions` lets you do other ARel functions. `:uniq`, `:skip`, `:take`, and `:count`.
 
-#### Equality Filter by Attribute(s)
+#### Default Filter by Attribute(s)
 
 First, declare in the controller:
 
     can_filter_by :foo_id
 
-Get Foobars with a foo_id of '1':
+If `RestfulJson.can_filter_by_default_using = [:eq]` as it is by default, then you can now get Foobars with a foo_id of '1':
 
     http://localhost:3000/foobars?foo_id=1
 

@@ -65,6 +65,7 @@ or in bulk like:
       self.can_filter_by_default_using = [:eq] # default for :using in can_filter_by
       self.debug = false # to output debugging info during request handling
       self.filter_split = ',' # delimiter for values in request parameter values
+      self.formats = :json, :html # equivalent to specifying respond_to :json, :html in the controller, and can be overriden in the controller
       self.number_of_records_in_a_page = 15 # default number of records to return if using the page request function
       self.predicate_prefix = '!' # delimiter for ARel predicate in the request parameter name
       self.return_resource = false # if true, will render resource and HTTP 201 for post/create or resource and HTTP 200 for put/update
@@ -86,7 +87,7 @@ Everything is well-declared and concise:
       can_filter_by :foo_id # implies using: [:eq] because RestfulJson.can_filter_by_default_using = [:eq]
       can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt], with_default: Time.now # can specify multiple predicates and optionally a default value
       supports_functions :count, :uniq, :take, :skip, :page, :page_count
-      order_by {:foo_date => :asc}, {:bar_date => :desc} # an ordered array of hashes
+      order_by {:foo_date => :asc}, :foo_color, {:bar_date => :desc} # an ordered array of hashes, assumes :asc if not a hash
       respond_to :json, :html # specify if you want more than :json. It dynamically sets model variables with the right names, e.g. @foobar and @foobars.
     end
 

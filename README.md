@@ -9,6 +9,13 @@ Uses Adam Hawkin's [permitter][permitter] code which uses [strong_parameters][st
 
 This is currently in alpha. It is subject to change and may be broken.
 
+### Current Problems
+
+You may get this on create if using html format:
+
+    SystemStackError (stack level too deep):
+      actionpack (3.2.8) lib/action_dispatch/middleware/reloader.rb:70
+
 ### Installation
 
 In your Rails 3.1+, < 4.0 app:
@@ -43,6 +50,20 @@ In `app/models/ability.rb`, setup a basic cancan ability. Just for testing we'll
       end
     end
 
+### Responders
+
+If you plan to use responders outside of json with restful_json, you may want to formally install it, for flash messages, etc.:
+
+    gem install responders
+
+Add this to your Gemfile and bundle install:
+
+    gem 'responders'
+
+And do:
+
+    rails generate responders:install
+
 ### Strong Parameters
 
 If you want to now disable the default whitelisting that occurs in later versions of Rails, change the config.active_record.whitelist_attributes property in your `config/application.rb`:
@@ -65,7 +86,7 @@ or in bulk like:
       self.can_filter_by_default_using = [:eq] # default for :using in can_filter_by
       self.debug = false # to output debugging info during request handling
       self.filter_split = ',' # delimiter for values in request parameter values
-      self.formats = :json, :html # equivalent to specifying respond_to :json, :html in the controller, and can be overriden in the controller
+      self.formats = :json, :html # equivalent to specifying respond_to :json, :html in the controller, and can be overriden in the controller. Note that by default responders gem sets respond_to :html in application_controller.rb.
       self.number_of_records_in_a_page = 15 # default number of records to return if using the page request function
       self.predicate_prefix = '!' # delimiter for ARel predicate in the request parameter name
       self.return_resource = false # if true, will render resource and HTTP 201 for post/create or resource and HTTP 200 for put/update
@@ -254,7 +275,7 @@ Respects regular and nested Rails resourceful routing and controller namespacing
         # why use nested if you only want to provide ways of querying via path
         match 'bars/:bar_id/foobars(.:format)' => 'foobars#index'
       end
-    end 
+    end
 
 ### License
 

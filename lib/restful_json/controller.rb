@@ -1,4 +1,5 @@
 require 'restful_json/config'
+require 'restful_json/responder'
 require 'twinturbo/controller'
 require 'active_model_serializers'
 require 'strong_parameters'
@@ -27,6 +28,10 @@ module RestfulJson
         # allow override to return json on post and put
         responders :json
 
+        # this can be overriden in the controller via defining respond_to
+        formats = RestfulJson.formats || Mime::EXTENSION_LOOKUP.keys.collect{|m|m.to_sym}
+        respond_to *formats
+        
         # create class attributes for each controller option and set the value to the value in the app configuration
         class_attribute :model_class, instance_writer: true
         class_attribute :model_singular_name, instance_writer: true
@@ -47,11 +52,6 @@ module RestfulJson
         self.supported_functions ||= []
         self.ordered_by ||= []
         self.action_to_query ||= {}
-
-        # this can be overriden in the controller
-        formats = RestfulJson.formats || Mime::EXTENSION_LOOKUP.keys.collect{|m|m.to_sym}
-        puts "RestfulJson.formats=#{RestfulJson.formats} so using #{formats.inspect}"
-        respond_to *formats
       end
 
       module ClassMethods

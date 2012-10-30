@@ -1,5 +1,3 @@
-require 'responders'
-
 # from Jacques Fuentes (jpfuentes2) in http://stackoverflow.com/questions/9953887/simple-respond-with-in-rails-that-avoids-204-from-put/10087240#10087240
 module Responders
   module JsonResponder

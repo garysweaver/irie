@@ -104,7 +104,7 @@ Everything is well-declared and concise:
 
     class FoobarsController < ApplicationController  
       acts_as_restful_json
-      query_for :index, is: -> (t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
+      query_for :index, is: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
       can_filter_by :foo_id # implies using: [:eq] because RestfulJson.can_filter_by_default_using = [:eq]
       can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt], with_default: Time.now # can specify multiple predicates and optionally a default value
       supports_functions :count, :uniq, :take, :skip, :page, :page_count
@@ -246,7 +246,9 @@ To filter the list where the status_code attribute is 'green':
 
 or use the `->` Ruby 1.9 lambda stab operator. You can also filter out items that have associations that don't have a certain attribute value (or anything else you can think up with ARel/ActiveRecord relations). To filter the list where the object's apples and pears associations are green:
 
-    query_for :index, is: -> (t,q) {
+    # t is self.model_class.arel_table and q is self.model_class.scoped
+    # note: must be no space between -> and parenthesis in lambda syntax!
+    query_for :index, is: ->(t,q) {
       q.joins(:apples, :pears)
       .where(apples: {color: 'green'})
       .where(pears: {color: 'green'})
@@ -261,7 +263,8 @@ See also:
 `query_for` also will `alias_method (some action), :index` anything other than `:index`, so you can easily create custom non-RESTful action methods:
 
     # t is self.model_class.arel_table and q is self.model_class.scoped
-    query_for :some_action, is: -> (t,q) {q.where(:status_code => 'green')}
+    # note: must be no space between -> and parenthesis in lambda syntax!
+    query_for :some_action, is: ->(t,q) {q.where(:status_code => 'green')}
 
 Note that it is a proc so you can really do whatever you want with it and will have access to other things in the environment or can call another method, etc.
 

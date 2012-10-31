@@ -1,5 +1,4 @@
 require 'restful_json/config'
-require 'restful_json/responder'
 require 'twinturbo/controller'
 require 'active_model_serializers'
 require 'strong_parameters'
@@ -25,13 +24,10 @@ module RestfulJson
       NILS = ['NULL','null','nil']
 
       included do
-        # allow override to return json on post and put
-        responders :json
-
         # this can be overriden in the controller via defining respond_to
         formats = RestfulJson.formats || Mime::EXTENSION_LOOKUP.keys.collect{|m|m.to_sym}
         respond_to *formats
-        
+
         # create class attributes for each controller option and set the value to the value in the app configuration
         class_attribute :model_class, instance_writer: true
         class_attribute :model_singular_name, instance_writer: true
@@ -56,8 +52,8 @@ module RestfulJson
 
       module ClassMethods
         # Whitelist attributes that are queryable through the operation(s) already defined in can_filter_by_default_using, or can specify attributes:
-        #   can_filter_by :attr_name_1, :attr_name_2 # implied using: [eq] if RestfulJson.can_filter_by_default_using = [:eq] 
-        #   can_filter_by :attr_name_1, :attr_name_2, using: [:eq, :not_eq]
+        # can_filter_by :attr_name_1, :attr_name_2 # implied using: [eq] if RestfulJson.can_filter_by_default_using = [:eq] 
+        # can_filter_by :attr_name_1, :attr_name_2, using: [:eq, :not_eq]
         def can_filter_by(*args)
           options = args.extract_options!
           predicates = Array.wrap(options[:using] || self.can_filter_by_default_using)
@@ -72,18 +68,18 @@ module RestfulJson
         end
 
         # Can specify additional functions in the index, e.g.
-        #   supports_functions :skip, :uniq, :take, :count
+        # supports_functions :skip, :uniq, :take, :count
         def supports_functions(*args)
           options = args.extract_options! # overkill, sorry
           self.supported_functions += args
         end
         
-        # Specify a custom query. If action specified does not have a method, it will alias_method index to create a new action method with that query.
-        #
-        # t is self.model_class.arel_table and q is self.model_class.scoped, e.g.
-        #   query_for :index, is: -> {|t,q| q.where(:status_code => 'green')}
+        # See https://github.com/rails/arel
+        # t is self.model_class.arel_table and q is self.model_class.scoped
+        # e.g. query_for :index, is: {|t,q| q.where(params[:foo] => 'bar').order(t[])}
         def query_for(*args)
           options = args.extract_options!
+          # TODO: support custom actions to be automaticaly defined
           args.each do |an_action|
             if options[:is]
               self.action_to_query[an_action.to_sym] = options[:is]
@@ -96,13 +92,14 @@ module RestfulJson
           end
         end
 
-        # Takes an string, symbol, array, hash to indicate order. If not a hash, assumes is ascending. Is cumulative and order defines order of sorting, e.g:
-        #   #would order by foo_color attribute ascending
-        #   order_by :foo_color
-        # or
-        #   order_by {:foo_date => :asc}, :foo_color, 'foo_name', {:bar_date => :desc}
         def order_by(args)
-          self.ordered_by = (Array.wrap(self.ordered_by) + Array.wrap(args)).flatten.compact.collect {|item|item.is_a?(Hash) ? item : {item.to_sym => :asc}}
+          if args.is_a?(Array)
+            self.ordered_by += args
+          elsif args.is_a?(Hash)
+            self.ordered_by.merge!(args)
+          else
+            raise ArgumentError.new("order_by takes a hash or array of hashes")
+          end
         end
       end
 
@@ -131,9 +128,7 @@ module RestfulJson
         value && NILS.include?(value) ? nil : value
       end
 
-      # The controller's index (list) method to list resources.
-      #
-      # Note: this method is alias_method'd by query_for, so it is more than just index.
+      # this method be alias_method'd by query_for, so it is more than just index
       def index
         t = @model_class.arel_table
         value = @model_class.scoped # returns ActiveRecord::Relation equivalent to select with no where clause
@@ -195,42 +190,60 @@ module RestfulJson
         respond_with @value
       end
 
-      # The controller's show (get) method to return a resource.
       def show
         @value = @model_class.find(params[:id])
         instance_variable_set(@model_at_singular_name_sym, @value)
         respond_with @value
       end
 
-      # The controller's new method (e.g. used for new record in html format).
       def new
         @value = @model_class.new
-        instance_variable_set(@model_at_singular_name_sym, @value)
         respond_with @value
       end
 
-      # The controller's edit method (e.g. used for edit record in html format).
       def edit
         @value = @model_class.find(params[:id])
         instance_variable_set(@model_at_singular_name_sym, @value)
       end
 
-      # The controller's create (post) method to create a resource.
       def create
         authorize! :create, @model_class
         @value = @model_class.new(permitted_params)
         @value.save
         instance_variable_set(@model_at_singular_name_sym, @value)
-        respond_with @value
+        if RestfulJson.return_resource
+          respond_with(@value) do |format|
+            format.json do
+              if @value.errors.empty?
+                render json: @value, status: :created
+              else
+                render json: @value.errors, status: :unprocessable_entity
+              end
+            end
+          end
+        else
+          respond_with @value
+        end
       end
 
-      # The controller's update (put) method to update a resource.
       def update
         authorize! :update, @model_class
         @value = @model_class.find(params[:id])
         @value.update_attributes(permitted_params)
         instance_variable_set(@model_at_singular_name_sym, @value)
-        respond_with @value
+        if RestfulJson.return_resource
+          respond_with(@value) do |format|
+            format.json do
+              if @value.errors.empty?
+                render json: @value, status: :ok
+              else
+                render json: @value.errors, status: :unprocessable_entity
+              end
+            end
+          end
+        else
+          respond_with @value
+        end
       end
 
       # The controller's destroy (delete) method to destroy a resource.

@@ -18,5 +18,4 @@ Gem::Specification.new do |s|
   s.add_dependency 'activerecord'
   s.add_dependency 'cancan'
   s.add_dependency 'strong_parameters'
-  s.add_dependency 'responders'
 end

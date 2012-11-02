@@ -22,7 +22,7 @@ In your Rails 3.1+, < 4.0 app:
 
 in `Gemfile`:
 
-    gem 'restful_json', '>= 3.0.0.alpha.19', :git => 'git://github.com/garysweaver/restful_json.git'
+    gem 'restful_json', '>= 3.0.0.alpha.26', :git => 'git://github.com/garysweaver/restful_json.git'
 
 You need to setup [cancan][cancan]. Here are the basics:
 

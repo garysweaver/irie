@@ -31,13 +31,12 @@ In your `app/controllers/application_controller.rb` or in your service controlle
     class ApplicationController < ActionController::Base
       protect_from_forgery
 
-      prepend_before_filter :auth
-
-      def auth
-        # can be whatever model you want, or non-model, but let's assume you have a User model already
-        @current_user = User.new
+      def current_user
+        User.new
       end
     end
+
+You could do that better by setting up some real authentication with [Authlogic][authlogic], [Devise][devise], or whatever cancan will support.
 
 In `app/models/ability.rb`, setup a basic cancan ability. Just for testing we'll allow everything:
 
@@ -45,7 +44,6 @@ In `app/models/ability.rb`, setup a basic cancan ability. Just for testing we'll
       include CanCan::Ability
 
       def initialize(user)
-        # see cancan and use its generator to get latest format, etc. of what to use and how you can authorize various models for read, manage, etc.
         can :manage, :all
       end
     end
@@ -284,6 +282,8 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [cancan]: https://github.com/ryanb/cancan
 [strong_parameters]: https://github.com/rails/strong_parameters
 [active_model_serializers]: https://github.com/josevalim/active_model_serializers
+[authlogic]: https://github.com/binarylogic/authlogic
+[devise]: https://github.com/plataformatec/devise
 [arel]: https://github.com/rails/arel
 [ar]: http://api.rubyonrails.org/classes/ActiveRecord/Relation.html
 [lic]: http://github.com/garysweaver/restful_json/blob/master/LICENSE

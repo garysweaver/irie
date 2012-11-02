@@ -5,9 +5,9 @@ A restful_json (maybe we'll rename it because it isn't json-specific at the mome
 
 It is both Rails 3.1+ and Rails 4 friendly-ish.
 
-Uses Adam Hawkin's [permitter][permitter] code which uses [strong_parameters][strong_parameters] and encourages use of [active_model_serializers][active_model_serializers].
+Uses Adam Hawkin's [permitter][permitter] code which uses [strong_parameters][strong_parameters] and encourages use of [active_model_serializers][active_model_serializers]. Can use [ARel][arel] predicates in URLs for filtering if you allow it. It's sweet.
 
-This is currently in alpha. It is subject to change and may be broken.
+It's also currently in alpha, subject to change, and may be broken.
 
 ### Current Problems
 
@@ -50,6 +50,20 @@ In `app/models/ability.rb`, setup a basic cancan ability. Just for testing we'll
       end
     end
 
+### Responders
+
+If you plan to use responders outside of json with restful_json, you may want to formally install it, for flash messages, etc.:
+
+    gem install responders
+
+Add this to your Gemfile and bundle install:
+
+    gem 'responders'
+
+And do:
+
+    rails generate responders:install
+
 ### Strong Parameters
 
 If you want to now disable the default whitelisting that occurs in later versions of Rails, change the config.active_record.whitelist_attributes property in your `config/application.rb`:
@@ -72,7 +86,7 @@ or in bulk like:
       self.can_filter_by_default_using = [:eq] # default for :using in can_filter_by
       self.debug = false # to output debugging info during request handling
       self.filter_split = ',' # delimiter for values in request parameter values
-      self.formats = :json, :html # equivalent to specifying respond_to :json, :html in the controller, and can be overriden in the controller. If set to nil, will use all MIME formats returned by Mime::EXTENSION_LOOKUP.keys.collect{|m|m.to_sym}
+      self.formats = :json, :html # equivalent to specifying respond_to :json, :html in the controller, and can be overriden in the controller. Note that by default responders gem sets respond_to :html in application_controller.rb.
       self.number_of_records_in_a_page = 15 # default number of records to return if using the page request function
       self.predicate_prefix = '!' # delimiter for ARel predicate in the request parameter name
       self.return_resource = false # if true, will render resource and HTTP 201 for post/create or resource and HTTP 200 for put/update
@@ -98,7 +112,7 @@ Everything is well-declared and concise:
       respond_to :json, :html # specify if you want more than :json. It dynamically sets model variables with the right names, e.g. @foobar and @foobars.
     end
 
-`can_filter_by` means you can send in that request param (via routing or directly, just like normal in Rails) and it will use that in the ARel query (safe from SQL injection and only letting you do what you tell it). `:using` means you can use those ARel predicates for filtering. For a full list of available ones do:
+`can_filter_by` means you can send in that request param (via routing or directly, just like normal in Rails) and it will use that in the ARel query (safe from SQL injection and only letting you do what you tell it). `:using` means you can use those [ARel][arel] predicates for filtering. For a full list of available ones do:
 
     rails c
     Arel::Predications.public_instance_methods.sort
@@ -107,7 +121,7 @@ at time of writing these were:
 
     [:does_not_match, :does_not_match_all, :does_not_match_any, :eq, :eq_all, :eq_any, :gt, :gt_all, :gt_any, :gteq, :gteq_all, :gteq_any, :in, :in_all, :in_any, :lt, :lt_all, :lt_any, :lteq, :lteq_all, :lteq_any, :matches, :matches_all, :matches_any, :not_eq, :not_eq_all, :not_eq_any, :not_in, :not_in_all, :not_in_any]
 
-`supports_functions` lets you do other ARel functions. `:uniq`, `:skip`, `:take`, and `:count`.
+`supports_functions` lets you do other [ARel][arel] functions. `:uniq`, `:skip`, `:take`, and `:count`.
 
 #### Default Filter by Attribute(s)
 
@@ -125,7 +139,7 @@ First, declare in the controller:
 
     can_filter_by :seen_on, using: [:gteq, :eq_any]
 
-Get Foobars with seen_on of 2012-08-08 or later using the ARel gteq predicate splitting the request param on `predicate_prefix` (configurable), you'd use:
+Get Foobars with seen_on of 2012-08-08 or later using the [ARel][arel] gteq predicate splitting the request param on `predicate_prefix` (configurable), you'd use:
 
     http://localhost:3000/foobars?seen_on!gteq=2012-08-08
 
@@ -179,7 +193,7 @@ To set page size at controller level:
 
     self.number_of_records_in_a_page = 15
 
-For a better idea of how this works on the backend, look at AREL's skip and take, or see advanced paging.
+For a better idea of how this works on the backend, look at [ARel][arel]'s skip and take, or see Variable Paging.
 
 ##### Skip and Take (OFFSET and LIMIT)
 
@@ -187,11 +201,11 @@ In controller make sure these are included:
 
     supports_functions :skip, :take
 
-To skip rows returned, use 'skip'. It is called take, because skip is the AREL equivalent of SQL OFFSET:
+To skip rows returned, use 'skip'. It is called take, because skip is the [ARel][arel] equivalent of SQL OFFSET:
 
     http://localhost:3000/foobars?skip=5
 
-To limit the number of rows returned, use 'take'. It is called take, because take is the AREL equivalent of SQL LIMIT:
+To limit the number of rows returned, use 'take'. It is called take, because take is the [ARel][arel] equivalent of SQL LIMIT:
 
     http://localhost:3000/foobars.json?take=5
 
@@ -230,19 +244,15 @@ To filter the list where the status_code attribute is 'green':
     # t is self.model_class.arel_table and q is self.model_class.scoped
     query_for :index, is: lambda {|t,q| q.where(:status_code => 'green')}
 
-or use the `->` Ruby 1.9 lambda stab operator. You can also filter out items that have associations that don't have a certain attribute value (or anything else you can think up with ARel/ActiveRecord relations). To filter the list where the object's apples and pears associations are green:
+or use the `->` Ruby 1.9 lambda stab operator. You can also filter out items that have associations that don't have a certain attribute value (or anything else you can think up with [ARel][arel]/[ActiveRecord relations][ar]). To filter the list where the object's apples and pears associations are green:
 
     # t is self.model_class.arel_table and q is self.model_class.scoped
-    # note: must be no space between -> and parenthesis in lambda syntax!
+    # note: must be no space between -> and parenthesis
     query_for :index, is: ->(t,q) {
       q.joins(:apples, :pears)
       .where(apples: {color: 'green'})
       .where(pears: {color: 'green'})
     }
-
-See also:
-* http://api.rubyonrails.org/classes/ActiveRecord/Relation.html
-* https://github.com/rails/arel
 
 ##### Custom Actions
 
@@ -274,4 +284,6 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [cancan]: https://github.com/ryanb/cancan
 [strong_parameters]: https://github.com/rails/strong_parameters
 [active_model_serializers]: https://github.com/josevalim/active_model_serializers
+[arel]: https://github.com/rails/arel
+[ar]: http://api.rubyonrails.org/classes/ActiveRecord/Relation.html
 [lic]: http://github.com/garysweaver/restful_json/blob/master/LICENSE

@@ -36,6 +36,8 @@ module RestfulJson
         class_attribute :supported_functions, instance_writer: true
         class_attribute :ordered_by, instance_writer: true
         class_attribute :action_to_query, instance_writer: true
+        class_attribute :param_to_query, instance_writer: true
+        class_attribute :param_to_through, instance_writer: true
 
         # use values from config
         # debug uses RestfulJson.debug? because until this is done no local debug class attribute exists to check
@@ -48,21 +50,49 @@ module RestfulJson
         self.supported_functions ||= []
         self.ordered_by ||= []
         self.action_to_query ||= {}
+        self.param_to_query ||= {}
+        self.param_to_through ||= {}
       end
 
       module ClassMethods
-        # Whitelist attributes that are queryable through the operation(s) already defined in can_filter_by_default_using, or can specify attributes:
+        # A whitelist of filters and definition of filter options related to request parameters.
+        #
+        # If no options are provided or the :using option is provided, defines attributes that are queryable through the operation(s) already defined in can_filter_by_default_using, or can specify attributes:
         #   can_filter_by :attr_name_1, :attr_name_2 # implied using: [eq] if RestfulJson.can_filter_by_default_using = [:eq] 
         #   can_filter_by :attr_name_1, :attr_name_2, using: [:eq, :not_eq]
+        #
+        # When :with_query is specified, it will call a supplied lambda. e.g. t is self.model_class.arel_table, q is self.model_class.scoped, and p is params[:my_param_name]:
+        #   can_filter_by :my_param_name, with_query: ->(t,q,p) {...}
+        #
+        # When :through is specified, it will take the array supplied to through as 0 to many model names following by an attribute name. It will follow through
+        # each association until it gets to the attribute to filter by that via ARel joins, e.g. if the model Foobar has an association to :foo, and on the Foo model there is an assocation
+        # to :bar, and you want to filter by bar.name (foobar.foo.bar.name):
+        #  can_filter_by :my_param_name, through: [:foo, :bar, :name]
         def can_filter_by(*args)
           options = args.extract_options!
-          predicates = Array.wrap(options[:using] || self.can_filter_by_default_using)
-          predicates.each do |predicate|
-            predicate_sym = predicate.to_sym
-            args.each do |attr|
-              attr_sym = attr.to_sym
-              self.param_to_attr_and_arel_predicate[attr_sym] = [attr_sym, :eq, options] if predicate_sym == :eq
-              self.param_to_attr_and_arel_predicate["#{attr}#{self.predicate_prefix}#{predicate}".to_sym] = [attr_sym, predicate_sym, options]
+
+          # :using is the default action if no options are present
+          if options[:using] || options.size == 0
+            predicates = Array.wrap(options[:using] || self.can_filter_by_default_using)
+            predicates.each do |predicate|
+              predicate_sym = predicate.to_sym
+              args.each do |attr|
+                attr_sym = attr.to_sym
+                self.param_to_attr_and_arel_predicate[attr_sym] = [attr_sym, :eq, options] if predicate_sym == :eq
+                self.param_to_attr_and_arel_predicate["#{attr}#{self.predicate_prefix}#{predicate}".to_sym] = [attr_sym, predicate_sym, options]
+              end
+            end
+          end
+
+          if options[:with_query]
+            args.each do |param_name|
+              self.param_to_query[param_name.to_sym] = options[:with_query]
+            end
+          end
+
+          if options[:through]
+            args.each do |param_name|
+              self.param_to_through[param_name.to_sym] = options[:through]
             end
           end
         end
@@ -99,7 +129,13 @@ module RestfulJson
         # or
         #   order_by {:foo_date => :asc}, :foo_color, 'foo_name', {:bar_date => :desc}
         def order_by(args)
-          self.ordered_by = (Array.wrap(self.ordered_by) + Array.wrap(args)).flatten.compact.collect {|item|item.is_a?(Hash) ? item : {item.to_sym => :asc}}
+          if args.is_a?(Array)
+            self.ordered_by += args
+          elsif args.is_a?(Hash)
+            self.ordered_by.merge!(args)
+          else
+            raise ArgumentError.new("order_by takes a hash or array of hashes")
+          end
         end
       end
 
@@ -130,7 +166,7 @@ module RestfulJson
 
       # The controller's index (list) method to list resources.
       #
-      # Note: this method is alias_method'd by query_for, so it is more than just index.
+      # Note: this method be alias_method'd by query_for, so it is more than just index
       def index
         t = @model_class.arel_table
         value = @model_class.scoped # returns ActiveRecord::Relation equivalent to select with no where clause
@@ -138,6 +174,41 @@ module RestfulJson
         if custom_query
           value = custom_query.call(t, value)
         end
+
+        self.param_to_query.each do |param_name, param_query|
+          if params[param_name]
+            value = param_query.call(t, value, params[param_name])
+          end
+        end
+
+        self.param_to_through.each do |param_name, through_array|
+          if params[param_name]
+            # build query
+            # e.g. SomeModel.scoped.joins({:assoc_name => {:sub_assoc => {:sub_sub_assoc => :sub_sub_sub_assoc}}).where(sub_sub_sub_assoc_model_table_name: {column_name: value})
+            last_model_class = @model_class
+            joins = nil # {:assoc_name => {:sub_assoc => {:sub_sub_assoc => :sub_sub_sub_assoc}}
+            through_array.each do |association_or_attribute|
+              if association_or_attribute == through_array.last
+                value = value.joins(joins).where(last_model_class.table_name.to_sym => {association_or_attribute => params[param_name]})
+              else
+                found_classes = last_model_class.reflections.collect {|association_name, reflection| reflection.class_name.constantize if association_name.to_sym == association_or_attribute}.compact
+                if found_classes.size > 0
+                  last_model_class = found_classes[0]
+                else
+                  # bad can_filter_by :through found at runtime
+                  raise "Association #{association_or_attribute.inspect} not found on #{last_model_class}."
+                end
+
+                if joins.nil?
+                  joins = association_or_attribute
+                else
+                  joins = {association_or_attribute => joins}
+                end
+              end
+            end
+          end
+        end
+
         self.param_to_attr_and_arel_predicate.keys.each do |param_name|
           options = param_to_attr_and_arel_predicate[param_name][2]
           param = params[param_name] || options[:with_default]
@@ -223,7 +294,7 @@ module RestfulJson
               if @value.errors.empty?
                 render json: @value, status: :created
               else
-                render json: @value.errors, status: :unprocessable_entity
+                render json: {errors: @value.errors}, status: :unprocessable_entity
               end
             end
           end
@@ -244,7 +315,7 @@ module RestfulJson
               if @value.errors.empty?
                 render json: @value, status: :ok
               else
-                render json: @value.errors, status: :unprocessable_entity
+                render json: {errors: @value.errors}, status: :unprocessable_entity
               end
             end
           end
@@ -260,6 +331,7 @@ module RestfulJson
         instance_variable_set(@model_at_singular_name_sym, @value)
         respond_with @value
       end
+
     end
   end
 end

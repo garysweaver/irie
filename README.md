@@ -103,14 +103,19 @@ Everything is well-declared and concise:
     class FoobarsController < ApplicationController  
       acts_as_restful_json
       query_for :index, is: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
+      # args sent to can_filter_by are the request parameter name(s)
       can_filter_by :foo_id # implies using: [:eq] because RestfulJson.can_filter_by_default_using = [:eq]
       can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt], with_default: Time.now # can specify multiple predicates and optionally a default value
+      can_filter_by :a_request_param_name, with_query: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
+      can_filter_by :and_another, through: [:some_attribute_on_this_model]
+      can_filter_by :one_more, through: [:some_association, :some_attribute_on_some_association_model]
+      can_filter_by :and_one_more, through: [:my_assoc, :my_assocs_assoc, :my_assocs_assocs_assoc, :an_attribute_on_my_assocs_assocs_assoc]
       supports_functions :count, :uniq, :take, :skip, :page, :page_count
       order_by {:foo_date => :asc}, :foo_color, {:bar_date => :desc} # an ordered array of hashes, assumes :asc if not a hash
       respond_to :json, :html # specify if you want more than :json. It dynamically sets model variables with the right names, e.g. @foobar and @foobars.
     end
 
-`can_filter_by` means you can send in that request param (via routing or directly, just like normal in Rails) and it will use that in the ARel query (safe from SQL injection and only letting you do what you tell it). `:using` means you can use those [ARel][arel] predicates for filtering. For a full list of available ones do:
+`can_filter_by` without an option means you can send in that request param (via routing or directly, just like normal in Rails) and it will use that in the ARel query (safe from SQL injection and only letting you do what you tell it). `:using` means you can use those [ARel][arel] predicates for filtering. For a full list of available ones do:
 
     rails c
     Arel::Predications.public_instance_methods.sort
@@ -120,6 +125,13 @@ at time of writing these were:
     [:does_not_match, :does_not_match_all, :does_not_match_any, :eq, :eq_all, :eq_any, :gt, :gt_all, :gt_any, :gteq, :gteq_all, :gteq_any, :in, :in_all, :in_any, :lt, :lt_all, :lt_any, :lteq, :lteq_all, :lteq_any, :matches, :matches_all, :matches_any, :not_eq, :not_eq_all, :not_eq_any, :not_in, :not_in_all, :not_in_any]
 
 `supports_functions` lets you do other [ARel][arel] functions. `:uniq`, `:skip`, `:take`, and `:count`.
+
+`can_filter_by` can also specify a `:with_query` to provide a lambda that takes the request parameter in when it is provided by the request.
+
+And `can_filter_by` can also specify a `:through` to provide an easy way to inner join through a bunch models (using ActiveRecord relations) by specifying 0-to-many association names to go "through" to the final argument which is the attribute name on the last model, e.g. the two following are equivalent:
+
+    can_filter_by :a_request_param_name, with_query: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
+    can_filter_by :a_request_param_name, through: [:some_assoc, :some_attr] # much easier, but not as flexible as a lambda
 
 #### Default Filter by Attribute(s)
 

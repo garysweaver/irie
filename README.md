@@ -286,6 +286,11 @@ Respects regular and nested Rails resourceful routing and controller namespacing
       end
     end
 
+### Contributors
+
+* Gary Weaver (https://github.com/garysweaver)
+* Tommy Odom (https://github.com/tpodom)
+
 ### License
 
 Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].

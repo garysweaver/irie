@@ -5,11 +5,11 @@ require "restful_json/version"
 Gem::Specification.new do |s|
   s.name        = 'restful_json'
   s.version     = RestfulJson::VERSION
-  s.authors     = ['Gary S. Weaver']
+  s.authors     = ['Gary S. Weaver', 'Tommy Odom']
   s.email       = ['garysweaver@gmail.com']
-  s.homepage    = 'https://github.com/garysweaver/restful_json'
-  s.summary     = %q{RESTful JSON controllers using Rails 3.x.}
-  s.description = %q{Provides RESTful JSON controller implementations that let you either extend the Controller and just define the model name as part of your controller name per convention or can extend from a BaseController and define the model name via a method.}
+  s.homepage    = 'https://github.com/rubyservices/restful_json'
+  s.summary     = %q{RESTful JSON controllers using Rails 3.1+, Rails 4+.}
+  s.description = %q{Develop declarative, featureful JSON RESTful-ish service controllers to use with modern Javascript MVC frameworks like AngularJS, Ember, etc. with much less code.}
   s.files = Dir['lib/**/*'] + ['Rakefile', 'README.md']
   s.license = 'MIT'
   s.add_dependency 'rails-api'

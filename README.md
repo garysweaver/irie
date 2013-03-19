@@ -1,19 +1,21 @@
-restful_json v3 for Rails 3.1+
+restful_json
 =====
 
-Reduces the amount of code that you need to write in your Rails controllers to implement declarative, featureful JSON service controllers for Javascript frameworks like AngularJS.
+Develop declarative, featureful JSON RESTful-ish service controllers to use with modern Javascript MVC frameworks like AngularJS, Ember, etc. with much less code.
 
-Should work with Rails 3.1+ and Rails 4, but has only been tested regularly in latest Rails 3.2.x. Feel free to submit issues and/or do a pull requests if you run into anything.
+Should work with Rails 3.1+ and Rails 4. Feel free to submit issues and/or do a pull requests if you run into anything.
 
 Uses Adam Hawkin's [permitter][permitter] code which uses [strong_parameters][strong_parameters] and encourages use of [active_model_serializers][active_model_serializers].
 
 ### Installation
 
-In your Rails 3.1+, < 4.0 app:
+In your Rails app's `Gemfile`, add:
 
-in `Gemfile`:
+    gem 'restful_json'
 
-    gem 'restful_json', '>= 3.0.0', :git => 'git://github.com/garysweaver/restful_json.git'
+and:
+
+    bundle install
 
 You need to setup [cancan][cancan]. Here are the basics:
 
@@ -294,4 +296,4 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [devise]: https://github.com/plataformatec/devise
 [arel]: https://github.com/rails/arel
 [ar]: http://api.rubyonrails.org/classes/ActiveRecord/Relation.html
-[lic]: http://github.com/garysweaver/restful_json/blob/master/LICENSE
+[lic]: http://github.com/rubyservices/restful_json/blob/master/LICENSE

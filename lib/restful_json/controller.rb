@@ -9,6 +9,7 @@ module RestfulJson
     extend ActiveSupport::Concern
 
     module ClassMethods
+
       def acts_as_restful_json(options = {})
         include ::ActionController::Serialization
         include ::ActionController::StrongParameters
@@ -16,6 +17,7 @@ module RestfulJson
         include ::TwinTurbo::Controller
         include ActsAsRestfulJson
       end
+
     end
     
     module ActsAsRestfulJson
@@ -55,6 +57,7 @@ module RestfulJson
       end
 
       module ClassMethods
+
         # A whitelist of filters and definition of filter options related to request parameters.
         #
         # If no options are provided or the :using option is provided, defines attributes that are queryable through the operation(s) already defined in can_filter_by_default_using, or can specify attributes:
@@ -129,16 +132,16 @@ module RestfulJson
         # or
         #   order_by {:foo_date => :asc}, :foo_color, 'foo_name', {:bar_date => :desc}
         def order_by(args)
-          if args.is_a?(Array)
-            self.ordered_by += args
-          elsif args.is_a?(Hash)
-            self.ordered_by.merge!(args)
-          else
-            raise ArgumentError.new("order_by takes a hash or array of hashes")
-          end
+          self.ordered_by = (Array.wrap(self.ordered_by) + Array.wrap(args)).flatten.compact.collect {|item|item.is_a?(Hash) ? item : {item.to_sym => :asc}}
         end
       end
 
+      # In initialize we:
+      # * guess model name, if unspecified, from controller name
+      # * define instance variables containing model name
+      # * define the (model_plural_name)_url method, needed if controllers are not in the same module as the models
+      # Note: if controller name is not based on model name *and* controller is in different module than model, you'll need to
+      # redefine the appropriate method(s) to return urls if needed.
       def initialize
         super
 
@@ -155,7 +158,7 @@ module RestfulJson
         @model_at_singular_name_sym = "@#{@model_singular_name}".to_sym
         underscored_modules_and_underscored_plural_model_name = qualified_controller_name.gsub('::','_').underscore
 
-        # This workaround for models that are in a different module than the model only works if the controller's base part of the unqualified name in the plural model name.
+        # This is a workaround for controllers that are in a different module than the model only works if the controller's base part of the unqualified name in the plural model name.
         # If the model name is different than the controller name, you will need to define methods to return the right urls.
         class_eval "def #{@model_plural_name}_url;#{underscored_modules_and_underscored_plural_model_name}_url;end;def #{@model_singular_name}_url(record);#{underscored_modules_and_underscored_plural_model_name.singularize}_url(record);end"        
       end

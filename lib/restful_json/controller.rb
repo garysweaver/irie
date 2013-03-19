@@ -85,14 +85,14 @@ module RestfulJson
           end
 
           if options[:with_query]
-            args.each do |param_name|
-              self.param_to_query[param_name.to_sym] = options[:with_query]
+            args.each do |with_query_key|
+              self.param_to_query[with_query_key.to_sym] = options[:with_query]
             end
           end
 
           if options[:through]
-            args.each do |param_name|
-              self.param_to_through[param_name.to_sym] = options[:through]
+            args.each do |through_key|
+              self.param_to_through[through_key.to_sym] = options[:through]
             end
           end
         end
@@ -113,7 +113,7 @@ module RestfulJson
           # TODO: support custom actions to be automaticaly defined
           args.each do |an_action|
             if options[:is]
-              self.action_to_query[an_action.to_sym] = options[:is]
+              self.action_to_query[an_action.to_s] = options[:is]
             else
               raise "#{self.class.name} must supply an :is option with query_for #{an_action.inspect}"
             end
@@ -166,18 +166,19 @@ module RestfulJson
 
       # The controller's index (list) method to list resources.
       #
-      # Note: this method be alias_method'd by query_for, so it is more than just index
+      # Note: this method be alias_method'd by query_for, so it is more than just index.
       def index
         t = @model_class.arel_table
         value = @model_class.scoped # returns ActiveRecord::Relation equivalent to select with no where clause
-        custom_query = self.action_to_query[params[:action].to_sym]
+        custom_query = self.action_to_query[params[:action].to_s]
         if custom_query
           value = custom_query.call(t, value)
         end
 
         self.param_to_query.each do |param_name, param_query|
           if params[param_name]
-            value = param_query.call(t, value, params[param_name])
+            # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
+            value = param_query.call(t, value, params[param_name].to_s)
           end
         end
 
@@ -189,7 +190,9 @@ module RestfulJson
             joins = nil # {:assoc_name => {:sub_assoc => {:sub_sub_assoc => :sub_sub_sub_assoc}}
             through_array.each do |association_or_attribute|
               if association_or_attribute == through_array.last
-                value = value.joins(joins).where(last_model_class.table_name.to_sym => {association_or_attribute => params[param_name]})
+                # must convert param value to string before possibly using with ARel because of CVE-2013-1854, fixed in: 3.2.13 and 3.1.12 
+                # https://groups.google.com/forum/?fromgroups=#!msg/rubyonrails-security/jgJ4cjjS8FE/BGbHRxnDRTIJ
+                value = value.joins(joins).where(last_model_class.table_name.to_sym => {association_or_attribute => params[param_name].to_s})
               else
                 found_classes = last_model_class.reflections.collect {|association_name, reflection| reflection.class_name.constantize if association_name.to_sym == association_or_attribute}.compact
                 if found_classes.size > 0
@@ -233,11 +236,13 @@ module RestfulJson
         end
 
         if params[:skip] && self.supported_functions.include?(:skip)
-          value = value.skip(params[:skip])
+          # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
+          value = value.skip(params[:skip].to_s)
         end
 
         if params[:take] && self.supported_functions.include?(:take)
-          value = value.take(params[:take])
+          # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
+          value = value.take(params[:take].to_s)
         end
 
         if params[:uniq] && self.supported_functions.include?(:uniq)
@@ -265,7 +270,8 @@ module RestfulJson
 
       # The controller's show (get) method to return a resource.
       def show
-        @value = @model_class.find(params[:id])
+        # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
+        @value = @model_class.find(params[:id].to_s)
         instance_variable_set(@model_at_singular_name_sym, @value)
         respond_with @value
       end
@@ -278,7 +284,8 @@ module RestfulJson
 
       # The controller's edit method (e.g. used for edit record in html format).
       def edit
-        @value = @model_class.find(params[:id])
+        # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
+        @value = @model_class.find(params[:id].to_s)
         instance_variable_set(@model_at_singular_name_sym, @value)
       end
 
@@ -306,7 +313,8 @@ module RestfulJson
       # The controller's update (put) method to update a resource.
       def update
         authorize! :update, @model_class
-        @value = @model_class.find(params[:id])
+        # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
+        @value = @model_class.find(params[:id].to_s)
         @value.update_attributes(permitted_params)
         instance_variable_set(@model_at_singular_name_sym, @value)
         if RestfulJson.return_resource
@@ -326,7 +334,8 @@ module RestfulJson
 
       # The controller's destroy (delete) method to destroy a resource.
       def destroy
-        @value = @model_class.find(params[:id])
+        # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
+        @value = @model_class.find(params[:id].to_s)
         @value.destroy
         instance_variable_set(@model_at_singular_name_sym, @value)
         respond_with @value

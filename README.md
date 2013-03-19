@@ -1,20 +1,11 @@
 restful_json v3 for Rails 3.1+
 =====
 
-A restful_json (maybe we'll rename it because it isn't json-specific at the moment) controller is a configurable generic Rails 3.1+ controller that does the index, show, create, and update for you and has stuff for paging, filtering etc. that is mostly declarative to try to help you avoid unintentional crazy or insecure queries on your DB.
+Reduces the amount of code that you need to write in your Rails controllers to implement declarative, featureful JSON service controllers for Javascript frameworks like AngularJS.
 
-It is both Rails 3.1+ and Rails 4 friendly-ish.
+Should work with Rails 3.1+ and Rails 4, but has only been tested regularly in latest Rails 3.2.x. Feel free to submit issues and/or do a pull requests if you run into anything.
 
-Uses Adam Hawkin's [permitter][permitter] code which uses [strong_parameters][strong_parameters] and encourages use of [active_model_serializers][active_model_serializers]. Can use [ARel][arel] predicates in URLs for filtering if you allow it. It's sweet.
-
-It's also currently in alpha, subject to change, and may be broken.
-
-### Current Problems
-
-You may get this on create if using html format:
-
-    SystemStackError (stack level too deep):
-      actionpack (3.2.8) lib/action_dispatch/middleware/reloader.rb:70
+Uses Adam Hawkin's [permitter][permitter] code which uses [strong_parameters][strong_parameters] and encourages use of [active_model_serializers][active_model_serializers].
 
 ### Installation
 
@@ -22,7 +13,7 @@ In your Rails 3.1+, < 4.0 app:
 
 in `Gemfile`:
 
-    gem 'restful_json', '>= 3.0.0.alpha.26', :git => 'git://github.com/garysweaver/restful_json.git'
+    gem 'restful_json', '>= 3.0.0', :git => 'git://github.com/garysweaver/restful_json.git'
 
 You need to setup [cancan][cancan]. Here are the basics:
 

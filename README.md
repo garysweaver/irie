@@ -318,7 +318,7 @@ Respects regular and nested Rails resourceful routing and controller namespacing
 
 ### Thanks!
 
-Without our users, wherever would we be? Feedback, bug reports, and code/documentation contributions are always welcome!
+Without our users, where would we be? Feedback, bug reports, and code/documentation contributions are always welcome!
 
 ### Contributors
 

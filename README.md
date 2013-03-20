@@ -57,7 +57,7 @@ This will allow you to remove / not have to use attr_accessible and do mass assi
 
 Note that restful_json automatically includes `ActiveModel::ForbiddenAttributesProtection` on all models, as is done in Rails 4.
 
-### Configuration
+### App-level Configuration
 
 At the bottom of `config/environment.rb`, you can set config items one at a time like:
 
@@ -66,18 +66,45 @@ At the bottom of `config/environment.rb`, you can set config items one at a time
 or in bulk like:
 
     RestfulJson.configure do
-      self.can_filter_by_default_using = [:eq] # default for :using in can_filter_by
-      self.debug = false # to output debugging info during request handling
-      self.filter_split = ',' # delimiter for values in request parameter values
-      self.formats = :json, :html # equivalent to specifying respond_to :json, :html in the controller, and can be overriden in the controller. Note that by default responders gem sets respond_to :html in application_controller.rb.
-      self.number_of_records_in_a_page = 15 # default number of records to return if using the page request function
-      self.predicate_prefix = '!' # delimiter for ARel predicate in the request parameter name
-      self.return_resource = false # if true, will render resource and HTTP 201 for post/create or resource and HTTP 200 for put/update
+      
+      # default for :using in can_filter_by
+      self.can_filter_by_default_using = [:eq]
+      
+      # to output debugging info during request handling
+      self.debug = false
+      
+      # delimiter for values in request parameter values
+      self.filter_split = ','
+      
+      # equivalent to specifying respond_to :json, :html in the controller, and can be overriden in the controller. Note that by default responders gem sets respond_to :html in application_controller.rb.
+      self.formats = :json, :html
+      
+      # default number of records to return if using the page request function
+      self.number_of_records_in_a_page = 15
+      
+      # delimiter for ARel predicate in the request parameter name
+      self.predicate_prefix = '!'
+      
+      # if true, will render resource and HTTP 201 for post/create or resource and HTTP 200 for put/update
+      self.return_resource = false 
+
     end
 
-#### Advanced Configuration
+### Controller-specific Configuration
 
 In the controller, you can set a variety of class attributes with `self.something = ...` in the body of your controller.
+
+All of the app-level configuration parameters are configurable at the controller level:
+
+      self.can_filter_by_default_using = [:eq]
+      self.debug = false
+      self.filter_split = ','
+      self.formats = :json, :html
+      self.number_of_records_in_a_page = 15
+      self.predicate_prefix = '!'
+      self.return_resource = false 
+
+In addition there are some that are controller-only...
 
 If you don't use the standard controller naming convention, you can define this in the controller:
 
@@ -88,9 +115,9 @@ If it doesn't handle the other forms well, you can explicitly define the singula
         self.model_singular_name = 'your_model'
         self.model_plural_name = 'your_models'
 
-Those are used for *_url method definitions, to set instance variables like `@foobar` and `@foobars` dynamically, etc.
+These are used for *_url method definitions, to set instance variables like `@foobar` and `@foobars` dynamically, etc.
 
-Other class attributes available for setting/overriding, but they are all set by the other class methods.
+Other class attributes are available for setting/overriding, but they are all set by the other class methods defined in the next section.
 
 ### Usage
 
@@ -106,7 +133,9 @@ You can have something as simple as:
 
     end
 
-which would use the restful_json configuration and the controller's classname for the service definition, or something a lot more complex like:
+which would use the restful_json configuration and the controller's classname for the service definition.
+
+Or you can define more bells and whistles (read on to see what these do...):
 
     class FoobarsController < ApplicationController
       
@@ -139,7 +168,7 @@ which would use the restful_json configuration and the controller's classname fo
       
     end
 
-#### Default Filter by Attribute(s)
+#### Default Filtering by Attribute(s)
 
 First, declare in the controller:
 
@@ -149,21 +178,29 @@ If `RestfulJson.can_filter_by_default_using = [:eq]` as it is by default, then y
 
     http://localhost:3000/foobars?foo_id=1
 
-`can_filter_by` without an option means you can send in that request param (via routing or directly, just like normal in Rails) and it will use that in the ARel query (safe from SQL injection and only letting you do what you tell it). `:using` means you can use those [ARel][arel] predicates for filtering. For a full list of available ones do:
+`can_filter_by` without an option means you can send in that request param (via routing or directly, just like normal in Rails) and it will use that in the ARel query (safe from SQL injection and only letting you do what you tell it). `:using` means you can use those [ARel][arel] predicates for filtering. If you do `Arel::Predications.public_instance_methods.sort` in Rails console, you can see a list of the available predicates. So, you could get crazy with:
 
-    rails c
-    Arel::Predications.public_instance_methods.sort
-
-at time of writing these were:
-
-    [:does_not_match, :does_not_match_all, :does_not_match_any, :eq, :eq_all, :eq_any, :gt, :gt_all, :gt_any, :gteq, :gteq_all, :gteq_any, :in, :in_all, :in_any, :lt, :lt_all, :lt_any, :lteq, :lteq_all, :lteq_any, :matches, :matches_all, :matches_any, :not_eq, :not_eq_all, :not_eq_any, :not_in, :not_in_all, :not_in_any]
+    can_filter_by :does_not_match, :does_not_match_all, :does_not_match_any, :eq, :eq_all, :eq_any, :gt, :gt_all, :gt_any, :gteq, :gteq_all, :gteq_any, :in, :in_all, :in_any, :lt, :lt_all, :lt_any, :lteq, :lteq_all, :lteq_any, :matches, :matches_all, :matches_any, :not_eq, :not_eq_all, :not_eq_any, :not_in, :not_in_all, :not_in_any
 
 `can_filter_by` can also specify a `:with_query` to provide a lambda that takes the request parameter in when it is provided by the request.
 
-And `can_filter_by` can also specify a `:through` to provide an easy way to inner join through a bunch models (using ActiveRecord relations) by specifying 0-to-many association names to go "through" to the final argument which is the attribute name on the last model, e.g. the two following are equivalent:
-
     can_filter_by :a_request_param_name, with_query: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
-    can_filter_by :a_request_param_name, through: [:some_assoc, :some_attr] # much easier, but not as flexible as a lambda
+
+And `can_filter_by` can specify a `:through` to provide an easy way to inner join through a bunch of models using ActiveRecord relations, by specifying 0-to-many association names to go "through" to the final argument, which is the attribute name on the last model. The following is equivalent to the last query:
+
+    can_filter_by :a_request_param_name, through: [:some_assoc, :some_attr]
+
+Let's say you are in MagicalValleyController, and the MagicalValley model `has many :magical_unicorns`. The MagicalUnicorn model has an attribute called `name`. You want to return MagicalValleys that are associated with all of the MagicalUnicorns named 'Rainbow'. You could do either:
+
+    can_filter_by :magical_unicorn_name, with_query: ->(t,q,param_value) {q.joins(:magical_unicorns).where(:magical_unicorns=>{name: param_value})}
+
+or:
+
+    can_filter_by :magical_unicorn_name, through: [:magical_unicorns, :name]
+
+and you can then use this:
+
+    http://localhost:3000/magical_valleys?magical_unicorn_name=Rainbow
 
 #### Other Filters by Attribute(s)
 

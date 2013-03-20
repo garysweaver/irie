@@ -202,6 +202,14 @@ and you can then use this:
 
     http://localhost:3000/magical_valleys?magical_unicorn_name=Rainbow
 
+or if a MagicalUnicorn `has_many :friends` and a MagicalUnicorn's friend has a name attribute:
+
+    can_filter_by :magical_unicorn_friend_name, through: [:magical_unicorns, :friends, :name]
+
+and use this to get valleys associated with unicorns who in turn have a friend named Oscar:
+
+    http://localhost:3000/magical_valleys?magical_unicorn_friend_name=Oscar
+
 #### Other Filters by Attribute(s)
 
 First, declare in the controller:

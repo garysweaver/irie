@@ -7,6 +7,8 @@ Should work with Rails 3.1+ and Rails 4. Feel free to submit issues and/or do a 
 
 Uses Adam Hawkin's [permitter][permitter] code which uses [strong_parameters][strong_parameters] and encourages use of [active_model_serializers][active_model_serializers].
 
+An example app using restful_json with AngularJS is [employee-training-tracker][employee-training-tracker], as featured in [Built with AngularJS][built_with_angularjs].
+
 ### Installation
 
 In your Rails app's `Gemfile`, add:
@@ -16,6 +18,10 @@ In your Rails app's `Gemfile`, add:
 and:
 
     bundle install
+
+### Setup
+
+#### Cancan
 
 You need to setup [cancan][cancan]. Here are the basics:
 
@@ -41,29 +47,15 @@ In `app/models/ability.rb`, setup a basic cancan ability. Just for testing we'll
       end
     end
 
-### Responders
+#### Strong Parameters
 
-If you plan to use responders outside of json with restful_json, you may want to formally install it, for flash messages, etc.:
-
-    gem install responders
-
-Add this to your Gemfile and bundle install:
-
-    gem 'responders'
-
-And do:
-
-    rails generate responders:install
-
-### Strong Parameters
-
-If you want to now disable the default whitelisting that occurs in later versions of Rails, change the config.active_record.whitelist_attributes property in your `config/application.rb`:
+If you're using Rails 3.1.x/3.2.x and you want to disable the default whitelisting that occurs in later versions of Rails because you are going to use Strong Parameters, change the config.active_record.whitelist_attributes property in your `config/application.rb`:
 
     config.active_record.whitelist_attributes = false
 
 This will allow you to remove / not have to use attr_accessible and do mass assignment inside your code and tests. Instead you will put this information into your permitters.
 
-Note that restful_json automatically includes `ActiveModel::ForbiddenAttributesProtection` on all models as will be done in Rails 4.
+Note that restful_json automatically includes `ActiveModel::ForbiddenAttributesProtection` on all models, as is done in Rails 4.
 
 ### Configuration
 
@@ -85,46 +77,67 @@ or in bulk like:
 
 #### Advanced Configuration
 
-In the controller, you can set a variety of class attributes with `self.something = ...` in the body of your controller to set model class, variable names, messages, etc. Take a look at the class_attribute definitions in `lib/restful_json/controller.rb`.
+In the controller, you can set a variety of class attributes with `self.something = ...` in the body of your controller.
+
+If you don't use the standard controller naming convention, you can define this in the controller:
+
+        self.model_class = YourModel
+
+If it doesn't handle the other forms well, you can explicitly define the singular/plural names:
+
+        self.model_singular_name = 'your_model'
+        self.model_plural_name = 'your_models'
+
+Those are used for *_url method definitions, to set instance variables like `@foobar` and `@foobars` dynamically, etc.
+
+Other class attributes available for setting/overriding, but they are all set by the other class methods.
 
 ### Usage
 
-By using `acts_as_restful_json` you have a configurable generic Rails 3.1+ controller that does the index, show, create, and update and other custom actions easily for you.
+By using `acts_as_restful_json`, you have a configurable generic Rails 3.1+/4+ controller that does the index, show, create, and update and other custom actions easily for you.
 
-Everything is well-declared and concise:
+Everything is well-declared and fairly concise.
 
-    class FoobarsController < ApplicationController  
+You can have something as simple as:
+
+    class FoobarsController < ApplicationController
+      
       acts_as_restful_json
-      query_for :index, is: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
-      # args sent to can_filter_by are the request parameter name(s)
-      can_filter_by :foo_id # implies using: [:eq] because RestfulJson.can_filter_by_default_using = [:eq]
-      can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt], with_default: Time.now # can specify multiple predicates and optionally a default value
-      can_filter_by :a_request_param_name, with_query: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
-      can_filter_by :and_another, through: [:some_attribute_on_this_model]
-      can_filter_by :one_more, through: [:some_association, :some_attribute_on_some_association_model]
-      can_filter_by :and_one_more, through: [:my_assoc, :my_assocs_assoc, :my_assocs_assocs_assoc, :an_attribute_on_my_assocs_assocs_assoc]
-      supports_functions :count, :uniq, :take, :skip, :page, :page_count
-      order_by {:foo_date => :asc}, :foo_color, {:bar_date => :desc} # an ordered array of hashes, assumes :asc if not a hash
-      respond_to :json, :html # specify if you want more than :json. It dynamically sets model variables with the right names, e.g. @foobar and @foobars.
+
     end
 
-`can_filter_by` without an option means you can send in that request param (via routing or directly, just like normal in Rails) and it will use that in the ARel query (safe from SQL injection and only letting you do what you tell it). `:using` means you can use those [ARel][arel] predicates for filtering. For a full list of available ones do:
+which would use the restful_json configuration and the controller's classname for the service definition, or something a lot more complex like:
 
-    rails c
-    Arel::Predications.public_instance_methods.sort
-
-at time of writing these were:
-
-    [:does_not_match, :does_not_match_all, :does_not_match_any, :eq, :eq_all, :eq_any, :gt, :gt_all, :gt_any, :gteq, :gteq_all, :gteq_any, :in, :in_all, :in_any, :lt, :lt_all, :lt_any, :lteq, :lteq_all, :lteq_any, :matches, :matches_all, :matches_any, :not_eq, :not_eq_all, :not_eq_any, :not_in, :not_in_all, :not_in_any]
-
-`supports_functions` lets you do other [ARel][arel] functions. `:uniq`, `:skip`, `:take`, and `:count`.
-
-`can_filter_by` can also specify a `:with_query` to provide a lambda that takes the request parameter in when it is provided by the request.
-
-And `can_filter_by` can also specify a `:through` to provide an easy way to inner join through a bunch models (using ActiveRecord relations) by specifying 0-to-many association names to go "through" to the final argument which is the attribute name on the last model, e.g. the two following are equivalent:
-
-    can_filter_by :a_request_param_name, with_query: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
-    can_filter_by :a_request_param_name, through: [:some_assoc, :some_attr] # much easier, but not as flexible as a lambda
+    class FoobarsController < ApplicationController
+      
+      acts_as_restful_json
+      
+      query_for :index, is: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
+      
+      # args sent to can_filter_by are the request parameter name(s)
+      
+      # implies using: [:eq] because RestfulJson.can_filter_by_default_using = [:eq]
+      can_filter_by :foo_id
+      
+      # can specify multiple predicates and optionally a default value
+      can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt], with_default: Time.now
+      
+      can_filter_by :a_request_param_name, with_query: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
+      
+      can_filter_by :and_another, through: [:some_attribute_on_this_model]
+      
+      can_filter_by :one_more, through: [:some_association, :some_attribute_on_some_association_model]
+      
+      can_filter_by :and_one_more, through: [:my_assoc, :my_assocs_assoc, :my_assocs_assocs_assoc, :an_attribute_on_my_assocs_assocs_assoc]
+      
+      supports_functions :count, :uniq, :take, :skip, :page, :page_count
+      
+      order_by {:foo_date => :asc}, :foo_color, {:bar_date => :desc} # an ordered array of hashes, assumes :asc if not a hash
+      
+      # comma-delimited if you want more than :json, e.g. :json, :html
+      respond_to :json, :html
+      
+    end
 
 #### Default Filter by Attribute(s)
 
@@ -135,6 +148,22 @@ First, declare in the controller:
 If `RestfulJson.can_filter_by_default_using = [:eq]` as it is by default, then you can now get Foobars with a foo_id of '1':
 
     http://localhost:3000/foobars?foo_id=1
+
+`can_filter_by` without an option means you can send in that request param (via routing or directly, just like normal in Rails) and it will use that in the ARel query (safe from SQL injection and only letting you do what you tell it). `:using` means you can use those [ARel][arel] predicates for filtering. For a full list of available ones do:
+
+    rails c
+    Arel::Predications.public_instance_methods.sort
+
+at time of writing these were:
+
+    [:does_not_match, :does_not_match_all, :does_not_match_any, :eq, :eq_all, :eq_any, :gt, :gt_all, :gt_any, :gteq, :gteq_all, :gteq_any, :in, :in_all, :in_any, :lt, :lt_all, :lt_any, :lteq, :lteq_all, :lteq_any, :matches, :matches_all, :matches_any, :not_eq, :not_eq_all, :not_eq_any, :not_in, :not_in_all, :not_in_any]
+
+`can_filter_by` can also specify a `:with_query` to provide a lambda that takes the request parameter in when it is provided by the request.
+
+And `can_filter_by` can also specify a `:through` to provide an easy way to inner join through a bunch models (using ActiveRecord relations) by specifying 0-to-many association names to go "through" to the final argument which is the attribute name on the last model, e.g. the two following are equivalent:
+
+    can_filter_by :a_request_param_name, with_query: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
+    can_filter_by :a_request_param_name, through: [:some_assoc, :some_attr] # much easier, but not as flexible as a lambda
 
 #### Other Filters by Attribute(s)
 
@@ -150,7 +179,13 @@ Multiple values are separated by `filter_split` (configurable):
 
     http://localhost:3000/foobars?seen_on!eq_any=2012-08-08,2012-09-09
 
-#### Unique (DISTINCT)
+#### Supported Functions
+
+##### Declaring
+
+`supports_functions` lets you allow the [ARel][arel] functions: `:uniq`, `:skip`, `:take`, and/or `:count`.
+
+##### Unique (DISTINCT)
 
 First, declare in the controller:
 
@@ -160,7 +195,7 @@ To return a simple unique view of a model, combine use of an active_model_serial
 
     http://localhost:3000/foobars?uniq=
 
-#### Count
+##### Count
 
 First, declare in the controller:
 
@@ -170,7 +205,7 @@ This is another filter that can be used with the others, but instead of returnin
 
     http://localhost:3000/foobars?count=
 
-#### Paging
+##### Paging
 
 In controller make sure these are included:
 
@@ -198,7 +233,7 @@ To set page size at controller level:
 
 For a better idea of how this works on the backend, look at [ARel][arel]'s skip and take, or see Variable Paging.
 
-##### Skip and Take (OFFSET and LIMIT)
+###### Skip and Take (OFFSET and LIMIT)
 
 In controller make sure these are included:
 
@@ -211,8 +246,6 @@ To skip rows returned, use 'skip'. It is called take, because skip is the [ARel]
 To limit the number of rows returned, use 'take'. It is called take, because take is the [ARel][arel] equivalent of SQL LIMIT:
 
     http://localhost:3000/foobars.json?take=5
-
-##### Variable Paging
 
 Combine skip and take for manual completely customized paging.
 
@@ -257,7 +290,7 @@ or use the `->` Ruby 1.9 lambda stab operator. You can also filter out items tha
       .where(pears: {color: 'green'})
     }
 
-##### Custom Actions
+##### Define Custom Actions with Custom Queries
 
 `query_for` also will `alias_method (some action), :index` anything other than `:index`, so you can easily create custom non-RESTful action methods:
 
@@ -266,6 +299,10 @@ or use the `->` Ruby 1.9 lambda stab operator. You can also filter out items tha
     query_for :some_action, is: ->(t,q) {q.where(:status_code => 'green')}
 
 Note that it is a proc so you can really do whatever you want with it and will have access to other things in the environment or can call another method, etc.
+
+You are still working with regular controllers here, so add or override methods if you want more!
+
+The goal of restful_json is to reduce service controller code in an intuitive way, not to be a be-all DSL, so there is no "restful_json way".
 
 ### Routing
 
@@ -279,6 +316,10 @@ Respects regular and nested Rails resourceful routing and controller namespacing
       end
     end
 
+### Thanks!
+
+Without our users, wherever would we be? Feedback, bug reports, and code/documentation contributions are always welcome!
+
 ### Contributors
 
 * Gary Weaver (https://github.com/garysweaver)
@@ -288,6 +329,8 @@ Respects regular and nested Rails resourceful routing and controller namespacing
 
 Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 
+[employee-training-tracker]: https://github.com/FineLinePrototyping/employee-training-tracker
+[built_with_angularjs]: http://builtwith.angularjs.org/
 [permitter]: http://broadcastingadam.com/2012/07/parameter_authorization_in_rails_apis/
 [cancan]: https://github.com/ryanb/cancan
 [strong_parameters]: https://github.com/rails/strong_parameters

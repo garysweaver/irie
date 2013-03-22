@@ -127,6 +127,26 @@ Then make sure you add a JBuilder view for each action you require. Although all
 
 See [Railscast #320][railscast320] for examples.
 
+#### JSON Request Acceptance
+
+See Adam Hawkin's [permitters][permitter]. We have an implementation of ApplicationPermitter, so you just need permitters in `/app/permitters/`, e.g. `/app/permitters/foobar_permitter.rb`:
+
+    class FoobarPermitter < ApplicationPermitter
+      # attributes we accept (the new way to do attr_accessible, OO-styley! Thanks, twinturbo)
+      permit :id, :foo_id
+      permit :bar_id
+      permit :notes
+      # foobar has accepts_nested_attributes_for :barfoos
+      scope :barfoos_attributes do |barfoo|
+        barfoo.permit :id, :favorite_color, :favorite_chicken
+      end
+    end
+
+If you don't accept anything, you should have an empty Permitter:
+
+    class FoobarPermitter < ApplicationPermitter
+    end
+
 ### App-level Configuration
 
 At the bottom of `config/environment.rb`, you can set config items one at a time like:

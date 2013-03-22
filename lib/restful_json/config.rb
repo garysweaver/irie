@@ -6,7 +6,8 @@ module RestfulJson
     :formats,
     :number_of_records_in_a_page,
     :predicate_prefix,
-    :return_resource
+    :return_resource,
+    :render_enabled
   ]
   
   class << self
@@ -24,4 +25,5 @@ RestfulJson.configure do
   self.number_of_records_in_a_page = 15
   self.predicate_prefix = '!'
   self.return_resource = false
+  self.render_enabled = true
 end

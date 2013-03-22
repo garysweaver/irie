@@ -40,6 +40,7 @@ module RestfulJson
         class_attribute :action_to_query, instance_writer: true
         class_attribute :param_to_query, instance_writer: true
         class_attribute :param_to_through, instance_writer: true
+        class_attribute :action_to_serializer, instance_writer: true
 
         # use values from config
         # debug uses RestfulJson.debug? because until this is done no local debug class attribute exists to check
@@ -54,6 +55,7 @@ module RestfulJson
         self.action_to_query ||= {}
         self.param_to_query ||= {}
         self.param_to_through ||= {}
+        self.action_to_serializer ||= {}
       end
 
       module ClassMethods
@@ -133,6 +135,21 @@ module RestfulJson
         #   order_by {:foo_date => :asc}, :foo_color, 'foo_name', {:bar_date => :desc}
         def order_by(args)
           self.ordered_by = (Array.wrap(self.ordered_by) + Array.wrap(args)).flatten.compact.collect {|item|item.is_a?(Hash) ? item : {item.to_sym => :asc}}
+        end
+
+        # Associate a non-standard ActiveModel Serializer for one or more actions, e.g.
+        #    serialize_action :index, with: FoosSerializer
+        # or
+        #    serialize_action :index, :some_custom_action, with: FoosSerializer
+        def serialize_action(*args)
+          options = args.extract_options!
+          args.each do |an_action|
+            if options[:with]
+              self.action_to_serializer[an_action.to_s] = options[:with]
+            else
+              raise "#{self.class.name} must supply an :with option with serialize_action #{an_action.inspect}"
+            end
+          end
         end
       end
 
@@ -268,7 +285,11 @@ module RestfulJson
 
         @value = value
         instance_variable_set(@model_at_plural_name_sym, @value)
-        respond_with @value
+        
+        if self.render_enabled  
+          custom_action_serializer = self.action_to_serializer[params[:action].to_s]
+          respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
+        end
       end
 
       # The controller's show (get) method to return a resource.
@@ -276,13 +297,21 @@ module RestfulJson
         # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
         @value = @model_class.find(params[:id].to_s)
         instance_variable_set(@model_at_singular_name_sym, @value)
-        respond_with @value
+        
+        if self.render_enabled  
+          custom_action_serializer = self.action_to_serializer[params[:action].to_s]
+          respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
+        end
       end
 
       # The controller's new method (e.g. used for new record in html format).
       def new
         @value = @model_class.new
-        respond_with @value
+
+        if self.render_enabled  
+          custom_action_serializer = self.action_to_serializer[params[:action].to_s]
+          respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
+        end
       end
 
       # The controller's edit method (e.g. used for edit record in html format).
@@ -298,18 +327,27 @@ module RestfulJson
         @value = @model_class.new(permitted_params)
         @value.save
         instance_variable_set(@model_at_singular_name_sym, @value)
-        if RestfulJson.return_resource
-          respond_with(@value) do |format|
-            format.json do
-              if @value.errors.empty?
-                render json: @value, status: :created
-              else
-                render json: {errors: @value.errors}, status: :unprocessable_entity
+
+        if self.render_enabled  
+          custom_action_serializer = self.action_to_serializer[params[:action].to_s]
+          respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
+        end
+
+        if self.render_enabled
+          custom_action_serializer = self.action_to_serializer[params[:action].to_s]
+          if !@value.nil? && RestfulJson.return_resource
+            respond_with(@value) do |format|
+              format.json do
+                if @value.errors.empty?
+                  render custom_action_serializer ? {json: @value, status: :created, serializer: custom_action_serializer} : {json: @value, status: :created}
+                else
+                  render custom_action_serializer ? {json: {errors: @value.errors}, status: :unprocessable_entity, serializer: custom_action_serializer} : {json: {errors: @value.errors}, status: :unprocessable_entity}
+                end
               end
             end
+          else
+            respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
           end
-        else
-          respond_with @value
         end
       end
 
@@ -320,18 +358,22 @@ module RestfulJson
         @value = @model_class.find(params[:id].to_s)
         @value.update_attributes(permitted_params)
         instance_variable_set(@model_at_singular_name_sym, @value)
-        if RestfulJson.return_resource
-          respond_with(@value) do |format|
-            format.json do
-              if @value.errors.empty?
-                render json: @value, status: :ok
-              else
-                render json: {errors: @value.errors}, status: :unprocessable_entity
+        
+        if self.render_enabled
+          custom_action_serializer = self.action_to_serializer[params[:action].to_s]
+          if !@value.nil? && RestfulJson.return_resource
+            respond_with(@value) do |format|
+              format.json do
+                if @value.errors.empty?
+                  render custom_action_serializer ? {json: @value, status: :ok, serializer: custom_action_serializer} : {json: @value, status: :ok}
+                else
+                  render custom_action_serializer ? {json: {errors: @value.errors}, status: :unprocessable_entity, serializer: custom_action_serializer} : {json: {errors: @value.errors}, status: :unprocessable_entity}
+                end
               end
             end
+          else
+            respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
           end
-        else
-          respond_with @value
         end
       end
 
@@ -341,7 +383,10 @@ module RestfulJson
         @value = @model_class.find(params[:id].to_s)
         @value.destroy
         instance_variable_set(@model_at_singular_name_sym, @value)
-        respond_with @value
+
+        if self.render_enabled
+          respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
+        end
       end
 
     end

@@ -5,9 +5,13 @@ Develop declarative, featureful JSON RESTful-ish service controllers to use with
 
 Should work with Rails 3.1+ and Rails 4. Feel free to submit issues and/or do a pull requests if you run into anything.
 
-Uses Adam Hawkin's [permitter][permitter] code which uses [strong_parameters][strong_parameters] and encourages use of [active_model_serializers][active_model_serializers].
+For the JSON response, you can either use [active_model_serializers][active_model_serializers], JBuilder, and perhaps others we haven't tested for control over the JSON response format. For active_model_serializers, it also provides the serialize_action class method in the controller to specify custom serializers (assuming you are using a later version of active_model_serializers that works with respond_with). For JBuilder, you can set render_enabled in the config to false.
 
-An example app using restful_json with AngularJS is [employee-training-tracker][employee-training-tracker], as featured in [Built with AngularJS][built_with_angularjs].
+For the incoming JSON, it uses Adam Hawkin's [permitter][permitter] code which uses [strong_parameters][strong_parameters] and [cancan][cancan]. Permitters are an object-oriented way of defining what is permitted in the incoming JSON.
+
+An example app using restful_json with AngularJS is [employee-training-tracker][employee-training-tracker], featured in [Built with AngularJS][built_with_angularjs].
+
+The goal of restful_json is to reduce service controller code in an intuitive way, not to be a be-all DSL. The intent is for there to be no "restful_json way". It is currently opinionated about use of Cancan, strong_parameters, etc. because twinturbo [permitter][permitter] strategy uses those, but you can cut the ties via a pull request if you'd like.
 
 ### Installation
 
@@ -19,11 +23,26 @@ and:
 
     bundle install
 
-### Setup
+### Dependencies
+
+#### Rails
+
+Need at least Rails 3.1.0, but supports 3.1.x, 3.2.x, and 4+.
+
+Go with whatever you have in your Gemfile, e.g.:
+
+    gem 'rails', '3.2.11'
+
+If you don't want all of Rails (probably not the case), you at least need actionpack and activerecord:
+
+    gem 'actionpack', '> 3.1.0'
+    gem 'activerecord', '> 3.1.0'
 
 #### Cancan
 
-You need to setup [cancan][cancan]. Here are the basics:
+To use [cancan][cancan], in your Gemfile, add:
+
+    gem 'cancan', '~> 1.6.7'
 
 In your `app/controllers/application_controller.rb` or in your service controllers, make sure `current_user` is set:
 
@@ -49,6 +68,10 @@ In `app/models/ability.rb`, setup a basic cancan ability. Just for testing we'll
 
 #### Strong Parameters
 
+To use [strong_parameters][strong_parameters], in your Gemfile, add:
+
+    gem 'strong_parameters', '~> 0.1.3'
+
 If you're using Rails 3.1.x/3.2.x and you want to disable the default whitelisting that occurs in later versions of Rails because you are going to use Strong Parameters, change the config.active_record.whitelist_attributes property in your `config/application.rb`:
 
     config.active_record.whitelist_attributes = false
@@ -56,6 +79,53 @@ If you're using Rails 3.1.x/3.2.x and you want to disable the default whitelisti
 This will allow you to remove / not have to use attr_accessible and do mass assignment inside your code and tests. Instead you will put this information into your permitters.
 
 Note that restful_json automatically includes `ActiveModel::ForbiddenAttributesProtection` on all models, as is done in Rails 4.
+
+#### JSON Response Generators
+
+##### ActiveModel Serializers
+
+If you want to use [ActiveModel Serializers][[active_model_serializers], use:
+
+    gem 'active_model_serializers'
+
+Then create your serializers, e.g.:
+
+    /app/serializers/singular_model_name_serializer.rb
+
+Without having to do anything else, each restful_json controller will use `/app/serializers/singular_model_name_serializer.rb`, e.g. `/app/serializers/bar_serializer.rb` for the actions: index, show, new, create, update, destroy (not edit).
+
+If you want to define a different serializer another action, e.g. the index action so that a list of instances has a different JSON format:
+
+    serialize_action :index, with: BarsSerializer
+
+You can also use a specific format for multiple actions:
+
+    serialize_action :index, :my_other_list_action, with: BarsSerializer
+
+The built-in actions that support custom serializers (you can add more) are: index, show, new, create, update, destroy, and any action you automatically have created via using the restful_json `query_for` method (keep reading!).
+
+##### JBuilder
+
+If you want to use JBuilder instead to render, first:
+
+    gem 'jbuilder'
+
+If you want to enable JBuilder for all restful_json services, you need to disable all renders and respond_withs in the controller:
+
+    RestfulJson.render_enabled = false
+
+Or you can also just enable/disable rendering in a controller via setting `self.render_enabled`:
+
+    self.render_enabled = false
+
+Then make sure you add a JBuilder view for each action you require. Although all may not be relevant, we support: index, show, new, edit, create, update, destroy. Maybe you'd create:
+
+    /app/views/plural_name_of_model/index.json.jbuilder
+    /app/views/plural_name_of_model/show.json.jbuilder
+    /app/views/plural_name_of_model/create.json.jbuilder
+    /app/views/plural_name_of_model/update.json.jbuilder
+
+See [Railscast #320][railscast320] for examples.
 
 ### App-level Configuration
 
@@ -236,7 +306,7 @@ First, declare in the controller:
 
     supports_functions :uniq
 
-To return a simple unique view of a model, combine use of an active_model_serializer that returns just the attribute you want along with the uniq param, e.g. to return unique/distinct colors of foobars you'd have a serializer to just return the color and then use:
+To return a simple unique view of a model, combine use of an [ActiveModel Serializer][active_model_serializers] that returns just the attribute you want along with the uniq param, e.g. to return unique/distinct colors of foobars you'd have a serializer to just return the color and then use:
 
     http://localhost:3000/foobars?uniq=
 
@@ -347,8 +417,6 @@ Note that it is a proc so you can really do whatever you want with it and will h
 
 You are still working with regular controllers here, so add or override methods if you want more!
 
-The goal of restful_json is to reduce service controller code in an intuitive way, not to be a be-all DSL, so there is no "restful_json way".
-
 ### Routing
 
 Respects regular and nested Rails resourceful routing and controller namespacing, e.g. in `config/routes.rb`:
@@ -360,6 +428,109 @@ Respects regular and nested Rails resourceful routing and controller namespacing
         match 'bars/:bar_id/foobars(.:format)' => 'foobars#index'
       end
     end
+
+### Experimental Usage
+
+#### Rails-api
+
+If you want to try out [rails-api][rails-api], maybe use:
+
+    gem 'rails-api', '~> 0.0.3'
+
+    class ServiceController < ActionController::API
+      
+      include AbstractController::Translation
+      include ActionController::HttpAuthentication::Basic::ControllerMethods
+      include AbstractController::Layouts
+      include ActionController::MimeResponds
+      include ActionController::Cookies
+      include ActionController::ParamsWrapper
+      acts_as_restful_json
+      
+      def current_user
+        User.new
+      end
+      
+    end
+
+Note that in `/config/initializers/wrap_parameters.rb` you might need to add `include ActionController::ParamsWrapper` prior to the `wrap_parameters` call. For example, for unwrapped JSON, it would look like:
+
+    ActiveSupport.on_load(:action_controller) do
+      # without include of ParamsWrapper, will get undefined method `wrap_parameters' for ActionController::API:Class (NoMethodError)
+      include ActionController::ParamsWrapper
+      # in this case it's expecting unwrapped params, but we could maybe use wrap_parameters format: [:json]
+      wrap_parameters format: []
+    end
+
+    # Disable root element in JSON by default.
+    ActiveSupport.on_load(:active_record) do
+      self.include_root_in_json = false
+    end
+
+#### Customing the Default Behavior
+
+In `app/controllers/able_to_mark_on_destroy.rb`, you could have:
+
+    module AbleToMarkOnDestroy
+      extend ActiveSupport::Concern
+
+      included do
+        # things you would put in the body of the class        
+        class_attribute :deleted_status_column, instance_writer: true
+      end
+
+      # no need to define class methods for this example, but this is where you'd do it
+      #module ClassMethods
+      #end
+
+      # instance methods from here on out...
+
+      # Note: overriding destroy in restful_json to support marking deleted_status_column with 'deleted'
+      def destroy
+        # to_s for vulnerabilities similar to CVE-2013-1854 in older Rails...
+        @value = @model_class.find(params[:id].to_s)
+        unless @value.nil? || !self.deleted_status_column
+          @value.update_attributes!({self.deleted_status_column.to_sym => 'deleted'})
+        else
+          @value.destroy
+        end
+      
+        instance_variable_set(@model_at_singular_name_sym, @value)
+
+        if self.render_enabled
+          # you could take out the custom_action_serializer support if you aren't using
+          custom_action_serializer = self.action_to_serializer[params[:action].to_s]
+          
+          if !@value.nil? && RestfulJson.return_resource
+            respond_with(@value) do |format|
+              format.json do
+                # for errors added in before_destroy validation or in update_attributes
+                if @value.errors.empty?
+                  render custom_action_serializer ? {json: @value, status: :ok, serializer: custom_action_serializer} : {json: @value, status: :ok}
+                else
+                  render custom_action_serializer ? {json: {errors: @value.errors}, status: :unprocessable_entity, serializer: custom_action_serializer} : {json: {errors: @value.errors}, status: :unprocessable_entity}
+                end
+              end
+            end
+          else
+            respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
+          end
+        end
+      end
+    end
+
+Then in your controller:
+
+    acts_as_restful_json
+    include AbleToMarkOnDestroy
+    
+    self.deleted_status_column = :foo_deleted
+
+And when you do a RESTful call to destroy id 123 via a DELETE:
+
+    http://localhost:3000/foobars/123
+
+Instead of deleting the DB row, the 'foobars' table row's column 'foo_deleted' would be set to 'deleted'.
 
 ### Thanks!
 
@@ -384,4 +555,6 @@ Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
 [devise]: https://github.com/plataformatec/devise
 [arel]: https://github.com/rails/arel
 [ar]: http://api.rubyonrails.org/classes/ActiveRecord/Relation.html
+[rails-api]: https://github.com/rails-api/rails-api
+[railscast320]: http://railscasts.com/episodes/320-jbuilder
 [lic]: http://github.com/rubyservices/restful_json/blob/master/LICENSE

@@ -1,3 +1,9 @@
+## restful_json 3.1.0 ##
+
+* Added ActiveModel Serializer custom serializer per action(s) support.
+* Added JBuilder support.
+* Fixing gemspec requirements to not include things it shouldn't.
+
 ## restful_json 3.0.1 ##
 
 * Updated order_by, comments.

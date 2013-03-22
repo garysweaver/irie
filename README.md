@@ -84,7 +84,7 @@ Note that restful_json automatically includes `ActiveModel::ForbiddenAttributesP
 
 ##### ActiveModel Serializers
 
-If you want to use [ActiveModel Serializers][[active_model_serializers], use:
+If you want to use [ActiveModel Serializers][active_model_serializers], use:
 
     gem 'active_model_serializers'
 

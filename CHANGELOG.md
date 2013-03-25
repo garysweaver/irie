@@ -1,3 +1,9 @@
+## restful_json 3.2.0 ##
+
+* Made active_model_serializers, strong_parameters, Permitters, Cancan all optional.
+* Added support for strong_parameters without Permitters/Cancan, allowing *_params methods in controller.
+* Fixing double rendering bug on create in 3.1.0.
+
 ## restful_json 3.1.0 ##
 
 * Added ActiveModel Serializer custom serializer per action(s) support.

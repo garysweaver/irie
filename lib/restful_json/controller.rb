@@ -11,10 +11,18 @@ module RestfulJson
     module ClassMethods
 
       def acts_as_restful_json(options = {})
-        include ::ActionController::Serialization
-        include ::ActionController::StrongParameters
-        include ::CanCan::ControllerAdditions
-        include ::TwinTurbo::Controller
+        if defined?(::ActionController::Serialization)
+          include ::ActionController::Serialization
+        end
+        if defined?(::ActionController::StrongParameters)
+          include ::ActionController::StrongParameters
+        end
+        if defined?(::CanCan::ModelAdditions)
+          include ::CanCan::ControllerAdditions
+        end
+        if defined?(::ActionController::StrongParameters) && defined?(::CanCan::ModelAdditions)
+          include ::TwinTurbo::Controller
+        end
         include ActsAsRestfulJson
       end
 
@@ -173,6 +181,12 @@ module RestfulJson
         @model_plural_name = self.model_plural_name || @model_singular_name.pluralize
         @model_at_plural_name_sym = "@#{@model_plural_name}".to_sym
         @model_at_singular_name_sym = "@#{@model_singular_name}".to_sym
+        
+        # next 3 are for vanilla strong_parameters
+        @model_singular_name_params_sym = "#{@model_singular_name}_params".to_sym
+        @create_model_singular_name_params_sym = "create_#{@model_singular_name}_params".to_sym
+        @update_model_singular_name_params_sym = "update_#{@model_singular_name}_params".to_sym
+
         underscored_modules_and_underscored_plural_model_name = qualified_controller_name.gsub('::','_').underscore
 
         # This is a workaround for controllers that are in a different module than the model only works if the controller's base part of the unqualified name in the plural model name.
@@ -289,6 +303,8 @@ module RestfulJson
         if self.render_enabled  
           custom_action_serializer = self.action_to_serializer[params[:action].to_s]
           respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
+        else
+          @value
         end
       end
 
@@ -301,6 +317,8 @@ module RestfulJson
         if self.render_enabled  
           custom_action_serializer = self.action_to_serializer[params[:action].to_s]
           respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
+        else
+          @value
         end
       end
 
@@ -311,6 +329,8 @@ module RestfulJson
         if self.render_enabled  
           custom_action_serializer = self.action_to_serializer[params[:action].to_s]
           respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
+        else
+          @value
         end
       end
 
@@ -319,19 +339,24 @@ module RestfulJson
         # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
         @value = @model_class.find(params[:id].to_s)
         instance_variable_set(@model_at_singular_name_sym, @value)
+        @value
       end
 
       # The controller's create (post) method to create a resource.
       def create
-        authorize! :create, @model_class
-        @value = @model_class.new(permitted_params)
+        if self.use_permitters
+          authorize! :create, @model_class
+          allowed_params = permitted_params
+        elsif respond_to? @create_model_singular_name_params_sym
+          allowed_params = send(@create_model_singular_name_params_sym)
+        elsif respond_to? @model_singular_name_params_sym
+          allowed_params = send(@model_singular_name_params_sym)
+        else
+          allowed_params = params
+        end
+        @value = @model_class.new(allowed_params)
         @value.save
         instance_variable_set(@model_at_singular_name_sym, @value)
-
-        if self.render_enabled  
-          custom_action_serializer = self.action_to_serializer[params[:action].to_s]
-          respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
-        end
 
         if self.render_enabled
           custom_action_serializer = self.action_to_serializer[params[:action].to_s]
@@ -348,15 +373,26 @@ module RestfulJson
           else
             respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
           end
+        else
+          @value
         end
       end
 
       # The controller's update (put) method to update a resource.
       def update
-        authorize! :update, @model_class
+        if self.use_permitters
+          authorize! :update, @model_class
+          allowed_params = permitted_params
+        elsif respond_to? @create_model_singular_name_params_sym
+          allowed_params = send(@update_model_singular_name_params_sym)
+        elsif respond_to? @model_singular_name_params_sym
+          allowed_params = send(@model_singular_name_params_sym)
+        else
+          allowed_params = params
+        end
         # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
         @value = @model_class.find(params[:id].to_s)
-        @value.update_attributes(permitted_params)
+        @value.update_attributes(allowed_params)
         instance_variable_set(@model_at_singular_name_sym, @value)
         
         if self.render_enabled
@@ -374,6 +410,8 @@ module RestfulJson
           else
             respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
           end
+        else
+          @value
         end
       end
 
@@ -386,6 +424,8 @@ module RestfulJson
 
         if self.render_enabled
           respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
+        else
+          @value
         end
       end
 

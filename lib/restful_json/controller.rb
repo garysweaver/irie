@@ -4,6 +4,20 @@ require 'active_model_serializers'
 require 'strong_parameters'
 require 'cancan'
 
+# The restful_json controller module. This module (RestfulJson::Controller) is included on ActionController
+# and then each individual controller should call acts_as_restful_json.
+#
+# Only use acts_as_restful_json in each individual service controller rather than a parent or
+# ancestor class of the service controller. class_attribute's are supposed to work when you subclass,
+# if you use setters (=, =+ to add to array instead of <<, etc.) but we have seen strange errors
+# about missing columns, etc. related to the model_class, etc. being wrong if you share a 
+# parent/ancestor class that acts_as_restful_json and then switch back and forth between controllers.
+# Why? The controller class overrides the shared class_attribute's when the controller class loads,
+# which other than re-loading via Rails autoload, only happens once; so you hit one controller, then the
+# the other, it starts overwriting/adding to attributes, and then when you hit the first one again, no
+# class method calling on class instantiation is being called, so it is using the wrong model. That is
+# bad, so don't do that.
+#
 module RestfulJson
   module Controller
     extend ActiveSupport::Concern
@@ -358,11 +372,12 @@ module RestfulJson
         @value.save
         instance_variable_set(@model_at_singular_name_sym, @value)
 
-        if self.render_enabled
-          custom_action_serializer = self.action_to_serializer[params[:action].to_s]
+        if self.render_enabled          
           if !@value.nil? && RestfulJson.return_resource
             respond_with(@value) do |format|
               format.json do
+                # define local variables in blocks, not outside of them, to be safe, even though would work in this case
+                custom_action_serializer = self.action_to_serializer[params[:action].to_s]
                 if @value.errors.empty?
                   render custom_action_serializer ? {json: @value, status: :created, serializer: custom_action_serializer} : {json: @value, status: :created}
                 else
@@ -371,6 +386,7 @@ module RestfulJson
               end
             end
           else
+            custom_action_serializer = self.action_to_serializer[params[:action].to_s]
             respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
           end
         else
@@ -396,10 +412,11 @@ module RestfulJson
         instance_variable_set(@model_at_singular_name_sym, @value)
         
         if self.render_enabled
-          custom_action_serializer = self.action_to_serializer[params[:action].to_s]
           if !@value.nil? && RestfulJson.return_resource
             respond_with(@value) do |format|
               format.json do
+                # define local variables in blocks, not outside of them, to be safe, even though would work in this case
+                custom_action_serializer = self.action_to_serializer[params[:action].to_s]
                 if @value.errors.empty?
                   render custom_action_serializer ? {json: @value, status: :ok, serializer: custom_action_serializer} : {json: @value, status: :ok}
                 else
@@ -408,6 +425,7 @@ module RestfulJson
               end
             end
           else
+            custom_action_serializer = self.action_to_serializer[params[:action].to_s]
             respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
           end
         else
@@ -423,6 +441,7 @@ module RestfulJson
         instance_variable_set(@model_at_singular_name_sym, @value)
 
         if self.render_enabled
+          custom_action_serializer = self.action_to_serializer[params[:action].to_s]
           respond_with @value, custom_action_serializer ? {serializer: custom_action_serializer} : {}
         else
           @value

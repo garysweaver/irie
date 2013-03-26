@@ -1,3 +1,8 @@
+## restful_json 3.2.1 ##
+
+* Important change to README that should not use acts_as_restful_json in parent/ancestor class shared by multiple controllers, because it is unsafe.
+* Fixing bug in delete related to custom serializer when using AMS.
+
 ## restful_json 3.2.0 ##
 
 * Made active_model_serializers, strong_parameters, Permitters, Cancan all optional.

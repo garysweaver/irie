@@ -271,15 +271,11 @@ You can have something as simple as:
 
 which would use the restful_json configuration and the controller's classname for the service definition.
 
-Or you could have a superclass:
+Or, you could define more bells and whistles (read on to see what these do...):
 
-    class ServiceController < ApplicationController
+    class FoobarsController < ApplicationController
+
       acts_as_restful_json
-    end
-
-And define more bells and whistles (read on to see what these do...):
-
-    class FoobarsController < ServiceController
       
       query_for :index, is: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
       
@@ -306,6 +302,28 @@ And define more bells and whistles (read on to see what these do...):
       # comma-delimited if you want more than :json, e.g. :json, :html
       respond_to :json, :html
       
+    end
+
+##### Parent/Ancestor Class Definition Not Supported
+
+Have had issues with putting `acts_as_restful_json` in parent/ancestor class, so even though it seems like it would be a good idea at first to move it into a shared parent controller, please keep it in each individual controller, e.g.:
+
+Don't do this:
+
+    class ServiceController < ApplicationController
+      acts_as_restful_json
+    end
+    
+    class FoobarsController < ServiceController
+      acts_as_restful_json
+    end
+
+It may appear to work when using the same controller, but when you make requests to more than one controller sharing the same parent/ancestor that define `acts_as_restful_json`, it may fail in very strange ways that are hard to diagnose from the error message.
+
+Do this instead:
+
+    class FoobarsController < ApplicationController
+      acts_as_restful_json
     end
 
 #### Default Filtering by Attribute(s)

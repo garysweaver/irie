@@ -23,12 +23,7 @@ matrix:
       gemfile: gemfiles/rails40.gemfile
     - rvm: jruby-19mode
       gemfile: gemfiles/rails40.gemfile
-services:
-  - mongodb
-# Needed for selenium browser
 before_script:
   - "bundle exec rake appraisal:install"
-#  - "export DISPLAY=:99.0"
-#  - "sh -e /etc/init.d/xvfb start"
 script:
   - "bundle exec rake appraisal test"

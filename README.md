@@ -520,7 +520,7 @@ Respects regular and nested Rails resourceful routing and controller namespacing
       end
     end
 
-### Using With Rails-api
+### With Rails-api
 
 If you want to try out [rails-api][rails-api], maybe use:
 

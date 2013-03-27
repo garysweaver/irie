@@ -528,20 +528,37 @@ If you want to try out [rails-api][rails-api], maybe use:
 
     gem 'rails-api', '~> 0.0.3'
 
-    class ServiceController < ActionController::API
-      
-      include AbstractController::Translation
-      include ActionController::HttpAuthentication::Basic::ControllerMethods
-      include AbstractController::Layouts
-      include ActionController::MimeResponds
-      include ActionController::Cookies
-      include ActionController::ParamsWrapper
-      acts_as_restful_json
-      
-      def current_user
-        User.new
+In `apps/controllers/restful_json_api.rb`:
+
+    module RestfulJsonApi
+      extend ActiveSupport::Concern
+
+      included do
+        include AbstractController::Translation
+        include ActionController::HttpAuthentication::Basic::ControllerMethods
+        include AbstractController::Layouts
+        include ActionController::MimeResponds
+        include ActionController::Cookies
+        include ActionController::ParamsWrapper
+        acts_as_restful_json
+
+        # If you want any additional inline class stuff, it goes here...
       end
       
+      module ClassMethods
+        # Any additional class methods...
+      end
+      
+      # Instance methods...
+      
+    end
+
+    class FoobarsController < ActionController::API
+      include RestfulJsonApi  
+    end
+
+    class BarfoosController < ActionController::API
+      include RestfulJsonApi  
     end
 
 Note that in `/config/initializers/wrap_parameters.rb` you might need to add `include ActionController::ParamsWrapper` prior to the `wrap_parameters` call. For example, for unwrapped JSON, it would look like:
@@ -560,7 +577,7 @@ Note that in `/config/initializers/wrap_parameters.rb` you might need to add `in
 
 #### Customing the Default Behavior
 
-One way to do this is:
+In `apps/controllers/hello.rb`:
 
     module Hello
       extend ActiveSupport::Concern

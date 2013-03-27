@@ -305,8 +305,6 @@ Or, you could define more bells and whistles (read on to see what these do...):
 
 ##### Parent/Ancestor Class Definition Not Supported
 
-Have had issues with putting `acts_as_restful_json` in parent/ancestor class, so even though it seems like it would be a good idea at first to move it into a shared parent controller, please keep it in each individual controller, e.g.:
-
 Don't do this:
 
     class ServiceController < ApplicationController
@@ -314,14 +312,20 @@ Don't do this:
     end
     
     class FoobarsController < ServiceController
-      acts_as_restful_json
+    end
+    
+    class BarfoosController < ServiceController
     end
 
-It may appear to work when using the same controller, but when you make requests to more than one controller sharing the same parent/ancestor that define `acts_as_restful_json`, it may fail in very strange ways that are hard to diagnose from the error message.
+It may appear to work when using the same controller or even on each new controller load, but when you make requests to BarfoosController, make a request to FoobarsController, and then make a request back to the BarfoosController, it may fail in very strange ways, such as missing column(s) from SQL results (because it isn't using the correct model).
 
 Do this instead:
 
-    class FoobarsController < ApplicationController
+    class FoobarsController < ServiceController
+      acts_as_restful_json
+    end
+    
+    class BarfoosController < ServiceController
       acts_as_restful_json
     end
 
@@ -556,7 +560,42 @@ Note that in `/config/initializers/wrap_parameters.rb` you might need to add `in
 
 #### Customing the Default Behavior
 
-Take a look at the controller in `lib/restful_json/controller.rb` to see how the actions are defined, and just copy/paste into your controller or module, etc. and just make sure that it is defined after `acts_as_restful_json` is called.
+One way to do this is:
+
+    module Hello
+      extend ActiveSupport::Concern
+
+      included do
+        acts_as_restful_json
+        class_attribute :name, instance_writer: true
+      end
+
+      module ClassMethods
+        def hello(value)
+          self.name = value.to_sym
+        end
+      end
+
+      def index
+        respond_to do |format|
+          format.json do
+            render :json => {"hello" => self.name}.to_json
+          end
+        end
+      end
+    end
+
+Then:
+
+    class FoobarsController < ApplicationController
+      include Hello
+    end
+
+    class BarfoosController < ApplicationController
+      include Hello
+    end
+
+For more realistic use that takes advantage of existing configuration in the controller, take a look at the controller in `lib/restful_json/controller.rb` to see how the actions are defined, and just copy/paste into your controller or module, etc. and make sure that it is defined after `acts_as_restful_json` is called and keep it up-to-date.
 
 ### Thanks!
 

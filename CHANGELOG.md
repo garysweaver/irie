@@ -2,6 +2,8 @@
 
 * Important change to README that should not use acts_as_restful_json in parent/ancestor class shared by multiple controllers, because it is unsafe.
 * Fixing bug in delete related to custom serializer when using AMS.
+* Fixing bug in order_by.
+* Working on travis-ci config and appraisals/specs for testing Rails 3.1/3.2/4.0.
 
 ## restful_json 3.2.0 ##
 

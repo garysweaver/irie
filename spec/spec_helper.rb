@@ -4,6 +4,28 @@
 # loaded once.
 #
 # See http://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
+
+# Remove tmp dir of dummy app before it's booted.
+FileUtils.rm_rf "#{File.dirname(__FILE__)}/dummy/tmp"
+
+require File.expand_path("../dummy/config/environment.rb",  __FILE__)
+require 'action_controller'
+require 'active_record'
+require 'active_support'
+require 'active_support/core_ext/kernel/reporting'
+require 'fileutils'
+require 'pathname'
+require 'rails/generators'
+require 'rails/test_help'
+require 'restful_json'
+require 'rspec/rails'
+require 'schema'
+
+# Configure Rails Environment
+ENV["RAILS_ENV"] = "test"
+
+Rails.backtrace_cleaner.remove_silencers!
+
 RSpec.configure do |config|
   config.treat_symbols_as_metadata_keys_with_true_values = true
   config.run_all_when_everything_filtered = true
@@ -17,10 +39,5 @@ RSpec.configure do |config|
   # the seed, which is printed after each run.
   #     --seed 1234
   config.order = 'random'
-end
 
-require 'active_support'
-require 'action_controller'
-require 'active_record'
-require 'schema'
-require 'restful_json'
+end

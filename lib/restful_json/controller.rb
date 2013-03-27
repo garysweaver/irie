@@ -1,8 +1,8 @@
-require 'restful_json/config'
-require 'twinturbo/controller'
-require 'active_model_serializers'
-require 'strong_parameters'
-require 'cancan'
+#require 'restful_json/config'
+#require 'twinturbo/controller'
+#require 'active_model_serializers'
+#require 'strong_parameters'
+#require 'cancan'
 
 # The restful_json controller module. This module (RestfulJson::Controller) is included on ActionController
 # and then each individual controller should call acts_as_restful_json.
@@ -20,7 +20,7 @@ require 'cancan'
 #
 module RestfulJson
   module Controller
-    extend ActiveSupport::Concern
+    extend ::ActiveSupport::Concern
 
     module ClassMethods
 
@@ -43,13 +43,13 @@ module RestfulJson
     end
     
     module ActsAsRestfulJson
-      extend ActiveSupport::Concern
+      extend ::ActiveSupport::Concern
 
       NILS = ['NULL','null','nil']
 
       included do
         # this can be overriden in the controller via defining respond_to
-        formats = RestfulJson.formats || Mime::EXTENSION_LOOKUP.keys.collect{|m|m.to_sym}
+        formats = RestfulJson.formats || ::Mime::EXTENSION_LOOKUP.keys.collect{|m|m.to_sym}
         respond_to *formats
 
         # create class attributes for each controller option and set the value to the value in the app configuration
@@ -262,7 +262,9 @@ module RestfulJson
 
         self.param_to_attr_and_arel_predicate.keys.each do |param_name|
           options = param_to_attr_and_arel_predicate[param_name][2]
-          param = params[param_name] || options[:with_default]
+          # to_s as safety measure for vulnerabilities similar to CVE-2013-1854 
+          param = params[param_name].to_s || options[:with_default]
+
           if param.present? && param_to_attr_and_arel_predicate[param_name]
             attr_sym = param_to_attr_and_arel_predicate[param_name][0]
             predicate_sym = param_to_attr_and_arel_predicate[param_name][1]
@@ -306,7 +308,7 @@ module RestfulJson
         else
           self.ordered_by.each do |attr_to_direction|
             # this looks nasty, but makes no sense to iterate keys if only single of each
-            value = value.order(t[attr_to_direction.keys[0]].call(attr_to_direction.values[0]))
+            value = value.order(t[attr_to_direction.keys[0]].send(attr_to_direction.values[0]))
           end
           value = value.to_a
         end

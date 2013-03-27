@@ -1,4 +1,4 @@
-require 'cancan'
+#require 'cancan'
 
 module RestfulJson
   module Model

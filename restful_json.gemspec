@@ -12,6 +12,8 @@ Gem::Specification.new do |s|
   s.description = %q{Develop declarative, featureful JSON RESTful-ish service controllers to use with modern Javascript MVC frameworks like AngularJS, Ember, etc. with much less code.}
   s.files = Dir['lib/**/*'] + ['Rakefile', 'README.md']
   s.license = 'MIT'
-  s.add_runtime_dependency 'actionpack', '>= 3.1.0'
-  s.add_runtime_dependency 'activerecord', '>= 3.1.0'
+  #s.add_runtime_dependency 'actionpack', '>= 3.1.0'
+  #s.add_runtime_dependency 'activerecord', '>= 3.1.0'
+  s.add_development_dependency 'bundler', [">= 1.2.2"]
+  s.add_development_dependency 'appraisal' 
 end

@@ -520,9 +520,7 @@ Respects regular and nested Rails resourceful routing and controller namespacing
       end
     end
 
-### Experimental Usage
-
-#### Rails-api
+### Using With Rails-api
 
 If you want to try out [rails-api][rails-api], maybe use:
 
@@ -575,7 +573,7 @@ Note that in `/config/initializers/wrap_parameters.rb` you might need to add `in
       self.include_root_in_json = false
     end
 
-#### Customing the Default Behavior
+### Customing the Default Behavior
 
 In `apps/controllers/hello.rb`:
 

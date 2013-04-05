@@ -1,3 +1,0 @@
-{{#if something}}
-  {{view something}}
-{{/if}}

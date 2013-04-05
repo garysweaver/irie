@@ -1,46 +1,13 @@
 language: ruby
 rvm:
-  - 1.9.3
-  - 2.0.0
-  - jruby-18mode
-  - jruby-19mode
-  - rbx-18mode
-  - rbx-19mode
-  - ruby-head
-  - jruby-head
-  - 1.9.2
   - 1.8.7
-  - ree
-branches:
-  only:
-    - master
+  - 1.9.2
+  - 1.9.3
 gemfile:
-  - gemfiles/rails31.gemfile
-  - gemfiles/rails32.gemfile
-  - gemfiles/rails40.gemfile
-before_install:
-  - gem install bundler
-  - bundle --version
-  - gem install bundler --version '>= 1.2.2'
+  - gemfiles/rails_3.0.20.gemfile
+  - gemfiles/rails_3.1.11.gemfile
+  - gemfiles/rails_3.2.12.gemfile
+  - gemfiles/rails_4.0.0.beta1.gemfile
 matrix:
-  exclude:
-    - rvm: 1.8.7
-      gemfile: gemfiles/rails40.gemfile
-    - rvm: 1.9.2
-      gemfile: gemfiles/rails40.gemfile
-    - rvm: jruby-18mode
-      gemfile: gemfiles/rails40.gemfile
-    - rvm: jruby-19mode
-      gemfile: gemfiles/rails40.gemfile
-    - rvm: jruby-head
-      gemfile: gemfiles/rails40.gemfile
-    - rvm: rbx-18mode
-      gemfile: gemfiles/rails40.gemfile
-    - rvm: rbx-19mode
-      gemfile: gemfiles/rails40.gemfile
-    - rvm: ree
-      gemfile: gemfiles/rails40.gemfile
-before_script:
-  - 'bundle exec rake appraisal:install'
-script:
-  - 'bundle exec rake appraisal spec'
+  allow_failures:
+    - gemfile: gemfiles/rails_4.0.0.beta1.gemfile

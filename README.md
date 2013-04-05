@@ -1,73 +1,105 @@
-# restful_json [![Build Status](https://secure.travis-ci.org/rubyservices/restful_json.png?branch=master)](http://travis-ci.org/rubyservices/restful_json)
+# Restful JSON [![Build Status](https://secure.travis-ci.org/rubyservices/restful_json.png?branch=master)](http://travis-ci.org/rubyservices/restful_json)
 
 Develop declarative, featureful JSON RESTful-ish service controllers to use with modern Javascript MVC frameworks like AngularJS, Ember, etc. with much less code.
 
-Should work with Rails 3.1+ and Rails 4. Feel free to submit issues and/or do a pull requests if you run into anything.
+What does that mean? It means you typically won't have to write index, create, update, destroy, etc. methods in your controllers to filter, sort, and do complex queries.
 
-Options for JSON response:
+Why do you need this if Rails controllers already make it easy to provide RESTful JSON services via generated controllers? Because this is just as flexible, almost as declarative, and takes less code. That means your controllers will be easier to read and there will be less code to maintain, but when you need an action method more customized than we can provide, that's all you'll have to write.
+
+restful_json is tested by travis-ci with with Rails 3.1, 3.2, and Rails 4. Feel free to submit issues and/or do a pull requests if you run into anything.
+
+Your options for JSON response (the view):
 * [active_model_serializers][active_model_serializers] - also provides the serialize_action class method in the controller to specify custom serializers (assuming you are using a later version of active_model_serializers that works with respond_with). 
 * JBuilder - to use, set render_enabled in the restful_json config to false.
-* Possibly anything else that works with render/respond_with, or that just adjust the view like JBuilder and don't require extra work in the controller.
+* Just about anything else that works with render/respond_with, or that just adjust the view like JBuilder, and don't require extra work in the controller.
 
-Options for authorizing parameters in incoming JSON (for POSTing create/update):
-* Adam Hawkins' [permitters][permitter] which use [strong_parameters][strong_parameters] and [cancan][cancan]. Permitters are an object-oriented way of defining what is permitted in the incoming JSON, and are a great compliment in the same way that active_model_serializers are. Cancan supports [Authlogic][authlogic], [Devise][devise], etc.
-* [strong_parameters][strong_parameters] - lets you only have to define `(single model name)_params` and/or `create_(single model name)_params` and/or `update_(single model name)_params` which can call require, permit, etc. on params.
+Your options for authorizing parameters in incoming JSON (for POSTing create/update):
+* Adam Hawkins' [permitters][permitter] which use [Strong Parameters][strong_parameters] and [Cancan][cancan]. Permitters are an object-oriented way of defining what is permitted in the incoming JSON, and are a great compliment in the same way that ActiveModel::Serializers are. Cancan supports [Authlogic][authlogic], [Devise][devise], etc.
+* [Strong Parameters][strong_parameters] - lets you only have to define `(single model name)_params` and/or `create_(single model name)_params` and/or `update_(single model name)_params` which can call require, permit, etc. on params.
 * Mass assignment security in Rails 3.x (attr_accessible, etc.).
 
-An example app using restful_json with AngularJS is [employee-training-tracker][employee-training-tracker], featured in [Built with AngularJS][built_with_angularjs].
+An example app using an older version of restful_json with AngularJS is [employee-training-tracker][employee-training-tracker], featured in [Built with AngularJS][built_with_angularjs].
 
-The goal of restful_json is to reduce service controller code in an intuitive way, not to be a be-all DSL. The intent is for there to be no "restful_json way". It is currently opinionated about use of Cancan, strong_parameters, etc. because twinturbo [permitter][permitter] strategy uses those, but you can cut the ties via a pull request if you'd like.
+The goal of restful_json is to reduce service controller code in an intuitive way, not to be a be-everything DSL. You can choose whether or not to use it and what features to expose at the controller-level, and you can customize controllers and re-define actions/define custom actions.
 
 ### Installation
 
-In your Rails app's `Gemfile`, add:
+In your Rails app's `Gemfile`:
 
-    gem 'restful_json'
+    gem 'restful_json', '~> 3.3.0'
 
-and:
+And if you go with the defaults to use ActiveModel::Serializers and Permitters (using Strong Parameters and Cancan):
+
+    # comment this out if you don't want to use Strong Parameters or Permitters, or if you are using Rails 4, which includes it
+    gem 'strong_parameters', '~> 0.1.6'
+    # comment this out if you don't plan to use Permitters
+    gem 'cancan', '~> 1.6.8'
+    # comment this out if you don't plan to use ActiveModel::Serializers
+    gem 'active_model_serializers', '~> 0.6.0'
+    
+Then:
 
     bundle install
 
-### Dependencies
+#### Service Controller Additions
 
-#### Rails
+To clean up your controllers and to make restful_json more flexible and less complex, we suggest use of a module to hold the includes that you'll need depending on what you decide to use. We'll call it ServiceControllerAdditions:
 
-Need at least Rails 3.1.0, but supports 3.1.x, 3.2.x, and 4+.
+Create a file called `app/controllers/service_controller_additions.rb` and put this in it:
 
-Go with whatever you have in your Gemfile, e.g.:
+    module ServiceControllerAdditions
+      extend ActiveSupport::Concern
+      
+      included do
+        # comment this out if you don't want to use ActiveModel::Seriaizers
+        include ::ActionController::Serialization
+        # comment this out if you don't want to use Strong Parameters or Permitters
+        include ::ActionController::StrongParameters
+        # comment this out if you don't want to use Permitters
+        include ::TwinTurbo::Controller
+        # comment this out if you don't want to use restful_json
+        include ::RestfulJson::Controller
+      end
+      
+    end
 
-    gem 'rails', '3.2.11'
+That way you can just put this at the top of your controller, and will be able to easily extend the functionality of multiple controllers at once, e.g.:
 
-If you don't want all of Rails (probably not the case), you at least need actionpack and activerecord:
+    class FoobarsController < ApplicationController
+      include ServiceControllerAdditions
+    end
 
-    gem 'actionpack', '> 3.1.0'
-    gem 'activerecord', '> 3.1.0'
+However, if you plan to use Permitters and ActiveModel::Serializers, use the "default". It is called the default, because v3 started off with Permitters and ActiveModel::Serializers controller, etc. includes being done by the restful_json gem, which no longer happens:
+
+    class FoobarsController < ApplicationController
+      include RestfulJson::DefaultController
+    end
+
+`acts_as_restful_json` was deprecated in restful_json 3.3.0. It just calls `include RestfulJson::DefaultController`.
 
 #### Strong Parameters
 
-Strong Parameters is not required, but is used by default when `self.use_permitters = true`, and if you use `self.use_permitters = false` and specify a `create_(single model name)_params`, `update_(single model name)_params`, and/or `(single model name)_params` methods that use permit, etc. then it would be required.
+If you plan to use Permitters or if you want to use Strong Parameters by itself, you will need to tweak things for [Strong Parameters][strong_parameters] if using Rails 3.x.
 
-To use [strong_parameters][strong_parameters], in your Gemfile, add:
-
-    gem 'strong_parameters', '~> 0.1.6'
-
-If you're using Rails 3.1.x/3.2.x and you want to disable the default whitelisting that occurs in later versions of Rails because you are going to use Strong Parameters, change the config.active_record.whitelist_attributes property in your `config/application.rb`:
+To disable the default whitelisting that occurs in later versions of Rails 3.x, set the `config.active_record.whitelist_attributes` property in your `config/application.rb` to false:
 
     config.active_record.whitelist_attributes = false
 
-This will allow you to remove / not have to use attr_accessible and do mass assignment inside your code and tests. Instead you will put this information into your permitters.
+No more attr_accessible needed in your models (so take them out and convert them). Instead you will put this information into your permitters or into `create_(single model name)_params`, `update_(single model name)_params`, and/or `(single model name)_params` methods. Encapsulating what params are permissible in such a method is encouraged and described in the [Strong Parameters][strong_parameters] documentation, used by Rails 4.
 
-Note that if the Cancan gem is loaded, then, during Rails initialization, it will include `::CanCan::ModelAdditions` in `ActiveRecord::Base`.
+Strong Parameters (and Permitters) require a model include.
+
+Put this in each model you want to use Strong Parameters with:
+
+    include ActiveModel::ForbiddenAttributesProtection
+
+If you'd rather use Strong Parameters with all models, just put this in your `config/environment.rb`:
+
+    ActiveRecord::Base.send(:include, ActiveModel::ForbiddenAttributesProtection)
 
 #### Cancan
 
-Cancan is not required if `self.use_permitters = false` in config.
-
-To use [cancan][cancan], in your Gemfile, add:
-
-    gem 'cancan', '~> 1.6.8'
-
-In your `app/controllers/application_controller.rb` or in your service controllers, make sure `current_user` is set:
+If you are using Permitters, they use [Cancan][cancan], which requires a `current_user` method in your `app/controllers/application_controller.rb` or in your service controllers:
 
     class ApplicationController < ActionController::Base
       protect_from_forgery
@@ -79,7 +111,7 @@ In your `app/controllers/application_controller.rb` or in your service controlle
 
 You could do that better by setting up some real authentication with [Authlogic][authlogic], [Devise][devise], or whatever Cancan will support.
 
-In `app/models/ability.rb`, setup a basic cancan ability. Just for testing we'll allow everything:
+You also need a `app/models/ability.rb`, setup a basic cancan ability. Just for testing we'll allow everything:
 
     class Ability
       include CanCan::Ability
@@ -89,17 +121,21 @@ In `app/models/ability.rb`, setup a basic cancan ability. Just for testing we'll
       end
     end
 
-Note that if the Cancan gem is loaded, then, during Rails initialization, it will include `::CanCan::ModelAdditions` in `ActiveRecord::Base`.
+Put this in each model you want to use Cancan with:
+
+    include CanCan::ModelAdditions
+
+Or, if you'd rather use Cancan with all models, just put this in your `config/environment.rb`:
+
+    ActiveRecord::Base.send(:include, CanCan::ModelAdditions)
+
+If you follow the code above, you'll need a User model, too. Instead of providing a sample one here, we'll leave that open for you to decide on an appropriate implementation after you read through [Authlogic][authlogic], [Devise][devise], etc.
 
 #### JSON Response Generators
 
 ##### ActiveModel Serializers
 
-If you want to use [ActiveModel Serializers][active_model_serializers], use:
-
-    gem 'active_model_serializers', '~> 0.6.0';
-
-Then create your serializers, e.g.:
+If you chose to use, [ActiveModel::Serializers][active_model_serializers], you'll eventually want to create one or more serializers for each model that you will be returning via the service(s), e.g.:
 
     /app/serializers/singular_model_name_serializer.rb
 
@@ -114,6 +150,14 @@ You can also use a specific format for multiple actions:
     serialize_action :index, :my_other_list_action, with: BarsSerializer
 
 The built-in actions that support custom serializers (you can add more) are: index, show, new, create, update, destroy, and any action you automatically have created via using the restful_json `query_for` method (keep reading!).
+
+You can just use the default serialization provided by AMS if you want. No class needed.
+
+Because of some issues with some versions of ActiveModel::Serializers using respond_with, you might want to set the option:
+
+    RestfulJson.avoid_respond_with = true
+
+Otherwise, custom serializers, etc. might not be used as intended.
 
 ##### JBuilder
 
@@ -136,11 +180,11 @@ Then make sure you add a JBuilder view for each action you require. Although all
     /app/views/plural_name_of_model/create.json.jbuilder
     /app/views/plural_name_of_model/update.json.jbuilder
 
-See [Railscast #320][railscast320] for examples.
+See [Railscast #320][railscast320] for more examples on setting up and using JBuilder.
 
 ###### Other
 
-Anything that is ok with or without render/responds_with that doesn't require any additional code in the action methods of the controller are ok, e.g. as_json defined in model, etc.
+You should be able to use anything that works with normal render/responds_with in Rails controllers that don't require any additional code in the action methods of the controller are ok, e.g. as_json defined in model, etc.
 
 #### Create/Update JSON Request/Params Acceptance
 
@@ -148,7 +192,11 @@ Anything that is ok with or without render/responds_with that doesn't require an
 
 We include ApplicationPermitter and optional controller support for Adam Hawkins' [permitters][permitter].
 
-Permitters use Cancan for authorization and strong_parameters for parameter whitelisting.
+The default setting is for permitters to be used:
+
+    self.use_permitters = true
+
+Permitters use [Cancan][cancan] for authorization and [Strong Parameters][strong_parameters] for parameter permitting.
 
 We have an implementation of ApplicationPermitter, so you just need permitters in `/app/permitters/`, e.g. `/app/permitters/foobar_permitter.rb`:
 
@@ -174,7 +222,11 @@ To use strong_parameters by themselves, without Permitters/Cancan, specify this 
 
     self.use_permitters = false
 
-As noted in [strong_parameters], it is suggested to encapsulate the permitting into a private method in the controller, so we've taken that to heart and the controller just attempts to call the relevant *_params method or create_*_params/update_*_params. See below for details.
+As noted in [Strong Parameters][strong_parameters], it is suggested to encapsulate the permitting into a private method in the controller, so we've taken that to heart and the controller just attempts to call the relevant *_params method or create_*_params/update_*_params, e.g. in the controller:
+
+    def foobar_params
+      params.require(:foobar).permit(:name, :age)
+    end
 
 ##### Mass Assignment Security
 
@@ -182,7 +234,17 @@ To use mass assignment security in Rails 3.x, specify this in restful_json confi
 
     self.use_permitters = false
 
-And make sure that strong_parameters is not loaded.
+Don't use any of these, as they each include Strong Parameters:
+
+    include ActionController::StrongParameters
+    include RestfulJson::DefaultController
+    acts_as_restful_json
+
+Only the main controller is needed:
+
+    include RestfulJson::Controller
+
+Then, make sure that attr_accessible and/or attr_protected, etc. are used properly. 
 
 ### App-level Configuration
 
@@ -214,13 +276,13 @@ or in bulk, like:
       
       # if true, will render resource and HTTP 201 for post/create or resource and HTTP 200 for put/update. ignored if render_enabled is false.
       self.return_resource = false
-
+      
       # if false, controller actions will just set instance variable and return it instead of calling setting instance variable and then calling render/respond_with
       self.render_enabled = true
       
-      # if false, will assume that it should either try calling create_(single model name)_params or fall back to calling (single model name)_params if create, or update_(single model name)_params then (single model name)_params if that didn't respond, if update.
+      # if false, will assume that it should either try calling create_(single model name)_params or fall back to calling (single model name)_params if create, or update_(single model name)_params then (single model name)_params if that didn't respond, if update. if it can't call those, it will either use mass assignment security, no parameter security, or some other solution, depending on how it is configured.
       self.use_permitters = true
-
+      
     end
 
 ### Controller-specific Configuration
@@ -256,25 +318,23 @@ Other class attributes are available for setting/overriding, but they are all se
 
 ### Usage
 
-By using `acts_as_restful_json`, you have a configurable generic Rails 3.1+/4+ controller that does the index, show, create, and update and other custom actions easily for you.
+You have a configurable generic Rails 3.1+/4+ controller that does the index, show, create, and update and other custom actions easily for you.
 
 Everything is well-declared and fairly concise.
 
 You can have something as simple as:
 
     class FoobarsController < ApplicationController
-      
-      acts_as_restful_json
-
+      include ServiceControllerAdditions
     end
 
-which would use the restful_json configuration and the controller's classname for the service definition.
+which would use the restful_json configuration and the controller's classname for the service definition and provide a simple no-frills JSON CRUD controller that behaves mostly like a typical Rails controller created via scaffold.
 
 Or, you could define more bells and whistles (read on to see what these do...):
 
     class FoobarsController < ApplicationController
 
-      acts_as_restful_json
+      include ServiceControllerAdditions
       
       query_for :index, is: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
       
@@ -297,36 +357,12 @@ Or, you could define more bells and whistles (read on to see what these do...):
       supports_functions :count, :uniq, :take, :skip, :page, :page_count
       
       order_by {:foo_date => :asc}, :foo_color, {:bar_date => :desc} # an ordered array of hashes, assumes :asc if not a hash
+
+      serialize_action :index, with: ListFoobarSerializer
       
       # comma-delimited if you want more than :json, e.g. :json, :html
       respond_to :json, :html
       
-    end
-
-##### Parent/Ancestor Class Definition Not Supported
-
-Don't do this:
-
-    class ServiceController < ApplicationController
-      acts_as_restful_json
-    end
-    
-    class FoobarsController < ServiceController
-    end
-    
-    class BarfoosController < ServiceController
-    end
-
-It may appear to work when using the same controller or even on each new controller load, but when you make requests to BarfoosController, make a request to FoobarsController, and then make a request back to the BarfoosController, it may fail in very strange ways, such as missing column(s) from SQL results (because it isn't using the correct model).
-
-Do this instead:
-
-    class FoobarsController < ServiceController
-      acts_as_restful_json
-    end
-    
-    class BarfoosController < ServiceController
-      acts_as_restful_json
     end
 
 #### Default Filtering by Attribute(s)
@@ -479,6 +515,22 @@ Third page of 30 results:
 
     http://localhost:3000/foobars?skip=60&take=30
 
+##### Custom Serializers
+
+If using ActiveModel::Serializers, you can use something other than the (singular model name)Serializer via serialize_action:
+
+    serialize_action :index, with: ListFoobarSerializer
+
+The built-in actions that support custom serializers (you can add more) are: index, show, new, create, update, destroy, and any action you automatically have created via using the restful_json `query_for` method.
+
+It will use `serialize` for single result actions like show, new, create, update, destroy, and `serialize_each` with index and custom actions.
+
+To override, specify `for:` with `:array` or `:each`, e.g.:
+
+    serialize_action :index, :some_custom_action, with: FoosSerializer, for: :array
+
+And, you can just use the default serialization provided by AMS if you want. No class needed.
+
 ##### Custom Queries
 
 To filter the list where the status_code attribute is 'green':
@@ -532,13 +584,14 @@ In `apps/controllers/restful_json_api.rb`:
       extend ActiveSupport::Concern
 
       included do
+        # Rails-api lets you choose features. You might not need all of these, or may need others.
         include AbstractController::Translation
         include ActionController::HttpAuthentication::Basic::ControllerMethods
         include AbstractController::Layouts
         include ActionController::MimeResponds
         include ActionController::Cookies
         include ActionController::ParamsWrapper
-        acts_as_restful_json
+        include RestfulJson::DefaultController
 
         # If you want any additional inline class stuff, it goes here...
       end
@@ -573,15 +626,52 @@ Note that in `/config/initializers/wrap_parameters.rb` you might need to add `in
       self.include_root_in_json = false
     end
 
-### Customing the Default Behavior
+### Refactoring and Customing the Default Behavior
 
-In `apps/controllers/hello.rb`:
+##### Parent/Ancestor Class Definition Not Supported
 
-    module Hello
-      extend ActiveSupport::Concern
+Don't do this:
 
+    class ServiceController < ApplicationController
+      include ::ActionController::Serialization
+      include ::ActionController::StrongParameters
+      include ::TwinTurbo::Controller
+      include ::RestfulJson::Controller
+    end
+    
+    # nor should you do this
+    #class FoobarsController < ApplicationController
+    #  include RestfulJson::DefaultController
+    #end
+    
+    class FoobarsController < ServiceController
+    end
+    
+    class BarfoosController < ServiceController
+    end
+
+It may appear to work when using the same controller or even on each new controller load, but when you make requests to BarfoosController, make a request to FoobarsController, and then make a request back to the BarfoosController, it may fail in very strange ways, such as missing column(s) from SQL results (because it isn't using the correct model).
+
+Do as a module instead!
+
+##### Customizing Behavior via Module
+
+Remember how we created a `apps/controllers/service_controller_additions.rb`?
+
+You can add behavior to it!
+
+Let's add a method so that `hello :world` in the controller will make it return `{"hello": "world"}`:
+
+    module HelloWorld
+      extend ActiveSupport::Concern      
       included do
-        acts_as_restful_json
+        # see notes in Service Controller Additions section of restful_json doc for what is needed
+        include ::ActionController::Serialization
+        include ::ActionController::StrongParameters
+        include ::TwinTurbo::Controller
+        include ::RestfulJson::Controller
+
+        # let's add a name that can be set with a class method
         class_attribute :name, instance_writer: true
       end
 
@@ -603,14 +693,50 @@ In `apps/controllers/hello.rb`:
 Then:
 
     class FoobarsController < ApplicationController
-      include Hello
+      include HelloWorld
+      hello :world
     end
 
     class BarfoosController < ApplicationController
-      include Hello
+      include HelloWorld
+      hello :world
     end
 
-For more realistic use that takes advantage of existing configuration in the controller, take a look at the controller in `lib/restful_json/controller.rb` to see how the actions are defined, and just copy/paste into your controller or module, etc. and make sure that it is defined after `acts_as_restful_json` is called and keep it up-to-date.
+For more realistic use that takes advantage of existing configuration in the controller, take a look at the controller in `lib/restful_json/controller.rb` to see how the actions are defined, and just copy/paste into your controller or module, etc.
+
+Make sure that the inclusion of your module is defined after `include RestfulJson::Controller`, `include RestfulJson::DefaultController`, or `acts_as_restful_json` is called.
+
+### Release Notes
+
+#### restful_json v3.3
+
+In past versions, everything was done to the models whether you wanted it done or not. Have been trying to transition away from forcing anything, so starting with v3.3, ensure the following is done.
+
+If you are using Rails 3.1-3.2 and want to use permitters or strong_parameters in all models:
+
+Make sure you include Strong Parameters:
+
+    gem "strong_parameters"
+
+Include this in `config/environment.rb`:
+
+    ActiveRecord::Base.send(:include, ActiveModel::ForbiddenAttributesProtection)
+
+If you want to use permitters in all models, you need Cancan:
+
+Make sure you include Cancan:
+
+    gem "cancan"
+
+Include this in `config/environment.rb`
+
+    ActiveRecord::Base.send(:include, CanCan::ModelAdditions)
+
+### Rails Version-specific Eccentricities
+
+Strong Parameters is included in Rails 4. Rails 4.1 and up will need `gem 'activerecord-deprecated_finders' gem, at least for now. (At time of writing Rails 4.1 is not out yet, so not a problem.)
+
+If you are using Rails 3.1, note that respond_with returns HTTP 200 instead of 204 for update and destroy, unless return_resource is true.
 
 ### Thanks!
 
@@ -623,7 +749,7 @@ Without our users, where would we be? Feedback, bug reports, and code/documentat
 
 ### License
 
-Copyright (c) 2012 Gary S. Weaver, released under the [MIT license][lic].
+Copyright (c) 2013 Gary S. Weaver, released under the [MIT license][lic].
 
 [employee-training-tracker]: https://github.com/FineLinePrototyping/employee-training-tracker
 [built_with_angularjs]: http://builtwith.angularjs.org/

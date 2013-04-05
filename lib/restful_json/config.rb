@@ -8,7 +8,8 @@ module RestfulJson
     :predicate_prefix,
     :return_resource,
     :render_enabled,
-    :use_permitters
+    :use_permitters,
+    :avoid_respond_with
   ]
   
   class << self
@@ -28,4 +29,5 @@ RestfulJson.configure do
   self.return_resource = false
   self.render_enabled = true
   self.use_permitters = true
+  self.avoid_respond_with = true
 end

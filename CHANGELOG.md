@@ -1,3 +1,11 @@
+## restful_json 3.3.0 ##
+
+* Added avoid_respond_with config option to always use render instead of respond_with.
+* Fixing bug in serialize_action.
+* Consolidated controller rendering.
+* Better isolated controller and model changes, made model changes for Cancan and Strong Parameters something that needs to be done in configuration.
+* Tests for Rails 3.1, 3.2, 4.
+
 ## restful_json 3.2.2 ##
 
 * Fixing bug in order_by.

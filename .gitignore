@@ -40,3 +40,6 @@ untitled
 # ignore temp/log files in dummy
 /spec/dummy/tmp
 /spec/dummy/log
+
+# ignore reports
+/coverage

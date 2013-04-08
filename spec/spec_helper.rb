@@ -1,5 +1,12 @@
 ENV['RAILS_ENV'] = 'test'
 
+require 'simplecov'
+SimpleCov.start do
+  add_filter '/gemfiles/'
+  add_filter '/spec/'
+  add_filter '/temp/'
+end
+
 puts "Testing Rails v#{Rails.version}"
 
 # add dummy to the load path. now we're also at the root of the fake rails app.

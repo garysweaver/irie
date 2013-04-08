@@ -15,5 +15,6 @@ Gem::Specification.new do |s|
   #s.add_runtime_dependency 'actionpack', '>= 3.1.0'
   #s.add_runtime_dependency 'activerecord', '>= 3.1.0'
   s.add_development_dependency 'bundler', [">= 1.2.2"]
-  s.add_development_dependency 'appraisal' 
+  s.add_development_dependency 'appraisal'
+  s.add_development_dependency 'simplecov'
 end

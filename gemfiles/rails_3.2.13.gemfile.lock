@@ -94,6 +94,10 @@ GEM
       rspec-core (~> 2.13.0)
       rspec-expectations (~> 2.13.0)
       rspec-mocks (~> 2.13.0)
+    simplecov (0.7.1)
+      multi_json (~> 1.0)
+      simplecov-html (~> 0.7.1)
+    simplecov-html (0.7.1)
     sprockets (2.2.2)
       hike (~> 1.2)
       multi_json (~> 1.0)
@@ -126,5 +130,6 @@ DEPENDENCIES
   restful_json!
   rspec
   rspec-rails
+  simplecov
   sqlite3
   strong_parameters

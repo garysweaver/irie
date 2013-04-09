@@ -509,7 +509,7 @@ To set page size at controller level:
 
 For a better idea of how this works on the backend, look at [ARel][arel]'s skip and take, or see Variable Paging.
 
-###### Skip and Take (OFFSET and LIMIT)
+##### Skip and Take (OFFSET and LIMIT)
 
 First, declare in the controller:
 

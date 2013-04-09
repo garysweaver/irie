@@ -507,8 +507,6 @@ To set page size at controller level:
 
     self.number_of_records_in_a_page = 15
 
-For a better idea of how this works on the backend, look at [ARel][arel]'s skip and take, or see Variable Paging.
-
 ##### Skip and Take (OFFSET and LIMIT)
 
 First, declare in the controller:
@@ -531,17 +529,17 @@ Combine skip and take for manual completely customized paging, e.g.
 
 ##### Custom Serializers
 
-If using ActiveModel::Serializers, you can use something other than the (singular model name)Serializer via serialize_action:
+If using ActiveModel::Serializers, you can use something other than the `(singular model name)Serializer` via `serialize_action`:
 
     serialize_action :index, with: ListFoobarSerializer
 
 The built-in actions that support custom serializers (you can add more) are: index, show, new, create, update, destroy, and any action you automatically have created via using the restful_json `query_for` method.
 
-It will use `serialize` for single result actions like show, new, create, update, destroy, and `serialize_each` with index and custom actions. Or, you can specify `for:` with `:array` or `:each`, e.g.:
+It will use the `serializer` option for single result actions like show, new, create, update, destroy, and the `each_serializer` option with index and custom actions. Or, you can specify `for:` with `:array` or `:each`, e.g.:
 
     serialize_action :index, :some_custom_action, with: FoosSerializer, for: :array
 
-You can just use the default serialization, if you want. No serializer class needed.
+Or, you could just use the default serialization, if you want.
 
 ##### Custom Queries
 
@@ -550,7 +548,7 @@ To filter the list where the status_code attribute is 'green':
     # t is self.model_class.arel_table and q is self.model_class.scoped
     query_for :index, is: lambda {|t,q| q.where(:status_code => 'green')}
 
-or use the `->` Ruby 1.9 lambda stab operator.
+or use the `->` Ruby 1.9 lambda stab operator (note lack of whitespace between stab and parenthesis):
 
     # t is self.model_class.arel_table and q is self.model_class.scoped
     query_for :index, is: is: ->(t,q) {q.where(:status_code => 'green')}
@@ -580,9 +578,11 @@ Note that it is a proc so you can really do whatever you want with it and will h
     query_for :some_action, is: ->(t,q) do
         if @current_user.admin?
           Rails.logger.debug("Notice: unfiltered results provided to admin #{@current_user.name}")
+          # just make sure the relation is returned!
+          q
         else
           q.where(:access => 'public')
-        end
+        end        
     end
 
 Be sure to add a route for that action, e.g. in `config/routes.rb`, e.g. for the Barfoo model:

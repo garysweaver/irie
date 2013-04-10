@@ -41,42 +41,6 @@ Then:
 
     bundle install
 
-#### Service Controller Additions
-
-This is optional, but to clean up your controllers and to make restful_json more flexible and less complex, you might make use of a module to hold the includes that you'll need depending on what you decide to use. We'll call it ServiceControllerAdditions:
-
-Create a file called `app/controllers/service_controller_additions.rb` and put this in it:
-
-    module ServiceControllerAdditions
-      extend ActiveSupport::Concern
-      
-      included do
-        # comment this out if you don't want to use ActiveModel::Seriaizers
-        include ::ActionController::Serialization
-        # comment this out if you don't want to use Strong Parameters or Permitters
-        include ::ActionController::StrongParameters
-        # comment this out if you don't want to use Permitters
-        include ::TwinTurbo::Controller
-        # comment this out if you don't want to use restful_json
-        include ::RestfulJson::Controller
-      end
-      
-    end
-
-That way you can just put this at the top of your controller, and will be able to easily extend the functionality of multiple controllers at once, e.g.:
-
-    class FoobarsController < ApplicationController
-      include ServiceControllerAdditions
-    end
-
-However, if you plan to use Permitters and ActiveModel::Serializers, use the "default". It is called the default, because v3 started off with Permitters and ActiveModel::Serializers controller, etc. includes being done by the restful_json gem, which no longer happens:
-
-    class FoobarsController < ApplicationController
-      include RestfulJson::DefaultController
-    end
-
-`acts_as_restful_json` was deprecated in restful_json 3.3.0. It just calls `include RestfulJson::DefaultController`.
-
 #### Strong Parameters
 
 Strong Parameters is not required, but can be used on its own or as a dependency of Permitters.
@@ -337,7 +301,7 @@ Everything is well-declared and fairly concise.
 You can have something as simple as:
 
     class FoobarsController < ApplicationController
-      include ServiceControllerAdditions
+      include RestfulJson::DefaultController
     end
 
 which would use the restful_json configuration and the controller's classname for the service definition and provide a simple no-frills JSON CRUD controller that behaves somewhat similarly to a Rails controller created via `rails g scaffold ...`.
@@ -345,8 +309,7 @@ which would use the restful_json configuration and the controller's classname fo
 Or, you can define many more bells and whistles:
 
     class FoobarsController < ApplicationController
-
-      include ServiceControllerAdditions
+      include RestfulJson::DefaultController
       
       query_for :index, is: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
       
@@ -599,9 +562,9 @@ If you want to try out [rails-api][rails-api]:
 
     gem 'rails-api', '~> 0.0.3'
 
-In `app/controllers/service_controller_additions.rb`:
+In `app/controllers/my_service_controller.rb`:
 
-    module ServiceControllerAdditions
+    module MyServiceController
       extend ActiveSupport::Concern
       
       included do
@@ -622,22 +585,15 @@ In `app/controllers/service_controller_additions.rb`:
         #include ::RestfulJson::Controller
 
         # If you want any additional inline class stuff, it goes here...
-      end
-      
-      module ClassMethods
-        # Any additional class methods...
-      end
-      
-      # Instance methods...
-      
+      end      
     end
 
     class FoobarsController < ActionController::API
-      include RestfulJsonApi  
+      include MyServiceController  
     end
 
     class BarfoosController < ActionController::API
-      include RestfulJsonApi  
+      include MyServiceController  
     end
 
 Note that in `/config/initializers/wrap_parameters.rb` you might need to add `include ActionController::ParamsWrapper` prior to the `wrap_parameters` call. For example, for unwrapped JSON, it would look like:
@@ -658,7 +614,9 @@ Note that in `/config/initializers/wrap_parameters.rb` you might need to add `in
 
 ##### Parent/Ancestor Class Definition Not Supported
 
-Don't subclass and include in the parent, that puts the class attributes into the parent which means they would be shared by the children and bad things can happen:
+Don't subclass and include in the parent, that puts the class attributes into the parent which means they would be shared by the children and bad things can happen.
+
+Don't do this:
 
     class ServiceController < ApplicationController
       include ::ActionController::Serialization
@@ -667,10 +625,17 @@ Don't subclass and include in the parent, that puts the class attributes into th
       include ::RestfulJson::Controller
     end
     
-    # nor should you do this
-    #class FoobarsController < ApplicationController
-    #  include RestfulJson::DefaultController
-    #end
+    class FoobarsController < ServiceController
+    end
+    
+    class BarfoosController < ServiceController
+    end
+
+And don't do this:
+
+    class FoobarsController < ApplicationController
+      include RestfulJson::DefaultController
+    end
     
     class FoobarsController < ServiceController
     end
@@ -680,59 +645,61 @@ Don't subclass and include in the parent, that puts the class attributes into th
 
 It may appear to work when using the same controller or even on each new controller load, but when you make requests to BarfoosController, make a request to FoobarsController, and then make a request back to the BarfoosController, it may fail in very strange ways, such as missing column(s) from SQL results (because it isn't using the correct model).
 
-Do as a module instead!
+##### Customizing Behavior via Patch
 
-##### Customizing Behavior via Module
+In `config/initializers/restful_json.rb` you can monkey patch the RestfulJson::Controller module. The DefaultController includes that, so it will get your changes also:
 
-Remember how we created a `apps/controllers/service_controller_additions.rb`?
-
-You can add behavior to it!
-
-Let's add a method so that `hello :world` in the controller will make it return `{"hello": "world"}`:
-
-    module HelloWorld
-      extend ActiveSupport::Concern      
-      included do
-        # see notes in Service Controller Additions section of restful_json doc for what is needed
-        include ::ActionController::Serialization
-        include ::ActionController::StrongParameters
-        include ::TwinTurbo::Controller
-        include ::RestfulJson::Controller
-
-        # let's add a name that can be set with a class method
-        class_attribute :name, instance_writer: true
-      end
-
-      module ClassMethods
-        def hello(value)
-          self.name = value.to_sym
-        end
-      end
-
-      def index
-        respond_to do |format|
-          format.json do
-            render :json => {"hello" => self.name}.to_json
+    # a horrible Hello World example
+    module RestfulJson
+      module Controller
+        
+        # class methods that should be implemented or overriden
+        module ClassMethods
+          def hello(name)
+            #TODO: find way to call hook into the block call in RJ controller's included block
+            # without having do funny things to ActiveSupport::Concern, because append_features(base)            
+            # defined in the monkey patch is never called, and module_eval is a royal pain.
+            # Or, stop using ActiveSupport::Concern. For now, we'll defined class_attribute in the
+            # class method that uses it and use respond_to? in a nasty hack. I'm sorry.
+            class_attribute :name, instance_writer: true
+            self.name = name        
           end
         end
+
+        # instance methods that should be implemented or overriden.
+        #
+        # note: you don't have to do this to override service methods at the controller-level.
+        # Instead, just define them in the controller. this is just an example of monkey-patching.        
+        def index
+          name = self.respond_to?(:name) && self.name ? self.name : 'nobody'
+          render :json => {:hello => self.name}
+        rescue => e
+          # rescue to identify errors that otherwise can be swallowed
+          puts "index failed: #{self} #{e}"
+          raise e
+        end
+
       end
     end
 
-Then:
+Now in your controller, if you:
 
     class FoobarsController < ApplicationController
-      include HelloWorld
-      hello :world
+      include RestfulJson::DefaultController
+      hello 'world'
     end
 
-    class BarfoosController < ApplicationController
-      include HelloWorld
-      hello :world
-    end
+(Note again: RestfulJson::DefaultController includes RestfulJson::Controller.)
+
+Now when you call:
+
+    http://localhost:3000/foobars
+
+You would get the response:
+
+    {'hello': 'world'}
 
 For more realistic use that takes advantage of existing configuration in the controller, take a look at the controller in `lib/restful_json/controller.rb` to see how the actions are defined, and just copy/paste into your controller or module, etc.
-
-Make sure that the inclusion of your module is defined after `include RestfulJson::Controller`, `include RestfulJson::DefaultController`, or `acts_as_restful_json` is called.
 
 ### Release Notes
 
@@ -762,7 +729,7 @@ Include this in `config/environment.rb`
 
 ### Rails Version-specific Eccentricities
 
-Strong Parameters is included in Rails 4. Rails 4.1 and up will require `gem 'activerecord-deprecated_finders'` for the finds in the controller to work.
+Strong Parameters is included in Rails 4.
 
 If you are using Rails 3.1.x, note that respond_with returns HTTP 200 instead of 204 for update and destroy, unless return_resource is true.
 

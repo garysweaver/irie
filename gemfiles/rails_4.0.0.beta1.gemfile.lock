@@ -1,7 +1,7 @@
 PATH
   remote: /Users/gary/github/restful_json
   specs:
-    restful_json (3.3.0)
+    restful_json (3.3.1)
 
 GEM
   remote: https://rubygems.org/

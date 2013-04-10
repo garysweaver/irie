@@ -115,6 +115,16 @@ describe FoobarsController do
       Foobar.where(foo_id: foo_id).should be_empty, "should not have updated with whitelisted param when cancan disallows user"
     end
 
+    it 'fails with HTTP 404 for missing record' do
+      FoobarsController.test_role = 'admin'
+      Foobar.delete_all
+      # won't wrap in test without this per https://github.com/rails/rails/issues/6633
+      @request.env['CONTENT_TYPE'] = 'application/json'
+      put :update, id: '9999999', foo_id: '', format: :json
+      response.status.should eq(404), "update should have failed with not found (got #{response.status}): #{response.body}"
+      Foobar.where(id: '9999999').should be_empty, "should not have created record"
+    end
+
     #TODO: implement ability in permitters to return 400 Bad Request like strong_parameters, if invalid params provided. currently is just ignored
     #it 'fails for rejected params' do
     #  Foobar.delete_all
@@ -134,6 +144,16 @@ describe FoobarsController do
       @request.env['CONTENT_TYPE'] = 'application/json'
       b = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
       delete :destroy, id: b, format: :json
+      expected_code = Rails::VERSION::MAJOR == 3 && Rails::VERSION::MINOR == 1 ? 200 : 204
+      response.status.should eq(expected_code), "destroy failed (got #{response.status}): #{response.body}"
+    end
+
+    it 'should not fail with HTTP 404 for missing record' do
+      FoobarsController.test_role = 'admin'
+      Foobar.delete_all
+      # won't wrap in test without this per https://github.com/rails/rails/issues/6633
+      @request.env['CONTENT_TYPE'] = 'application/json'
+      delete :destroy, id: '9999999', format: :json
       expected_code = Rails::VERSION::MAJOR == 3 && Rails::VERSION::MINOR == 1 ? 200 : 204
       response.status.should eq(expected_code), "destroy failed (got #{response.status}): #{response.body}"
     end

@@ -200,7 +200,13 @@ module RestfulJson
 
     def render_or_respond(read_only_action, success_code = :ok)
       if self.render_enabled
-        if !@value.nil? && ((read_only_action && RestfulJson.return_resource) || RestfulJson.avoid_respond_with)
+        # 404/not found is just for update (not destroy, because idempotent destroy = no 404)
+        if success_code == :not_found
+          respond_to do |format|
+            format.html { render :file => "#{Rails.root}/public/404.html", :status => :not_found }
+            format.any  { head :not_found }
+          end
+        elsif !@value.nil? && ((read_only_action && RestfulJson.return_resource) || RestfulJson.avoid_respond_with)
           respond_with(@value) do |format|
             format.json do
               # define local variables in blocks, not outside of them, to be safe, even though would work in this case              
@@ -390,17 +396,22 @@ module RestfulJson
         allowed_params = params
       end
       # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-      @value = @model_class.find(params[:id].to_s)
-      @value.update_attributes(allowed_params)
+      @value = @model_class.where(id: params[:id].to_s).to_a[0]
+      status = :ok
+      if @value.nil?
+        status = :not_found
+      else
+        @value.update_attributes(allowed_params)
+      end
       instance_variable_set(@model_at_singular_name_sym, @value)
-      render_or_respond(false)
+      render_or_respond(false, status)
     end
 
     # The controller's destroy (delete) method to destroy a resource.
     def destroy
       # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-      @value = @model_class.find(params[:id].to_s)
-      @value.destroy
+      @value = @model_class.where(id: params[:id].to_s).to_a[0]
+      @value.destroy if @value
       instance_variable_set(@model_at_singular_name_sym, @value)
       render_or_respond(false)
     end

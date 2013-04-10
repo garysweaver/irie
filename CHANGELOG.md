@@ -1,3 +1,8 @@
+## restful_json 3.3.1 ##
+
+* Update and destroy use where instead of find and update 404's for missing record.
+* Important fixes to recommendations around use of modules in doc.
+
 ## restful_json 3.3.0 ##
 
 * Added avoid_respond_with config option to always use render instead of respond_with.

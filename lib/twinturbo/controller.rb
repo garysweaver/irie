@@ -27,9 +27,9 @@ module TwinTurbo
         begin
           return class_name.constantize
         rescue NameError
-          puts "#{class_name} not found"
         end
       end
+      puts "Could not find permitter: #{permitter_class_arr.collect{|c|c.to_s}.join(', ')}" if RestfulJson.debug?
       nil
     end
 

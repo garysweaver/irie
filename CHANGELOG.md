@@ -1,7 +1,12 @@
+## restful_json 3.3.2 ##
+
+* Removed unnecessary debug logging of permitter class, and now only outputs if can't find when debug on.
+
 ## restful_json 3.3.1 ##
 
 * Update and destroy use where instead of find and update 404's for missing record.
 * Important fixes to recommendations around use of modules in doc.
+* Removed unnecessary debug logging of serializer.
 
 ## restful_json 3.3.0 ##
 

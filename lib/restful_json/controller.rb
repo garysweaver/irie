@@ -213,7 +213,6 @@ module RestfulJson
               custom_action_serializer = self.action_to_serializer[params[:action].to_s]
               custom_action_serializer_for = self.action_to_serializer_for[params[:action].to_s]
               serialization_key = single_value_response? ? (custom_action_serializer_for == :each ? :each_serializer : :serializer) : (custom_action_serializer_for == :array ? :serializer : :each_serializer)
-              puts "serialization key = #{serialization_key}, custom_action_serializer = #{custom_action_serializer}"
               if !@value.respond_to?(:errors) || @value.errors.empty?
                 render custom_action_serializer ? {json: @value, status: success_code, serialization_key => custom_action_serializer} : {json: @value, status: success_code}
               else

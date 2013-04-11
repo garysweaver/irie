@@ -10,10 +10,11 @@ describe BarfoosController do
         Barfoo.delete_all
         expected = []
         10.times do |c|
-          expected << Barfoo.create(status: (c % 3), favorite_food: "borscht", favorite_drink: "vodka")
+          expected << Barfoo.create(status: (c % 3), favorite_food: "borscht #{c}", favorite_drink: "vodka #{c}")
         end
         get :some_action, :format => :json
-        assert_match '{"barfoos":[{"id":3,"favorite_food":"borscht"},{"id":6,"favorite_food":"borscht"},{"id":9,"favorite_food":"borscht"}]}', @response.body
+        # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
+        @response.body.should be_json_eql('{"barfoos":[{"id":"x","favorite_food":"borscht 2"},{"id":"x","favorite_food":"borscht 5"},{"id":"x","favorite_food":"borscht 8"}]}')
       ensure
         RestfulJson.avoid_respond_with = orig
       end

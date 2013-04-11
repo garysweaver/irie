@@ -1,7 +1,7 @@
 PATH
   remote: /Users/gary/github/restful_json
   specs:
-    restful_json (3.3.2)
+    restful_json (3.3.3)
 
 GEM
   remote: https://rubygems.org/
@@ -47,6 +47,9 @@ GEM
     i18n (0.6.1)
     journey (1.0.4)
     json (1.7.7)
+    json_spec (1.1.1)
+      multi_json (~> 1.0)
+      rspec (~> 2.0)
     mail (2.5.3)
       i18n (>= 0.4.0)
       mime-types (~> 1.16)
@@ -126,6 +129,7 @@ DEPENDENCIES
   bundler (>= 1.2.2)
   cancan
   jruby-openssl
+  json_spec
   rails (= 3.2.13)
   restful_json!
   rspec

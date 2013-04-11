@@ -345,21 +345,22 @@ module RestfulJson
     # The controller's show (get) method to return a resource.
     def show
       # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-      @value = @model_class.find(params[:id].to_s)
+      @value = @model_class.where(id: params[:id].to_s).first # don't raise exception if not found
       instance_variable_set(@model_at_singular_name_sym, @value)
-      render_or_respond(true)
+      render_or_respond(true, @value.nil? ? :not_found : :ok)
     end
 
     # The controller's new method (e.g. used for new record in html format).
     def new
       @value = @model_class.new
+      instance_variable_set(@model_at_singular_name_sym, @value)
       render_or_respond(true)
     end
 
     # The controller's edit method (e.g. used for edit record in html format).
     def edit
       # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-      @value = @model_class.find(params[:id].to_s)
+      @value = @model_class.where(id: params[:id].to_s).first! # raise exception if not found
       instance_variable_set(@model_at_singular_name_sym, @value)
       @value
     end
@@ -395,21 +396,16 @@ module RestfulJson
         allowed_params = params
       end
       # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-      @value = @model_class.where(id: params[:id].to_s).to_a[0]
-      status = :ok
-      if @value.nil?
-        status = :not_found
-      else
-        @value.update_attributes(allowed_params)
-      end
+      @value = @model_class.where(id: params[:id].to_s).first # don't raise exception
+      @value.update_attributes(allowed_params) unless @value.nil?
       instance_variable_set(@model_at_singular_name_sym, @value)
-      render_or_respond(false, status)
+      render_or_respond(true, @value.nil? ? :not_found : :ok)
     end
 
     # The controller's destroy (delete) method to destroy a resource.
     def destroy
       # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-      @value = @model_class.where(id: params[:id].to_s).to_a[0]
+      @value = @model_class.where(id: params[:id].to_s).first # don't raise exception
       @value.destroy if @value
       instance_variable_set(@model_at_singular_name_sym, @value)
       render_or_respond(false)

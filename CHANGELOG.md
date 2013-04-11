@@ -1,3 +1,8 @@
+## restful_json 3.3.3 ##
+
+* Using `.where(id: params[:id].to_s).first` in show/update/destroy, `.where(id: params[:id].to_s).first!` in edit.
+* No more deprecated find(id) in show/edit.
+
 ## restful_json 3.3.2 ##
 
 * Removed unnecessary debug logging of permitter class, and now only outputs if can't find when debug on.

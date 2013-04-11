@@ -17,10 +17,62 @@ describe FoobarsController do
       Foobar.delete_all
       expected = []
       10.times do |c|
-        expected << Foobar.create(foo_id: c, foo_date: Time.new(2012 - c), bar_date: Time.new(2012 + c))
+        expected << Foobar.create(foo_id: c)
       end
       get :index, :format => :json
       assigns(:foobars).should eq(expected.reverse)
+      # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
+      @response.body.should be_json_eql("{\"foobars\":[{\"id\":\"x\",\"foo_id\":\"9\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"8\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"7\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"6\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"5\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"4\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"3\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"2\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"1\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"0\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null}]}")
+    end
+  end
+
+  describe "GET show" do
+    it 'assigns foobar' do
+      Foobar.delete_all
+      b = Foobar.create(foo_id: '1')
+      get :show, id: b.id, :format => :json
+      assigns(:foobar).is_a?(Foobar).should be
+      response.status.should eq(200), "show failed (got #{response.status}): #{response.body}"
+      # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
+      @response.body.should be_json_eql("{\"foobar\":{\"id\":#{b.id},\"foo_id\":\"1\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null}}")
+    end
+
+    it 'fails for bad id' do
+      Foobar.delete_all
+      get :show, id: '9999999', :format => :json
+      assigns(:foobar).should be_nil
+      response.status.should eq(404), "show should have failed (got #{response.status}): #{response.body}"
+    end
+  end
+
+  describe "GET new" do
+    it 'assigns foobar' do
+      Foobar.delete_all
+      get :new, :format => :json
+      assigns(:foobar).is_a?(Foobar).should be
+      response.status.should eq(200), "new failed (got #{response.status}): #{response.body}"
+      # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
+      @response.body.should be_json_eql('{"foobar":{"id":null,"foo_id":null,"bar_id":null,"foo_date":null,"bar_date":null}}')
+    end
+  end
+
+  describe "GET edit" do
+    it 'assigns foobar' do
+      Foobar.delete_all
+      b = Foobar.create(foo_id: '1')
+      get :edit, id: b.id, :format => :json
+      assigns(:foobar).is_a?(Foobar).should be
+      assigns(:foobar).foo_id.should eq('1')
+    end
+
+    it 'fails for bad id' do
+      begin
+        Foobar.delete_all
+        get :edit, id: '9999999', :format => :json
+        fail "should have raised error"
+      rescue
+        assigns(:foobar).should be_nil
+      end
     end
   end
 
@@ -46,6 +98,8 @@ describe FoobarsController do
       bar_id = SecureRandom.urlsafe_base64
       post :create, bar_id: bar_id, format: :json
       response.status.should eq(201), "create failed (got #{response.status}): #{response.body}"
+      # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
+      @response.body.should be_json_eql("{\"foobar\":{\"id\":\"x\",\"foo_id\":null,\"bar_id\":null,\"foo_date\":null,\"bar_date\":null}}")
       Foobar.where(bar_id: bar_id).should be_empty, "should not have created with non-whitelisted param"
     end
 
@@ -60,6 +114,7 @@ describe FoobarsController do
         fail "cancan should not allow put" if response.status < 400
       rescue
       end
+      assert_match '', @response.body
       Foobar.where(foo_id: foo_id).should be_empty, "should not have updated with whitelisted param when cancan disallows user"
     end
 
@@ -84,6 +139,7 @@ describe FoobarsController do
       put :update, id: b.id, foo_id: foo_id, format: :json
       expected_code = Rails::VERSION::MAJOR == 3 && Rails::VERSION::MINOR == 1 ? 200 : 204
       response.status.should eq(expected_code), "update failed (got #{response.status}): #{response.body}"
+      assert_match '', @response.body
       Foobar.where(foo_id: foo_id).should_not be_empty, "should have updated param"
     end
 
@@ -97,6 +153,7 @@ describe FoobarsController do
       put :update, id: b.id, bar_id: bar_id, format: :json
       expected_code = Rails::VERSION::MAJOR == 3 && Rails::VERSION::MINOR == 1 ? 200 : 204
       response.status.should eq(expected_code), "update failed (got #{response.status}): #{response.body}"
+      assert_match '', @response.body
       Foobar.where(bar_id: bar_id).should be_empty, "should not have updated with non-whitelisted param"
     end
 
@@ -122,6 +179,7 @@ describe FoobarsController do
       @request.env['CONTENT_TYPE'] = 'application/json'
       put :update, id: '9999999', foo_id: '', format: :json
       response.status.should eq(404), "update should have failed with not found (got #{response.status}): #{response.body}"
+      assert_match ' ', @response.body
       Foobar.where(id: '9999999').should be_empty, "should not have created record"
     end
 
@@ -145,6 +203,7 @@ describe FoobarsController do
       b = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
       delete :destroy, id: b, format: :json
       expected_code = Rails::VERSION::MAJOR == 3 && Rails::VERSION::MINOR == 1 ? 200 : 204
+      assert_match '', @response.body
       response.status.should eq(expected_code), "destroy failed (got #{response.status}): #{response.body}"
     end
 
@@ -155,6 +214,7 @@ describe FoobarsController do
       @request.env['CONTENT_TYPE'] = 'application/json'
       delete :destroy, id: '9999999', format: :json
       expected_code = Rails::VERSION::MAJOR == 3 && Rails::VERSION::MINOR == 1 ? 200 : 204
+      assert_match '', @response.body
       response.status.should eq(expected_code), "destroy failed (got #{response.status}): #{response.body}"
     end
   end

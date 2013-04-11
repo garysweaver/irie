@@ -13,5 +13,6 @@ gem "active_model_serializers"
 gem "cancan"
 gem "rails", "3.2.13"
 gem "strong_parameters"
+gem "json_spec"
 
 gemspec :path=>"../"

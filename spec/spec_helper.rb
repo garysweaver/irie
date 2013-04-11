@@ -19,6 +19,7 @@ require 'config/environment'
 require 'db/schema'
 require 'rails/test_help'
 require 'rspec/rails'
+require 'json_spec'
 require 'restful_json'
 
 Rails.backtrace_cleaner.remove_silencers!
@@ -30,4 +31,5 @@ RSpec.configure do |config|
   config.include RSpec::Matchers
   config.mock_with :rspec
   config.order = :random
+  config.include JsonSpec::Helpers
 end

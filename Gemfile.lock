@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    restful_json (3.3.3)
+    restful_json (3.3.4)
 
 GEM
   remote: https://rubygems.org/

@@ -202,9 +202,8 @@ describe FoobarsController do
       @request.env['CONTENT_TYPE'] = 'application/json'
       b = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
       delete :destroy, id: b, format: :json
-      expected_code = Rails::VERSION::MAJOR == 3 && Rails::VERSION::MINOR == 1 ? 200 : 204
       assert_match '', @response.body
-      response.status.should eq(expected_code), "destroy failed (got #{response.status}): #{response.body}"
+      response.status.should eq(200), "destroy failed (got #{response.status}): #{response.body}"
     end
 
     it 'should not fail with HTTP 404 for missing record' do
@@ -213,9 +212,8 @@ describe FoobarsController do
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
       delete :destroy, id: '9999999', format: :json
-      expected_code = Rails::VERSION::MAJOR == 3 && Rails::VERSION::MINOR == 1 ? 200 : 204
       assert_match '', @response.body
-      response.status.should eq(expected_code), "destroy failed (got #{response.status}): #{response.body}"
+      response.status.should eq(200), "destroy failed (got #{response.status}): #{response.body}"
     end
   end
 end

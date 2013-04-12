@@ -44,7 +44,6 @@ module RestfulJson
       class_attribute :action_to_serializer_for, instance_writer: true
 
       # use values from config
-      # debug uses RestfulJson.debug? because until this is done no local debug class attribute exists to check
       RestfulJson::CONTROLLER_OPTIONS.each do |key|
         class_attribute key, instance_writer: true
         self.send("#{key}=".to_sym, RestfulJson.send(key))
@@ -240,6 +239,8 @@ module RestfulJson
     #
     # Note: this method be alias_method'd by query_for, so it is more than just index.
     def index
+      # could be index or another action if alias_method'd by query_for
+      logger.debug "#{params[:action].to_s} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
       t = @model_class.arel_table
       value = @model_class.scoped # returns ActiveRecord::Relation equivalent to select with no where clause
       custom_query = self.action_to_query[params[:action].to_s]
@@ -344,6 +345,7 @@ module RestfulJson
 
     # The controller's show (get) method to return a resource.
     def show
+      logger.debug "#{params[:action].to_s} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
       # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
       @value = @model_class.where(id: params[:id].to_s).first # don't raise exception if not found
       instance_variable_set(@model_at_singular_name_sym, @value)
@@ -352,6 +354,7 @@ module RestfulJson
 
     # The controller's new method (e.g. used for new record in html format).
     def new
+      logger.debug "#{params[:action].to_s} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
       @value = @model_class.new
       instance_variable_set(@model_at_singular_name_sym, @value)
       render_or_respond(true)
@@ -359,6 +362,7 @@ module RestfulJson
 
     # The controller's edit method (e.g. used for edit record in html format).
     def edit
+      logger.debug "#{params[:action].to_s} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
       # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
       @value = @model_class.where(id: params[:id].to_s).first! # raise exception if not found
       instance_variable_set(@model_at_singular_name_sym, @value)
@@ -367,6 +371,7 @@ module RestfulJson
 
     # The controller's create (post) method to create a resource.
     def create
+      logger.debug "#{params[:action].to_s} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
       if self.use_permitters
         authorize! :create, @model_class
         allowed_params = permitted_params
@@ -385,6 +390,7 @@ module RestfulJson
 
     # The controller's update (put) method to update a resource.
     def update
+      logger.debug "#{params[:action].to_s} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
       if self.use_permitters
         authorize! :update, @model_class
         allowed_params = permitted_params
@@ -404,11 +410,19 @@ module RestfulJson
 
     # The controller's destroy (delete) method to destroy a resource.
     def destroy
+      logger.debug "#{params[:action].to_s} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
       # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
       @value = @model_class.where(id: params[:id].to_s).first # don't raise exception
       @value.destroy if @value
       instance_variable_set(@model_at_singular_name_sym, @value)
-      render_or_respond(false)
+      if !@value.respond_to?(:errors) || @value.errors.empty? || (request.format != 'text/html' && request.content_type != 'text/html')
+        # don't require a destroy view for success, because it isn't implements in Rails by default for json
+        respond_to do |format|
+          format.any  { head :ok }
+        end
+      else
+        render_or_respond(false)
+      end
     end
   end
 end

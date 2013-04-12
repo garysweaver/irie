@@ -1,3 +1,8 @@
+## restful_json 3.3.4 ##
+
+* debug mode for controller/app will now log debug to Rails logger if true
+* head: ok with no body on destroy for no errors in formats other than HTML, like it did in versions before restful_json v3.3.0.
+
 ## restful_json 3.3.3 ##
 
 * Using `.where(id: params[:id].to_s).first` in show/update/destroy, `.where(id: params[:id].to_s).first!` in edit.

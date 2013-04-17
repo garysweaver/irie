@@ -197,6 +197,80 @@ module RestfulJson
       value && NILS.include?(value) ? nil : value
     end
 
+    def safe_i18n_t(i18n_key)
+      I18n.t(i18n_key)
+    rescue => e
+      logger.debug "failed to get i18n message for #{i18n_key.inspect}: #{e.message}\n#{e.backtrace.join('\n')}" if self.debug
+    end
+
+    # Returns self.return_error_data by default. To only return error_data in dev and test, use this:
+    # `def enable_long_error?; Rails.env.development? || Rails.env.test?; end`
+    def include_error_data?
+      self.return_error_data
+    end
+
+    # Searches through self.rescue_handlers for appropriate handler.
+    # self.rescue_handlers is an array of hashes where there is key :exception_classes and/or :exception_ancestor_classes
+    # along with :i18n_key and :status keys.
+    # :exception_classes contains an array of classes to exactly match the exception.
+    # :exception_ancestor_classes contains an array of classes that can match an ancestor of the exception.
+    # If exception handled, returns hash, hopefully containing keys :i18n_key and :status.
+    # Otherwise, returns nil which indicates that this exception should not be handled.
+    def exception_handling_data(e)
+      self.rescue_handlers.each do |handler|
+        return handler if (handler.key?(:exception_classes) && handler[:exception_classes].include?(e.class))
+        if handler.key?(:exception_ancestor_classes)
+          handler[:exception_ancestor_classes].each do |ancestor|
+            return handler if e.class.ancestors.include?(ancestor)
+          end
+        elsif !handler.key?(:exception_classes) && !handler.key?(:exception_ancestor_classes)
+          return handler
+        end
+      end
+      nil
+    end
+
+    def handle_or_raise(e)
+      raise e if self.rescue_class.nil?
+      handling_data = exception_handling_data(e)
+      raise e unless handling_data
+      # this is something we intended to rescue, so log it
+      logger.error(e)
+      # render error only if we haven't rendered response yet
+      render_error(e, handling_data) unless @performed_render
+    end
+
+    # Renders error using handling data options (where options are probably hash from self.rescue_handlers that was matched).
+    #
+    # If include_error_data? is true, it returns something like the following (with the appropriate HTTP status code via setting appropriate status in respond_do:
+    # {"status": "not_found",
+    #  "error": "Internationalized error message or e.message",
+    #  "error_data": {"type": "ActiveRecord::RecordNotFound", "message": "Couldn't find Bar with id=23423423", "trace": ["backtrace line 1", ...]}
+    # }
+    #
+    # If include_error_data? is false, it returns something like:
+    # {"status": "not_found", "error", "Couldn't find Bar with id=23423423"}
+    #
+    # It handles any format in theory that is supported by respond_to and has a `to_(some format)` method.
+    def render_error(e, handling_data)
+      i18n_key = handling_data[:i18n_key]
+      msg = i18n_key ? safe_i18n_t(i18n_key) : e.message
+      status = handling_data[:status] || :internal_server_error
+      if include_error_data?
+        respond_to do |format|
+          format.html { render notice: msg }
+          format.any { render request.format.to_sym => {:status => status, error: msg, error_data: {type: e.class.name, message: e.message, trace: Rails.backtrace_cleaner.clean(e.backtrace)}}, status: status }
+        end
+      else
+        respond_to do |format|
+          format.html { render notice: msg }
+          format.any { render request.format.to_sym => {:status => status, error: msg}, status: status }
+        end
+      end
+      # return exception so we know it was handled
+      e
+    end
+
     def render_or_respond(read_only_action, success_code = :ok)
       if self.render_enabled
         # 404/not found is just for update (not destroy, because idempotent destroy = no 404)
@@ -341,6 +415,8 @@ module RestfulJson
       @value = value
       instance_variable_set(@model_at_plural_name_sym, @value)
       render_or_respond(true)
+    rescue self.rescue_class => e
+      handle_or_raise(e)
     end
 
     # The controller's show (get) method to return a resource.
@@ -350,6 +426,8 @@ module RestfulJson
       @value = @model_class.where(id: params[:id].to_s).first # don't raise exception if not found
       instance_variable_set(@model_at_singular_name_sym, @value)
       render_or_respond(true, @value.nil? ? :not_found : :ok)
+    rescue self.rescue_class => e
+      handle_or_raise(e)
     end
 
     # The controller's new method (e.g. used for new record in html format).
@@ -358,6 +436,8 @@ module RestfulJson
       @value = @model_class.new
       instance_variable_set(@model_at_singular_name_sym, @value)
       render_or_respond(true)
+    rescue self.rescue_class => e
+      handle_or_raise(e)
     end
 
     # The controller's edit method (e.g. used for edit record in html format).
@@ -367,6 +447,8 @@ module RestfulJson
       @value = @model_class.where(id: params[:id].to_s).first! # raise exception if not found
       instance_variable_set(@model_at_singular_name_sym, @value)
       @value
+    rescue self.rescue_class => e
+      handle_or_raise(e)
     end
 
     # The controller's create (post) method to create a resource.
@@ -386,6 +468,8 @@ module RestfulJson
       @value.save
       instance_variable_set(@model_at_singular_name_sym, @value)
       render_or_respond(false, :created)
+    rescue self.rescue_class => e
+      handle_or_raise(e)
     end
 
     # The controller's update (put) method to update a resource.
@@ -406,6 +490,8 @@ module RestfulJson
       @value.update_attributes(allowed_params) unless @value.nil?
       instance_variable_set(@model_at_singular_name_sym, @value)
       render_or_respond(true, @value.nil? ? :not_found : :ok)
+    rescue self.rescue_class => e
+      handle_or_raise(e)
     end
 
     # The controller's destroy (delete) method to destroy a resource.
@@ -423,6 +509,8 @@ module RestfulJson
       else
         render_or_respond(false)
       end
+    rescue self.rescue_class => e
+      handle_or_raise(e)
     end
   end
 end

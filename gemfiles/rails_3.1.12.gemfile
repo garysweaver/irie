@@ -12,7 +12,7 @@ gem "sqlite3", :platform=>[:ruby, :ruby_18, :ruby_19, :ruby_20, :mri, :mri_18, :
 gem "active_model_serializers"
 gem "cancan"
 gem "rails", "3.1.12"
-gem "strong_parameters"
 gem "json_spec"
+gem "strong_parameters"
 
 gemspec :path=>"../"

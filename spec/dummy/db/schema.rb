@@ -17,4 +17,22 @@ ActiveRecord::Schema.define(:version => 1) do
   create_table :users do |t|
     t.string :role
   end
+
+  # default Rails 4 beta1 scaffold generated model
+  create_table :posts do |t|
+    t.string :name
+    t.string :title
+    t.text :content
+
+    t.timestamps
+  end
+
+  # copied default Rails 4 scaffold-generated model for comparison
+  create_table :my_posts do |t|
+    t.string :name
+    t.string :title
+    t.text :content
+
+    t.timestamps
+  end
 end

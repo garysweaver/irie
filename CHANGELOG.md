@@ -1,7 +1,13 @@
+## restful_json 3.4.0 ##
+
+* Added rescue_class config option to indicate highest level class to rescue for every action. (nil/NilClass indicates to re-raise StandardError.)
+* Added rescue_handlers config option as substitute for having to rescue, log, set status and i18n message key for sets of exceptions.
+* Added return_error_data config option to also return the exception's class.name, class.message, and class.backtrace (cleaned) in "error_data" in error response.
+
 ## restful_json 3.3.4 ##
 
-* debug mode for controller/app will now log debug to Rails logger if true
-* head: ok with no body on destroy for no errors in formats other than HTML, like it did in versions before restful_json v3.3.0.
+* If debug config option true, controller/app will now log debug to Rails logger.
+* Fixing bug: will return head: ok with no body on destroy for no errors in formats other than HTML, like it did in versions before restful_json v3.3.0.
 
 ## restful_json 3.3.3 ##
 

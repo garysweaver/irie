@@ -701,6 +701,74 @@ You would get the response:
 
 For more realistic use that takes advantage of existing configuration in the controller, take a look at the controller in `lib/restful_json/controller.rb` to see how the actions are defined, and just copy/paste into your controller or module, etc.
 
+### Error Handling
+
+#### Properly Handling Non-controller-action Errors
+
+Some things restful_json can't do in the controller, like responding with json for a json request when the route is not setup correctly or an action is missing.
+
+Rails 4 has basic error handling defined in the [public_exceptions][public_exceptions] and [show_exceptions][show_exceptions] Rack middleware.
+
+Rails 3.2.x has support for `config.exceptions_app` which can be defined as the following to simulate Rails 4 exception handling:
+
+    config.exceptions_app = lambda do |env|
+      exception = env["action_dispatch.exception"]
+      status = env["PATH_INFO"][1..-1]
+      request = ActionDispatch::Request.new(env)
+      content_type = request.formats.first
+      body = { :status => status, :error => exception.message }
+      format = content_type && "to_#{content_type.to_sym}"
+      if format && body.respond_to?(format)
+        formatted_body = body.public_send(format)
+        [status, {'Content-Type' => "#{content_type}; charset=#{ActionDispatch::Response.default_charset}",
+                'Content-Length' => body.bytesize.to_s}, [formatted_body]]
+      else
+        found = false
+        path = "#{public_path}/#{status}.#{I18n.locale}.html" if I18n.locale
+        path = "#{public_path}/#{status}.html" unless path && (found = File.exist?(path))
+
+        if found || File.exist?(path)
+          [status, {'Content-Type' => "text/html; charset=#{ActionDispatch::Response.default_charset}",
+                  'Content-Length' => body.bytesize.to_s}, [File.read(path)]]
+        else
+          [404, { "X-Cascade" => "pass" }, []]
+        end
+      end
+    end
+
+That is just a collapsed version of the behavior of [public_exceptions][public_exceptions] as of April 2013, pre-Rails 4.0.0, so please look at the latest version and adjust accordingly. Use at your own risk, obviously.
+
+Unfortunately, this doesn't work for Rails 3.1.x. However, in many scenarios there is the chance at a rare situation when the proper format is not returned to the client, even if everything is controlled as much as possible on the server. So, the client really needs to be able to handle such a case of unexpected format with a generic error.
+
+But, if you can make Rack respond a little better for some errors, that's great.
+
+#### Controller Error Handling Configuration
+
+The default configuration will rescue StandardError in each action method and will render as 404 for ActiveRecord::RecordNotFound or 500 for all other StandardError (and ancestors, like a normal rescue).
+
+There are a few options to customize the rescue and error rendering behavior.
+
+The `rescue_class` config option specifies what to rescue. Set to StandardError to behave like a normal rescue. Set to nil to just reraise everything rescued (to disable handling).
+
+The `rescue_handlers` config option is like a minimalist set of rescue blocks that apply to every action method. For example, the following would effectively `rescue => e` (rescuing `StandardError`) and then for `ActiveRecord::RecordNotFound`, it would uses response status `:not_found` (HTTP 404). Otherwise it uses status `:internal_server_error` (HTTP 500). In both cases the error message is `e.message`:
+
+    self.rescue_class = StandardError
+    self.rescue_handlers = [
+      {exception_classes: [ActiveRecord::RecordNotFound], status: :not_found},
+      {status: :internal_server_error}
+    ]
+
+In a slightly more complicated case, this configuration would catch all exceptions raised with each actinon method that had `ActiveRecord::RecordNotFound` as an ancestor and use the error message defined by i18n key 'api.not_found'. All other exceptions would use status `:internal_server_error` (because it is a default, and doesn't have to be specified) but would use the error message defined by i18n key 'api.internal_server_error':
+
+    self.rescue_class = Exception
+    self.rescue_handlers = [
+      {exception_ancestor_classes: [ActiveRecord::RecordNotFound], status: :not_found, i18n_key: 'api.not_found'.freeze},
+      {i18n_key: 'api.internal_server_error'.freeze}
+    ]
+
+
+The `return_error_data` config option will not only return a response with `status` and `error` but also an `error_data` containing the `e.class.name`, `e.message`, and cleaned `e.backtrace`.
+
 ### Release Notes
 
 #### restful_json v3.3
@@ -758,4 +826,6 @@ Copyright (c) 2013 Gary S. Weaver, released under the [MIT license][lic].
 [ar]: http://api.rubyonrails.org/classes/ActiveRecord/Relation.html
 [rails-api]: https://github.com/rails-api/rails-api
 [railscast320]: http://railscasts.com/episodes/320-jbuilder
+[public_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/public_exceptions.rb
+[show_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/show_exceptions.rb
 [lic]: http://github.com/rubyservices/restful_json/blob/master/LICENSE

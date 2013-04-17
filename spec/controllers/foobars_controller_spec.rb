@@ -1,6 +1,9 @@
 require 'rails'
 require 'spec_helper'
 
+class SomeSubtypeOfStandardError < StandardError
+end
+
 describe FoobarsController do
 
   before(:each) do
@@ -214,6 +217,21 @@ describe FoobarsController do
       delete :destroy, id: '9999999', format: :json
       assert_match '', @response.body
       response.status.should eq(200), "destroy failed (got #{response.status}): #{response.body}"
+    end
+
+    it 'should fail with error if subclass of StandardError' do
+      FoobarsController.test_role = 'admin'
+      Foobar.delete_all
+      # won't wrap in test without this per https://github.com/rails/rails/issues/6633
+      @request.env['CONTENT_TYPE'] = 'application/json'
+      b = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
+      # expect this to make destroy fail and reset in after hook
+      $error_to_raise_on_next_save_or_destroy_only = SomeSubtypeOfStandardError.new("some type of standard error")
+      delete :destroy, id: b, format: :json
+      # this is a weak check
+      @response.body['error'].should_not be_nil
+      @response.body['some type of standard error'].should_not be_nil
+      response.status.should eq(500), "destroy should have failed with 500 (got #{response.status}): #{response.body}"
     end
   end
 end

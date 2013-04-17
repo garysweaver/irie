@@ -11,8 +11,7 @@ gem "jruby-openssl", :platform=>:jruby
 gem "sqlite3", :platform=>[:ruby, :ruby_18, :ruby_19, :ruby_20, :mri, :mri_18, :mri_19, :mri_20, :rbx, :mswin, :mingw, :mingw_18, :mingw_19, :mingw_20]
 gem "active_model_serializers"
 gem "cancan"
-gem "rails", "3.2.13"
+gem "rails", "rails_4.0.0.beta1"
 gem "json_spec"
-gem "strong_parameters"
 
 gemspec :path=>"../"

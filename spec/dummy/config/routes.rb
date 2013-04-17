@@ -4,4 +4,6 @@ Dummy::Application.routes.draw do
   end
 
   resources :foobars
+  resources :posts
+  resources :my_posts
 end

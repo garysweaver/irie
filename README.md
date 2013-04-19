@@ -1,6 +1,6 @@
 # Restful JSON [![Build Status](https://secure.travis-ci.org/rubyservices/restful_json.png?branch=master)](http://travis-ci.org/rubyservices/restful_json)
 
-Develop declarative, featureful JSON RESTful-ish service controllers to use with modern Javascript MVC frameworks like AngularJS, Ember, etc. with much less code.
+Develop declarative, featureful RESTful-ish JSON service controllers to use with modern Javascript MVC frameworks like AngularJS, Ember, etc. with much less code. (I say "RESTful-ish" instead of RESTful, to differentiate them from true-REST, hypermedia-driven projects, but restful_json controllers are RESTful by the existing Rails definition of being RESTful, using the same actions and resourceful routes, but with more abilities.)
 
 What does that mean? It means you typically won't have to write index, create, update, destroy, etc. methods in your controllers to filter, sort, and do complex queries.
 
@@ -26,16 +26,16 @@ An example app using an older version of restful_json with AngularJS is [employe
 
 In your Rails app's `Gemfile`:
 
-    gem 'restful_json', '~> 3.3.0'
+    gem 'restful_json', '~> 3.4.0'
 
 And if you go with the defaults to use ActiveModel::Serializers and Permitters (using Strong Parameters and Cancan):
 
     # comment this out if you don't want to use Strong Parameters or Permitters, or if you are using Rails 4, which includes it
-    gem 'strong_parameters', '~> 0.1.6'
+    gem 'strong_parameters', '~> 0.2.0'
     # comment this out if you don't plan to use Permitters
-    gem 'cancan', '~> 1.6.8'
+    gem 'cancan', '~> 1.6.9'
     # comment this out if you don't plan to use ActiveModel::Serializers
-    gem 'active_model_serializers', '~> 0.6.0'
+    gem 'active_model_serializers', '~> 0.7.0'
     
 Then:
 

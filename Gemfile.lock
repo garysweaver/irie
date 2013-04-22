@@ -1,7 +1,8 @@
 PATH
   remote: .
   specs:
-    restful_json (3.4.0)
+    restful_json (3.4.1)
+      activesupport (>= 3.1.0)
 
 GEM
   remote: https://rubygems.org/

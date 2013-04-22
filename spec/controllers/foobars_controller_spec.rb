@@ -233,5 +233,31 @@ describe FoobarsController do
       @response.body['some type of standard error'].should_not be_nil
       response.status.should eq(500), "destroy should have failed with 500 (got #{response.status}): #{response.body}"
     end
+
+    it 'should not fail with i18n message if has 500 error with missing optional i18n key' do
+      orig_handlers = RestfulJson.rescue_handlers
+      RestfulJson.rescue_handlers = {status: :internal_server_error, i18n_key: 'this_is_an_missing_and_invalid_i18n_key'.freeze}
+      begin
+        FoobarsController.test_role = 'admin'
+        Foobar.delete_all
+        # won't wrap in test without this per https://github.com/rails/rails/issues/6633
+        @request.env['CONTENT_TYPE'] = 'application/json'
+        b = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
+        # expect this to make destroy fail and reset in after hook
+        $error_to_raise_on_next_save_or_destroy_only = SomeSubtypeOfStandardError.new("some type of standard error")
+        delete :destroy, id: b, format: :json
+        # this is a weak check
+        @response.body['error'].should_not be_nil
+        @response.body['some type of standard error'].should_not be_nil
+        # we don't want error to be "translation missing: en.api.this_is_an_missing_and_invalid_i18n_key" or anything similar
+        @response.body['ranslation'].should be_nil, "assuming got a translation missing error because 'ranslation' was in the response body string"
+        @response.body['this_is_an_missing_and_invalid_i18n_key'].should be_nil, "assuming got a translation missing error because 'this_is_an_missing_and_invalid_i18n_key' was in the response body string"
+        # but it should still fail
+        response.status.should eq(500), "destroy should have failed with 500 (got #{response.status}): #{response.body}"
+      ensure
+        # we're not expecting an exception, but want to reset app-wide config back just in case
+        RestfulJson.rescue_handlers = orig_handlers
+      end
+    end
   end
 end

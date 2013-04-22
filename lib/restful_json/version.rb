@@ -1,3 +1,3 @@
 module RestfulJson
-  VERSION = '3.4.0'
+  VERSION = '3.4.1'
 end

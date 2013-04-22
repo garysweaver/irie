@@ -1,3 +1,3 @@
 class MyPostsController < ApplicationController
-  include RestfulJson::DefaultController
+  include RestfulJson::Controller
 end

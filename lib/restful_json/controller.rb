@@ -1,9 +1,3 @@
-#require 'restful_json/config'
-#require 'twinturbo/controller'
-#require 'active_model_serializers'
-#require 'strong_parameters'
-#require 'cancan'
-
 # The restful_json controller module. This module (RestfulJson::Controller) is included on ActionController
 # and then each individual controller should call acts_as_restful_json.
 #
@@ -197,12 +191,6 @@ module RestfulJson
       value && NILS.include?(value) ? nil : value
     end
 
-    def safe_i18n_t(i18n_key)
-      I18n.t(i18n_key)
-    rescue => e
-      logger.debug "failed to get i18n message for #{i18n_key.inspect}: #{e.message}\n#{e.backtrace.join('\n')}" if self.debug
-    end
-
     # Returns self.return_error_data by default. To only return error_data in dev and test, use this:
     # `def enable_long_error?; Rails.env.development? || Rails.env.test?; end`
     def include_error_data?
@@ -254,17 +242,17 @@ module RestfulJson
     # It handles any format in theory that is supported by respond_to and has a `to_(some format)` method.
     def render_error(e, handling_data)
       i18n_key = handling_data[:i18n_key]
-      msg = i18n_key ? safe_i18n_t(i18n_key) : e.message
+      msg = result = t(i18n_key, default: e.message)
       status = handling_data[:status] || :internal_server_error
       if include_error_data?
         respond_to do |format|
           format.html { render notice: msg }
-          format.any { render request.format.to_sym => {:status => status, error: msg, error_data: {type: e.class.name, message: e.message, trace: Rails.backtrace_cleaner.clean(e.backtrace)}}, status: status }
+          format.any { render request.format.to_sym => {status: status, error: msg, error_data: {type: e.class.name, message: e.message, trace: Rails.backtrace_cleaner.clean(e.backtrace)}}, status: status }
         end
       else
         respond_to do |format|
           format.html { render notice: msg }
-          format.any { render request.format.to_sym => {:status => status, error: msg}, status: status }
+          format.any { render request.format.to_sym => {status: status, error: msg}, status: status }
         end
       end
       # return exception so we know it was handled
@@ -276,7 +264,7 @@ module RestfulJson
         # 404/not found is just for update (not destroy, because idempotent destroy = no 404)
         if success_code == :not_found
           respond_to do |format|
-            format.html { render :file => "#{Rails.root}/public/404.html", :status => :not_found }
+            format.html { render file: "#{Rails.root}/public/404.html", status: :not_found }
             format.any  { head :not_found }
           end
         elsif !@value.nil? && ((read_only_action && RestfulJson.return_resource) || RestfulJson.avoid_respond_with)

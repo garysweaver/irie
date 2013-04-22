@@ -1,3 +1,11 @@
+## restful_json 3.4.1 ##
+
+* Try to require 'active_record/errors' before referring to `ActiveRecord::RecordNotFound` in gem default config.
+* Don't add permitters to autoload path if RestfulJson.use_permitters is false in environment or initializer.
+* Railtie that adds deprecated acts_as_restful_json support now being required.
+* Added activesupport runtime dependency to gemspec.
+* Missing i18n key now defaults to error.message.
+
 ## restful_json 3.4.0 ##
 
 * Added rescue_class config option to indicate highest level class to rescue for every action. (nil/NilClass indicates to re-raise StandardError.)

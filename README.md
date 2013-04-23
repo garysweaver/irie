@@ -778,7 +778,7 @@ In a slightly more complicated case, this configuration would catch all exceptio
 
 The `return_error_data` config option will not only return a response with `status` and `error` but also an `error_data` containing the `e.class.name`, `e.message`, and cleaned `e.backtrace`.
 
-If you want to rescue using `rescue_with` in a controller or ApplicationController, let all errors and exceptions fall out of restful_json action methods with:
+If you want to rescue using `rescue_from` in a controller or ApplicationController, let all errors and exceptions fall out of restful_json action methods with:
 
     RestfulJson.configure do
       self.rescue_handlers = []

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    restful_json (3.4.1)
+    restful_json (3.4.2)
       activesupport (>= 3.1.0)
 
 GEM

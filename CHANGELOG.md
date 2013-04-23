@@ -1,3 +1,7 @@
+## restful_json 3.4.2 ##
+
+* Removing rescue_from's from DefaultController that would require additional controller methods if default error handling not used.
+
 ## restful_json 3.4.1 ##
 
 * Try to require 'active_record/errors' before referring to `ActiveRecord::RecordNotFound` in gem default config.

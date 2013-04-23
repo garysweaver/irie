@@ -1,22 +1,22 @@
 # Restful JSON [![Build Status](https://secure.travis-ci.org/rubyservices/restful_json.png?branch=master)](http://travis-ci.org/rubyservices/restful_json)
 
-Develop declarative, featureful RESTful-ish JSON service controllers to use with modern Javascript MVC frameworks like AngularJS, Ember, etc. with much less code. (I say "RESTful-ish" instead of RESTful, to differentiate them from true-REST, hypermedia-driven projects, but restful_json controllers are RESTful by the existing Rails definition of being RESTful, using the same actions and resourceful routes, but with more abilities.)
+Develop declarative, featureful JSON service controllers to use with modern Javascript MVC frameworks like AngularJS, Ember, etc. with much less code. It is RESTful-ish instead of RESTful, since it isn't hypermedia-driven, but it meets the long-standing Rails definition of being RESTful.
 
 What does that mean? It means you typically won't have to write index, create, update, destroy, etc. methods in your controllers to filter, sort, and do complex queries.
 
-Why do you need this if Rails controllers already make it easy to provide RESTful JSON services via generated controllers? Because this is just as flexible, almost as declarative, and takes less code. That means your controllers will be easier to read and there will be less code to maintain, but when you need an action method more customized than we can provide, that's all you'll have to write.
+Why do you need this if Rails controllers already make it easy to provide RESTful JSON services via generated controllers? Because this is just as flexible, almost as declarative, and takes less code. Your controllers will be easier to read, and there will be less code to maintain. When you need an action method more customized, that method is all you have to write.
 
 The goal of the project is to reduce service controller code in an intuitive way, not to be a be-everything DSL or limit what you can do in a controller. Choose what features to expose, and you can still define/redefine actions etc. at will.
 
 We test with travis-ci with with Rails 3.1, 3.2, and Rails 4. Feel free to submit issues and/or do a pull requests if you run into anything.
 
 You can use any of these for the JSON response (the view):
-* [active_model_serializers][active_model_serializers] - also provides the serialize_action class method in the controller to specify custom serializers (assuming you are using a later version of active_model_serializers that works with respond_with). 
-* JBuilder - to use, set render_enabled in the restful_json config to false.
+* [ActiveModel::Serializers][active_model_serializers] - also provides the serialize_action class method in the controller to specify custom serializers (assuming you are using a later version of ActiveModel::Serializers that works with respond_with). 
+* [JBuilder][jbuilder] - to use, set render_enabled in the restful_json config to false.
 * Just about anything else that works with render/respond_with, or that just adjust the view like JBuilder, and don't require extra work in the controller.
 
 And can use any of the following for authorizing parameters in the incoming JSON (for create/update):
-* Adam Hawkins' [permitters][permitter] which use [Strong Parameters][strong_parameters] and [Cancan][cancan]. Permitters are an object-oriented way of defining what is permitted in the incoming JSON, and are a great compliment in the same way that ActiveModel::Serializers are. Cancan supports [Authlogic][authlogic], [Devise][devise], etc.
+* Adam Hawkins' [Permitters][permitter] which use [Strong Parameters][strong_parameters] and [CanCan][cancan]. Permitters are an object-oriented way of defining what is permitted in the incoming JSON, and are a great compliment in the same way that ActiveModel::Serializers are. CanCan supports [Authlogic][authlogic], [Devise][devise], etc.
 * [Strong Parameters][strong_parameters] - lets you only have to define `(single model name)_params` and/or `create_(single model name)_params` and/or `update_(single model name)_params` which can call require, permit, etc. on params.
 * Mass assignment security in Rails 3.x (attr_accessible, etc.).
 
@@ -65,13 +65,13 @@ If you'd rather use Strong Parameters with all models, just put this in your `co
 
     ActiveRecord::Base.send(:include, ActiveModel::ForbiddenAttributesProtection)
 
-#### Cancan
+#### CanCan
 
-Though optional, if you decide to use Permitters, the Permitters framework relies on [Cancan][cancan].
+Though optional, if you decide to use Permitters, the Permitters framework relies on [CanCan][cancan].
 
-Permitters are an object-oriented representation of Strong Parameters, but they also integrate with Cancan. Cancan can restrict what resources a given user is allowed to access. In Cancan, all permissions are defined in a single location (the Ability class) and not duplicated across controllers, views, and database queries.
+Permitters are an object-oriented representation of Strong Parameters, but they also integrate with CanCan. CanCan can restrict what resources a given user is allowed to access. In CanCan, all permissions are defined in a single location (the Ability class) and not duplicated across controllers, views, and database queries.
 
-To setup Cancan, you need a `current_user` method in your `app/controllers/application_controller.rb` or in your service controllers. For the sake of example, we'll just have it return a new User:
+To setup CanCan, you need a `current_user` method in your `app/controllers/application_controller.rb` or in your service controllers. For the sake of example, we'll just have it return a new User:
 
     class ApplicationController < ActionController::Base
       protect_from_forgery
@@ -81,9 +81,9 @@ To setup Cancan, you need a `current_user` method in your `app/controllers/appli
       end
     end
 
-Cancan integrates [Authlogic][authlogic], [Devise][devise], etc. to return a proper logged-in user or you can return it however you wish.
+CanCan integrates [Authlogic][authlogic], [Devise][devise], etc. to return a proper logged-in user or you can return it however you wish.
 
-Cancan also needs an Ability defined in `app/models/ability.rb`. Just for testing we'll ignore the user object and allow everything:
+CanCan also needs an Ability defined in `app/models/ability.rb`. Just for testing we'll ignore the user object and allow everything:
 
     class Ability
       include CanCan::Ability
@@ -93,15 +93,15 @@ Cancan also needs an Ability defined in `app/models/ability.rb`. Just for testin
       end
     end
 
-Put this in each model you want to use Cancan with:
+Put this in each model you want to use CanCan with:
 
     include CanCan::ModelAdditions
 
-Or, if you'd rather use Cancan with all models, just put this in your `config/environment.rb`:
+Or, if you'd rather use CanCan with all models, just put this in your `config/environment.rb`:
 
     ActiveRecord::Base.send(:include, CanCan::ModelAdditions)
 
-Once you get everything setup, go through the [Cancan][cancan] documentation, and then [Authlogic][authlogic], [Devise][devise], etc. to setup/integrate with proper authentication and authorization.
+Once you get everything setup, go through the [CanCan][cancan] documentation, and then [Authlogic][authlogic], [Devise][devise], etc. to setup/integrate with proper authentication and authorization.
 
 #### JSON Response Generators
 
@@ -166,15 +166,15 @@ You should be able to use anything that works with normal render/responds_with i
 
 ##### Permitters
 
-We include ApplicationPermitter and optional controller support for Adam Hawkins' [permitters][permitter].
+We include ApplicationPermitter and optional controller support for Adam Hawkins' [Permitters][permitter].
 
-The default setting is for permitters to be used:
+The default setting is for Permitters to be used:
 
     self.use_permitters = true
 
-Permitters use [Cancan][cancan] for authorization and [Strong Parameters][strong_parameters] for parameter permitting.
+Permitters use [CanCan][cancan] for authorization and [Strong Parameters][strong_parameters] for parameter permitting.
 
-We have an implementation of ApplicationPermitter, so you just need permitters in `/app/permitters/`, e.g. `/app/permitters/foobar_permitter.rb`:
+We have an implementation of ApplicationPermitter, so you just need Permitters in `/app/permitters/`, e.g. `/app/permitters/foobar_permitter.rb`:
 
     class FoobarPermitter < ApplicationPermitter
       # attributes we accept (the new way to do attr_accessible, OO-styley! Thanks, twinturbo)
@@ -194,7 +194,7 @@ If you don't accept anything in create/update, you should have an empty Permitte
 
 ##### Strong Parameters
 
-To use strong_parameters by themselves, without Permitters/Cancan, specify this in restful_json config/controller config:
+To use Strong Parameters by themselves, without Permitters/CanCan, specify this in restful_json config/controller config:
 
     self.use_permitters = false
 
@@ -581,7 +581,7 @@ In `app/controllers/my_service_controller.rb`:
         # or comment that last line and uncomment whatever you want to use
         #include ::ActionController::Serialization # AMS
         #include ::ActionController::StrongParameters
-        #include ::TwinTurbo::Controller # Permitters which uses Cancan and Strong Parameters
+        #include ::TwinTurbo::Controller # Permitters which uses CanCan and Strong Parameters
         #include ::RestfulJson::Controller
 
         # If you want any additional inline class stuff, it goes here...
@@ -786,11 +786,13 @@ If you want to rescue using `rescue_from` in a controller or ApplicationControll
 
 ### Release Notes
 
-#### restful_json v3.3
+See the [changelog][changelog] for basically what happened when, and git log for everything else.
+
+### Upgrading
 
 In past versions, everything was done to the models whether you wanted it done or not. Have been trying to transition away from forcing anything, so starting with v3.3, ensure the following is done.
 
-If you are using Rails 3.1-3.2 and want to use permitters or strong_parameters in all models:
+If you are using Rails 3.1-3.2 and want to use Permitters or Strong Parameters in all models:
 
 Make sure you include Strong Parameters:
 
@@ -800,15 +802,17 @@ Include this in `config/environment.rb`:
 
     ActiveRecord::Base.send(:include, ActiveModel::ForbiddenAttributesProtection)
 
-If you want to use permitters in all models, you need Cancan:
+If you want to use Permitters in all models, you need CanCan:
 
-Make sure you include Cancan:
+Make sure you include CanCan:
 
     gem "cancan"
 
 Include this in `config/environment.rb`
 
     ActiveRecord::Base.send(:include, CanCan::ModelAdditions)
+
+Configuration, suggestions, and what to use and how may continue to change, but read this doc fully and hopefully it is correct!
 
 ### Rails Version-specific Eccentricities
 
@@ -832,6 +836,7 @@ Copyright (c) 2013 Gary S. Weaver, released under the [MIT license][lic].
 [employee-training-tracker]: https://github.com/FineLinePrototyping/employee-training-tracker
 [built_with_angularjs]: http://builtwith.angularjs.org/
 [permitter]: http://broadcastingadam.com/2012/07/parameter_authorization_in_rails_apis/
+[jbuilder]: https://github.com/rails/jbuilder
 [cancan]: https://github.com/ryanb/cancan
 [strong_parameters]: https://github.com/rails/strong_parameters
 [active_model_serializers]: https://github.com/josevalim/active_model_serializers
@@ -843,4 +848,5 @@ Copyright (c) 2013 Gary S. Weaver, released under the [MIT license][lic].
 [railscast320]: http://railscasts.com/episodes/320-jbuilder
 [public_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/public_exceptions.rb
 [show_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/show_exceptions.rb
+[changelog]: https://github.com/rubyservices/restful_json/blob/master/CHANGELOG.md
 [lic]: http://github.com/rubyservices/restful_json/blob/master/LICENSE

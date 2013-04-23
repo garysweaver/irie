@@ -649,34 +649,22 @@ It may appear to work when using the same controller or even on each new control
 
 In `config/initializers/restful_json.rb` you can monkey patch the RestfulJson::Controller module. The DefaultController includes that, so it will get your changes also:
 
-    # a horrible Hello World example
     module RestfulJson
       module Controller
         
-        # class methods that should be implemented or overriden
+        # class methods that should be implemented or overriden go in ClassMethods
+
         module ClassMethods
           def hello(name)
-            #TODO: find way to call hook into the block call in RJ controller's included block
-            # without having do funny things to ActiveSupport::Concern, because append_features(base)            
-            # defined in the monkey patch is never called, and module_eval is a royal pain.
-            # Or, stop using ActiveSupport::Concern. For now, we'll defined class_attribute in the
-            # class method that uses it and use respond_to? in a nasty hack. I'm sorry.
             class_attribute :name, instance_writer: true
             self.name = name        
           end
         end
 
         # instance methods that should be implemented or overriden.
-        #
-        # note: you don't have to do this to override service methods at the controller-level.
-        # Instead, just define them in the controller. this is just an example of monkey-patching.        
+    
         def index
-          name = self.respond_to?(:name) && self.name ? self.name : 'nobody'
           render :json => {:hello => self.name}
-        rescue => e
-          # rescue to identify errors that otherwise can be swallowed
-          puts "index failed: #{self} #{e}"
-          raise e
         end
 
       end
@@ -689,9 +677,7 @@ Now in your controller, if you:
       hello 'world'
     end
 
-(Note again: RestfulJson::DefaultController includes RestfulJson::Controller.)
-
-Now when you call:
+RestfulJson::DefaultController includes RestfulJson::Controller, which you patched, so when you call:
 
     http://localhost:3000/foobars
 
@@ -699,7 +685,7 @@ You would get the response:
 
     {'hello': 'world'}
 
-For more realistic use that takes advantage of existing configuration in the controller, take a look at the controller in `lib/restful_json/controller.rb` to see how the actions are defined, and just copy/paste into your controller or module, etc.
+For more realistic use that takes advantage of existing configuration in the controller, take a look at the controller in `lib/restful_json/controller.rb` to see how the actions are defined, and just copy/paste into your controller or module, etc. and modify as needed.
 
 ### Error Handling
 
@@ -707,7 +693,7 @@ For more realistic use that takes advantage of existing configuration in the con
 
 Some things restful_json can't do in the controller, like responding with json for a json request when the route is not setup correctly or an action is missing.
 
-Rails 4 has basic error handling defined in the [public_exceptions][public_exceptions] and [show_exceptions][show_exceptions] Rack middleware.
+Rails 4 has basic error handling for non-HTML formats defined in the [public_exceptions][public_exceptions] and [show_exceptions][show_exceptions] Rack middleware.
 
 Rails 3.2.x has support for `config.exceptions_app` which can be defined as the following to simulate Rails 4 exception handling:
 

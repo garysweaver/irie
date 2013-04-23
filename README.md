@@ -4,7 +4,7 @@ Develop declarative, featureful JSON service controllers to use with modern Java
 
 What does that mean? It means you typically won't have to write index, create, update, destroy, etc. methods in your controllers to filter, sort, and do complex queries.
 
-Why do you need this if Rails controllers already make it easy to provide RESTful JSON services via generated controllers? Because this is just as flexible, almost as declarative, and takes less code. Your controllers will be easier to read, and there will be less code to maintain. When you need an action method more customized, that method is all you have to write.
+Why do you need this if Rails controllers already make it easy to provide RESTful JSON services via generated controllers? Because this is just as flexible, almost as declarative, and takes less code. Your controllers will be easier to read, and there will be less code to maintain. When you need an action method more customized, that method is all you will have to write.
 
 The goal of the project is to reduce service controller code in an intuitive way, not to be a be-everything DSL or limit what you can do in a controller. Choose what features to expose, and you can still define/redefine actions etc. at will.
 

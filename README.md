@@ -26,7 +26,7 @@ An example app using an older version of restful_json with AngularJS is [employe
 
 In your Rails app's `Gemfile`:
 
-    gem 'restful_json', '~> 3.4.0'
+    gem 'restful_json', '~> 3.4.1'
 
 And if you go with the defaults to use ActiveModel::Serializers and Permitters (using Strong Parameters and Cancan):
 

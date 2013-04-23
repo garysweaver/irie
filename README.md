@@ -742,6 +742,12 @@ Unfortunately, this doesn't work for Rails 3.1.x. However, in many scenarios the
 
 But, if you can make Rack respond a little better for some errors, that's great.
 
+To let all errors and exceptions fall out of restful_json action methods so that they will all be handled (without `error_data` in response) in the same way as routing, missing action, and other errors caught by Rack, just use:
+
+    RestfulJson.configure do
+      self.rescue_handlers = []
+    end
+
 #### Controller Error Handling Configuration
 
 The default configuration will rescue StandardError in each action method and will render as 404 for ActiveRecord::RecordNotFound or 500 for all other StandardError (and ancestors, like a normal rescue).
@@ -752,22 +758,31 @@ The `rescue_class` config option specifies what to rescue. Set to StandardError 
 
 The `rescue_handlers` config option is like a minimalist set of rescue blocks that apply to every action method. For example, the following would effectively `rescue => e` (rescuing `StandardError`) and then for `ActiveRecord::RecordNotFound`, it would uses response status `:not_found` (HTTP 404). Otherwise it uses status `:internal_server_error` (HTTP 500). In both cases the error message is `e.message`:
 
-    self.rescue_class = StandardError
-    self.rescue_handlers = [
-      {exception_classes: [ActiveRecord::RecordNotFound], status: :not_found},
-      {status: :internal_server_error}
-    ]
+    RestfulJson.configure do
+      self.rescue_class = StandardError
+      self.rescue_handlers = [
+        {exception_classes: [ActiveRecord::RecordNotFound], status: :not_found},
+        {status: :internal_server_error}
+      ]
+    end
 
 In a slightly more complicated case, this configuration would catch all exceptions raised with each actinon method that had `ActiveRecord::RecordNotFound` as an ancestor and use the error message defined by i18n key 'api.not_found'. All other exceptions would use status `:internal_server_error` (because it is a default, and doesn't have to be specified) but would use the error message defined by i18n key 'api.internal_server_error':
 
-    self.rescue_class = Exception
-    self.rescue_handlers = [
-      {exception_ancestor_classes: [ActiveRecord::RecordNotFound], status: :not_found, i18n_key: 'api.not_found'.freeze},
-      {i18n_key: 'api.internal_server_error'.freeze}
-    ]
-
+    RestfulJson.configure do
+      self.rescue_class = Exception
+      self.rescue_handlers = [
+        {exception_ancestor_classes: [ActiveRecord::RecordNotFound], status: :not_found, i18n_key: 'api.not_found'.freeze},
+        {i18n_key: 'api.internal_server_error'.freeze}
+      ]
+    end
 
 The `return_error_data` config option will not only return a response with `status` and `error` but also an `error_data` containing the `e.class.name`, `e.message`, and cleaned `e.backtrace`.
+
+If you want to rescue using `rescue_with` in a controller or ApplicationController, let all errors and exceptions fall out of restful_json action methods with:
+
+    RestfulJson.configure do
+      self.rescue_handlers = []
+    end
 
 ### Release Notes
 

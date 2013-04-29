@@ -81,14 +81,9 @@ RestfulJson.configure do
   self.rescue_handlers = []
 
   # rescue_handlers are an ordered array of handlers to handle rescue of self.rescue_class or sub types.
-  # Can use optional i18n_key for message, but will default to e.message if not found.
-  # Eventually may support [DataMapper::ObjectNotFoundError], [MongoMapper::DocumentNotFound], etc.
-  # If no exception_classes or exception_ancestor_classes provided, it will always match self.rescue_class.
-  # Important note: if you specify classes in your configuration, do not specify as strings unless the RestfulJson railtie
-  # will have a chance to convert it to constants/class objects. See railtie for more info.
+  # can use optional i18n_key for message, but will default to e.message if i18n_key not found.
 
-  # support 404 error for ActiveRecord::RecordNotFound if using ActiveRecord
-  # active_record/errors not loaded yet, so we need to try to require
+  # support 404 error for ActiveRecord::RecordNotFound if using ActiveRecord.
   begin
     require 'active_record/errors'
     self.rescue_handlers << {exception_classes: [ActiveRecord::RecordNotFound], status: :not_found, i18n_key: 'api.not_found'.freeze}
@@ -102,7 +97,7 @@ RestfulJson.configure do
   rescue LoadError, NameError
   end
 
-  # add default 500 errors last
+  # support 500 error for everything else that is a self.rescue_class (in action)
   self.rescue_handlers << {status: :internal_server_error, i18n_key: 'api.internal_server_error'.freeze}
 
 end

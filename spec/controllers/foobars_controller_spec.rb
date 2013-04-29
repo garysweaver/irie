@@ -9,6 +9,7 @@ describe FoobarsController do
   before(:each) do
     @orig = RestfulJson.avoid_respond_with
     RestfulJson.avoid_respond_with = false
+    FoobarsController.test_role = 'admin'
   end
 
   after(:each) do
@@ -33,7 +34,7 @@ describe FoobarsController do
     it 'assigns foobar' do
       Foobar.delete_all
       b = Foobar.create(foo_id: '1')
-      get :show, id: b.id, :format => :json
+      get :show, Foobar.primary_key => b.id, :format => :json
       assigns(:foobar).is_a?(Foobar).should be
       response.status.should eq(200), "show failed (got #{response.status}): #{response.body}"
       # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
@@ -63,7 +64,7 @@ describe FoobarsController do
     it 'assigns foobar' do
       Foobar.delete_all
       b = Foobar.create(foo_id: '1')
-      get :edit, id: b.id, :format => :json
+      get :edit, Foobar.primary_key => b.id, :format => :json
       assigns(:foobar).is_a?(Foobar).should be
       assigns(:foobar).foo_id.should eq('1')
     end
@@ -81,7 +82,6 @@ describe FoobarsController do
 
    describe "POST create" do
     it 'allowed for accepted params' do
-      FoobarsController.test_role = 'admin'
       Foobar.delete_all
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
@@ -94,7 +94,6 @@ describe FoobarsController do
     end
 
     it 'does not accept non-whitelisted params' do
-      FoobarsController.test_role = 'admin'
       Foobar.delete_all
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
@@ -133,13 +132,12 @@ describe FoobarsController do
 
   describe "PUT update" do
     it 'allowed for accepted params' do
-      FoobarsController.test_role = 'admin'
       Foobar.delete_all
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
       b = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
       foo_id = '1'
-      put :update, id: b.id, foo_id: foo_id, format: :json
+      put :update, Foobar.primary_key => b.id, foo_id: foo_id, format: :json
       expected_code = Rails::VERSION::MAJOR == 3 && Rails::VERSION::MINOR == 1 ? 200 : 204
       response.status.should eq(expected_code), "update failed (got #{response.status}): #{response.body}"
       assert_match '', @response.body
@@ -147,13 +145,12 @@ describe FoobarsController do
     end
 
     it 'does not accept non-whitelisted params' do
-      FoobarsController.test_role = 'admin'
       Foobar.delete_all
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
       b = Foobar.create(bar_id: SecureRandom.urlsafe_base64)
       bar_id = '1'
-      put :update, id: b.id, bar_id: bar_id, format: :json
+      put :update, Foobar.primary_key => b.id, bar_id: bar_id, format: :json
       expected_code = Rails::VERSION::MAJOR == 3 && Rails::VERSION::MINOR == 1 ? 200 : 204
       response.status.should eq(expected_code), "update failed (got #{response.status}): #{response.body}"
       assert_match '', @response.body
@@ -168,7 +165,7 @@ describe FoobarsController do
       b = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
       foo_id = '1'
       begin
-        put :update, id: b.id, foo_id: foo_id, format: :json
+        put :update, Foobar.primary_key => b.id, foo_id: foo_id, format: :json
         fail "cancan should not allow put" if response.status < 400
       rescue
       end
@@ -176,7 +173,6 @@ describe FoobarsController do
     end
 
     it 'fails with HTTP 404 for missing record' do
-      FoobarsController.test_role = 'admin'
       Foobar.delete_all
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
@@ -192,14 +188,13 @@ describe FoobarsController do
     #  # won't wrap in test without this per https://github.com/rails/rails/issues/6633
     #  @request.env['CONTENT_TYPE'] = 'application/json'
     #  b = Foobar.create(bar_id: SecureRandom.urlsafe_base64)
-    #  put :update, id: b.id, bar_id: '1', format: :json
+    #  put :update, Foobar.primary_key => b.id, bar_id: '1', format: :json
     #  response.status.should eq(400), "update should have failed for unaccepted param (got #{response.status}): #{response.body}"
     #end
   end
 
   describe "DELETE destroy" do
     it 'allowed for accepted id' do
-      FoobarsController.test_role = 'admin'
       Foobar.delete_all
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
@@ -210,7 +205,6 @@ describe FoobarsController do
     end
 
     it 'should not fail with HTTP 404 for missing record' do
-      FoobarsController.test_role = 'admin'
       Foobar.delete_all
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
@@ -220,7 +214,6 @@ describe FoobarsController do
     end
 
     it 'should fail with error if subclass of StandardError' do
-      FoobarsController.test_role = 'admin'
       Foobar.delete_all
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
@@ -238,7 +231,6 @@ describe FoobarsController do
       orig_handlers = RestfulJson.rescue_handlers
       RestfulJson.rescue_handlers = {status: :internal_server_error, i18n_key: 'this_is_an_missing_and_invalid_i18n_key'.freeze}
       begin
-        FoobarsController.test_role = 'admin'
         Foobar.delete_all
         # won't wrap in test without this per https://github.com/rails/rails/issues/6633
         @request.env['CONTENT_TYPE'] = 'application/json'

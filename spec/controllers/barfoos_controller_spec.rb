@@ -2,6 +2,12 @@ require 'rails'
 require 'spec_helper'
 
 describe BarfoosController do
+  before(:each) do
+    @orig = RestfulJson.avoid_respond_with
+    RestfulJson.avoid_respond_with = false
+    FoobarsController.test_role = 'admin'
+  end
+
   describe "GET index" do
     it 'returns barfoos with correct fields' do
       orig = RestfulJson.avoid_respond_with

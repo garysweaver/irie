@@ -1,3 +1,8 @@
+## restful_json 4.0.0 ##
+
+* Extracted permitters into separate gem with some changes. See Permitters project.
+* Added action_to_permitter, actions_that_authorize, allow_action_specific_params_methods, and actions_that_permit to config.
+
 ## restful_json 3.4.2 ##
 
 * Removing rescue_from's from DefaultController that would require additional controller methods if default error handling not used.

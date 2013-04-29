@@ -1,24 +1,21 @@
 source 'https://rubygems.org'
 
-gem 'rspec'
-gem 'rspec-rails'
-
 gemspec
 
-gem 'appraisal'
+gem 'rspec', '~> 2.13.0'
+gem 'rspec-rails', '~> 2.13.0'
+gem 'cancan', '~> 1.6.9'
+gem 'appraisal', '~> 0.5.2'
+gem 'bundler', '>= 1.2.2'
+gem 'active_model_serializers', '~> 0.7.0'
+gem 'permitters', '~> 0.0.1'
 
-group :test do
-  gem 'omniauth-facebook'
-  gem 'omniauth-openid', '~> 1.0.1'
-  gem 'webrat', '0.7.2', :require => false
-  gem 'mocha', '0.10.0', :require => false
-  gem 'rspec-rails'
+unless ENV['CI']
+  gem 'simplecov', '~> 0.7.1'
 end
 
-gem 'activerecord-jdbc-adapter', platform: :jruby
-gem 'activerecord-jdbcsqlite3-adapter', platform: :jruby
-gem 'jruby-openssl', platform: :jruby
+#gem 'activerecord-jdbc-adapter', platform: :jruby
+#gem 'activerecord-jdbcsqlite3-adapter', platform: :jruby
+#gem 'jruby-openssl', platform: :jruby
 
 gem 'sqlite3', platform: [:ruby, :ruby_18, :ruby_19, :ruby_20, :mri, :mri_18, :mri_19, :mri_20, :rbx, :mswin, :mingw, :mingw_18, :mingw_19, :mingw_20]
-gem 'active_model_serializers'
-gem 'cancan'

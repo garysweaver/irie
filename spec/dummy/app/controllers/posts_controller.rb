@@ -1,4 +1,5 @@
 class PostsController < ApplicationController
+  include ActionController::Permittance
   
   # GET /posts
   # GET /posts.json

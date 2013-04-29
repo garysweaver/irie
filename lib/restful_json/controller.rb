@@ -16,8 +16,8 @@ module RestfulJson
   module Controller
     extend ::ActiveSupport::Concern
 
-    NILS = ['NULL'.freeze,'null'.freeze,'nil'.freeze]
-    SINGLE_VALUE_ACTIONS = ['create'.freeze,'update'.freeze,'destroy'.freeze,'new'.freeze]
+    NILS = ['NULL'.freeze, 'null'.freeze, 'nil'.freeze]
+    SINGLE_VALUE_ACTIONS = [:create, :update, :destroy, :show, :new, :edit]
 
     included do
       # this can be overriden in the controller via defining respond_to
@@ -113,7 +113,7 @@ module RestfulJson
         # TODO: support custom actions to be automaticaly defined
         args.each do |an_action|
           if options[:is]
-            self.action_to_query[an_action.to_s] = options[:is]
+            self.action_to_query[an_action.to_sym] = options[:is]
           else
             raise "#{self.class.name} must supply an :is option with query_for #{an_action.inspect}"
           end
@@ -132,7 +132,7 @@ module RestfulJson
         self.ordered_by = (Array.wrap(self.ordered_by) + Array.wrap(args)).flatten.compact.collect {|item|item.is_a?(Hash) ? item : {item.to_sym => :asc}}
       end
 
-      # Associate a non-standard ActiveModel Serializer for one or more actions, e.g.
+      # Associate a non-standard ActiveModel::Serializer for one or more actions, e.g.
       #    serialize_action :index, with: FoosSerializer
       # or
       #    serialize_action :index, :some_custom_action, with: FooSerializer
@@ -143,10 +143,24 @@ module RestfulJson
         options = args.extract_options!
         args.each do |an_action|
           if options[:with]
-            self.action_to_serializer[an_action.to_s] = options[:with]
-            self.action_to_serializer_for[an_action.to_s] = options[:for] if options[:for]
+            self.action_to_serializer[an_action.to_sym] = options[:with]
+            self.action_to_serializer_for[an_action.to_sym] = options[:for] if options[:for]
           else
             raise "#{self.class.name} must supply an :with option with serialize_action #{an_action.inspect}"
+          end
+        end
+      end
+
+      # Use default or custom ActionController::Permitter with one or more actions, e.g.
+      #    permit_action :create, :update # this does nothing because it uses permitter_class, e.g. FooPermitter for FoosController
+      # or:
+      #    permit_action :index, :some_custom_action, with: FoosQueryPermitter
+      def permit_action(*args)
+        options = args.extract_options!
+        args.each do |an_action|
+          if options[:with]
+            # if key set to nil, it will use the permitter_class method during the action
+            self.action_to_permitter[an_action.to_sym] = options[:with]
           end
         end
       end
@@ -173,10 +187,12 @@ module RestfulJson
       @model_at_plural_name_sym = "@#{@model_plural_name}".to_sym
       @model_at_singular_name_sym = "@#{@model_singular_name}".to_sym
       
-      # next 3 are for vanilla strong_parameters
+      # default methods for strong parameters
+      @model_plural_name_params_sym = "#{@model_plural_name}_params".to_sym
       @model_singular_name_params_sym = "#{@model_singular_name}_params".to_sym
-      @create_model_singular_name_params_sym = "create_#{@model_singular_name}_params".to_sym
-      @update_model_singular_name_params_sym = "update_#{@model_singular_name}_params".to_sym
+
+      @action_to_singular_action_model_params_method = {}
+      @action_to_plural_action_model_params_method = {}
 
       underscored_modules_and_underscored_plural_model_name = qualified_controller_name.gsub('::','_').underscore
 
@@ -228,6 +244,62 @@ module RestfulJson
       render_error(e, handling_data) unless @performed_render
     end
 
+    # Finds model using provided info in params, prior to any permittance,
+    # via where()...first.
+    #
+    # Supports composite_keys.
+    def find_model_instance
+      # to_s as safety measure for vulnerabilities similar to CVE-2013-1854.
+      # primary_key array support for composite_primary_keys.
+      if @model_class.primary_key.is_a? Array
+        c = @model_class
+        c.primary_key.each {|pkey|c.where(pkey.to_sym => params[pkey].to_s)}
+        @value = c.first
+      else
+        @value = @model_class.where(@model_class.primary_key.to_sym => params[@model_class.primary_key].to_s).first
+      end
+    end
+
+    # Finds model using provided info in params, prior to any permittance,
+    # via where()...first! with exception raise if does not exist.
+    #
+    # Supports composite_keys.
+    def find_model_instance!
+      # to_s as safety measure for vulnerabilities similar to CVE-2013-1854.
+      # primary_key array support for composite_primary_keys.
+      if @model_class.primary_key.is_a? Array
+        c = @model_class
+        c.primary_key.each {|pkey|c.where(pkey.to_sym => params[pkey].to_s)}
+        # raise exception if not found
+        @value = c.first!
+      else
+        @value = @model_class.where(@model_class.primary_key.to_sym => params[@model_class.primary_key].to_s).first! # raise exception if not found
+      end
+    end
+
+    def allowed_params
+      action_sym = params[:action].to_sym
+      singular = single_value_response?
+      action_specific_params_method = singular ? (@action_to_singular_action_model_params_method[action_sym] ||= "#{action_sym}_#{@model_singular_name}_params".to_sym) : (@action_to_plural_action_model_params_method[action_sym] ||= "#{action_sym}_#{@model_plural_name}_params".to_sym)
+      model_name_params_method = singular ? @model_singular_name_params_sym : @model_plural_name_params_sym
+      
+      if self.actions_that_authorize.include?(action_sym)
+        authorize! action_sym, @model_class
+      end
+
+      if self.actions_that_permit.include?(action_sym)
+        if self.use_permitters
+          return permitted_params_using(self.action_to_permitter[action_sym] || permitter_class)
+        elsif self.allow_action_specific_params_methods && respond_to?(action_specific_params_method)
+          return __send__(action_specific_params_method)
+        elsif self.actions_supporting_params_methods.include?(action_sym) && respond_to?(model_name_params_method)
+          return __send__(model_name_params_method)
+        end
+      end
+
+      params
+    end
+
     # Renders error using handling data options (where options are probably hash from self.rescue_handlers that was matched).
     #
     # If include_error_data? is true, it returns something like the following (with the appropriate HTTP status code via setting appropriate status in respond_do:
@@ -271,8 +343,8 @@ module RestfulJson
           respond_with(@value) do |format|
             format.json do
               # define local variables in blocks, not outside of them, to be safe, even though would work in this case              
-              custom_action_serializer = self.action_to_serializer[params[:action].to_s]
-              custom_action_serializer_for = self.action_to_serializer_for[params[:action].to_s]
+              custom_action_serializer = self.action_to_serializer[params[:action].to_sym]
+              custom_action_serializer_for = self.action_to_serializer_for[params[:action].to_sym]
               serialization_key = single_value_response? ? (custom_action_serializer_for == :each ? :each_serializer : :serializer) : (custom_action_serializer_for == :array ? :serializer : :each_serializer)
               if !@value.respond_to?(:errors) || @value.errors.empty?
                 render custom_action_serializer ? {json: @value, status: success_code, serialization_key => custom_action_serializer} : {json: @value, status: success_code}
@@ -283,10 +355,10 @@ module RestfulJson
           end
         else
           # code duplicated from above because local vars don't always traverse well into block (based on wierd ruby-proc bug experienced)
-          custom_action_serializer = self.action_to_serializer[params[:action].to_s]
-          custom_action_serializer_for = self.action_to_serializer_for[params[:action].to_s]
+          custom_action_serializer = self.action_to_serializer[params[:action].to_sym]
+          custom_action_serializer_for = self.action_to_serializer_for[params[:action].to_sym]
           serialization_key = single_value_response? ? (custom_action_serializer_for == :array ? :serializer : :each_serializer) : (custom_action_serializer_for == :each ? :each_serializer : :serializer)
-          respond_with @value, custom_action_serializer ? {(self.action_to_serializer_for[params[:action].to_s] == :each ? :each_serializer : :serializer) => custom_action_serializer} : {}
+          respond_with @value, custom_action_serializer ? {(self.action_to_serializer_for[params[:action].to_sym] == :each ? :each_serializer : :serializer) => custom_action_serializer} : {}
         end
       else
         @value
@@ -294,7 +366,7 @@ module RestfulJson
     end
 
     def single_value_response?
-      SINGLE_VALUE_ACTIONS.include?(params[:action].to_s)
+      SINGLE_VALUE_ACTIONS.include?(params[:action].to_sym)
     end
 
     # The controller's index (list) method to list resources.
@@ -302,10 +374,11 @@ module RestfulJson
     # Note: this method be alias_method'd by query_for, so it is more than just index.
     def index
       # could be index or another action if alias_method'd by query_for
-      logger.debug "#{params[:action].to_s} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
+      logger.debug "#{params[:action]} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
+      p_params = allowed_params
       t = @model_class.arel_table
       value = @model_class.scoped # returns ActiveRecord::Relation equivalent to select with no where clause
-      custom_query = self.action_to_query[params[:action].to_s]
+      custom_query = self.action_to_query[params[:action].to_sym]
       if custom_query
         value = custom_query.call(t, value)
       end
@@ -313,12 +386,12 @@ module RestfulJson
       self.param_to_query.each do |param_name, param_query|
         if params[param_name]
           # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-          value = param_query.call(t, value, params[param_name].to_s)
+          value = param_query.call(t, value, p_params[param_name].to_s)
         end
       end
 
       self.param_to_through.each do |param_name, through_array|
-        if params[param_name]
+        if p_params[param_name]
           # build query
           # e.g. SomeModel.scoped.joins({:assoc_name => {:sub_assoc => {:sub_sub_assoc => :sub_sub_sub_assoc}}).where(sub_sub_sub_assoc_model_table_name: {column_name: value})
           last_model_class = @model_class
@@ -327,7 +400,7 @@ module RestfulJson
             if association_or_attribute == through_array.last
               # must convert param value to string before possibly using with ARel because of CVE-2013-1854, fixed in: 3.2.13 and 3.1.12 
               # https://groups.google.com/forum/?fromgroups=#!msg/rubyonrails-security/jgJ4cjjS8FE/BGbHRxnDRTIJ
-              value = value.joins(joins).where(last_model_class.table_name.to_sym => {association_or_attribute => params[param_name].to_s})
+              value = value.joins(joins).where(last_model_class.table_name.to_sym => {association_or_attribute => p_params[param_name].to_s})
             else
               found_classes = last_model_class.reflections.collect {|association_name, reflection| reflection.class_name.constantize if association_name.to_sym == association_or_attribute}.compact
               if found_classes.size > 0
@@ -350,7 +423,7 @@ module RestfulJson
       self.param_to_attr_and_arel_predicate.keys.each do |param_name|
         options = param_to_attr_and_arel_predicate[param_name][2]
         # to_s as safety measure for vulnerabilities similar to CVE-2013-1854 
-        param = params[param_name].to_s || options[:with_default]
+        param = p_params[param_name].to_s || options[:with_default]
 
         if param.present? && param_to_attr_and_arel_predicate[param_name]
           attr_sym = param_to_attr_and_arel_predicate[param_name][0]
@@ -364,42 +437,42 @@ module RestfulJson
         end
       end
 
-      if params[:page] && self.supported_functions.include?(:page)
-        page = params[:page].to_i
+      if p_params[:page] && self.supported_functions.include?(:page)
+        page = p_params[:page].to_i
         page = 1 if page < 1 # to avoid people using this as a way to get all records unpaged, as that probably isn't the intent?
         #TODO: to_s is hack to avoid it becoming an Arel::SelectManager for some reason which not sure what to do with
         value = value.skip((self.number_of_records_in_a_page * (page - 1)).to_s)
         value = value.take((self.number_of_records_in_a_page).to_s)
       end
 
-      if params[:skip] && self.supported_functions.include?(:skip)
+      if p_params[:skip] && self.supported_functions.include?(:skip)
         # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-        value = value.skip(params[:skip].to_s)
+        value = value.skip(p_params[:skip].to_s)
       end
 
-      if params[:take] && self.supported_functions.include?(:take)
+      if p_params[:take] && self.supported_functions.include?(:take)
         # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-        value = value.take(params[:take].to_s)
+        value = value.take(p_params[:take].to_s)
       end
 
-      if params[:uniq] && self.supported_functions.include?(:uniq)
+      if p_params[:uniq] && self.supported_functions.include?(:uniq)
         value = value.uniq
       end
 
       # these must happen at the end and are independent
-      if params[:count] && self.supported_functions.include?(:count)
+      if p_params[:count] && self.supported_functions.include?(:count)
         value = value.count.to_i
-      elsif params[:page_count] && self.supported_functions.include?(:page_count)
+      elsif p_params[:page_count] && self.supported_functions.include?(:page_count)
         count_value = value.count.to_i # this executes the query so nothing else can be done in AREL
         value = (count_value / self.number_of_records_in_a_page) + (count_value % self.number_of_records_in_a_page ? 1 : 0)
       else
+        #TODO: also declaratively specify order via order=attr1,attr2, etc. like can_filter_by w/queries, subattrs, and direction.
         self.ordered_by.each do |attr_to_direction|
           # this looks nasty, but makes no sense to iterate keys if only single of each
           value = value.order(t[attr_to_direction.keys[0]].send(attr_to_direction.values[0]))
         end
         value = value.to_a
-      end
-
+      end      
       @value = value
       instance_variable_set(@model_at_plural_name_sym, @value)
       render_or_respond(true)
@@ -409,9 +482,11 @@ module RestfulJson
 
     # The controller's show (get) method to return a resource.
     def show
-      logger.debug "#{params[:action].to_s} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
-      # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-      @value = @model_class.where(id: params[:id].to_s).first # don't raise exception if not found
+      logger.debug "#{params[:action]} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
+      @value = find_model_instance!
+      # allowed_params used primarily for authorization. can't do this to get id param(s) because those are sent via route, not
+      # in wrapped params (if wrapped)
+      allowed_params
       instance_variable_set(@model_at_singular_name_sym, @value)
       render_or_respond(true, @value.nil? ? :not_found : :ok)
     rescue self.rescue_class => e
@@ -420,7 +495,10 @@ module RestfulJson
 
     # The controller's new method (e.g. used for new record in html format).
     def new
-      logger.debug "#{params[:action].to_s} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
+      logger.debug "#{params[:action]} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
+      # allowed_params used primarily for authorization. can't do this to get id param(s) because those are sent via route, not
+      # in wrapped params (if wrapped)
+      allowed_params
       @value = @model_class.new
       instance_variable_set(@model_at_singular_name_sym, @value)
       render_or_respond(true)
@@ -430,9 +508,11 @@ module RestfulJson
 
     # The controller's edit method (e.g. used for edit record in html format).
     def edit
-      logger.debug "#{params[:action].to_s} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
-      # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-      @value = @model_class.where(id: params[:id].to_s).first! # raise exception if not found
+      logger.debug "#{params[:action]} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
+      @value = find_model_instance!
+      # allowed_params used primarily for authorization. can't do this to get id param(s) because those are sent via route, not
+      # in wrapped params (if wrapped)
+      allowed_params
       instance_variable_set(@model_at_singular_name_sym, @value)
       @value
     rescue self.rescue_class => e
@@ -441,17 +521,7 @@ module RestfulJson
 
     # The controller's create (post) method to create a resource.
     def create
-      logger.debug "#{params[:action].to_s} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
-      if self.use_permitters
-        authorize! :create, @model_class
-        allowed_params = permitted_params
-      elsif respond_to? @create_model_singular_name_params_sym
-        allowed_params = send(@create_model_singular_name_params_sym)
-      elsif respond_to? @model_singular_name_params_sym
-        allowed_params = send(@model_singular_name_params_sym)
-      else
-        allowed_params = params
-      end
+      logger.debug "#{params[:action]} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
       @value = @model_class.new(allowed_params)
       @value.save
       instance_variable_set(@model_at_singular_name_sym, @value)
@@ -462,20 +532,12 @@ module RestfulJson
 
     # The controller's update (put) method to update a resource.
     def update
-      logger.debug "#{params[:action].to_s} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
-      if self.use_permitters
-        authorize! :update, @model_class
-        allowed_params = permitted_params
-      elsif respond_to? @create_model_singular_name_params_sym
-        allowed_params = send(@update_model_singular_name_params_sym)
-      elsif respond_to? @model_singular_name_params_sym
-        allowed_params = send(@model_singular_name_params_sym)
-      else
-        allowed_params = params
-      end
-      # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-      @value = @model_class.where(id: params[:id].to_s).first # don't raise exception
-      @value.update_attributes(allowed_params) unless @value.nil?
+      logger.debug "#{params[:action]} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
+      @value = find_model_instance!
+      # allowed_params used primarily for authorization. can't do this to get id param(s) because those are sent via route, not
+      # in wrapped params (if wrapped)
+      p_params = allowed_params
+      @value.update_attributes(p_params) unless @value.nil?
       instance_variable_set(@model_at_singular_name_sym, @value)
       render_or_respond(true, @value.nil? ? :not_found : :ok)
     rescue self.rescue_class => e
@@ -484,9 +546,12 @@ module RestfulJson
 
     # The controller's destroy (delete) method to destroy a resource.
     def destroy
-      logger.debug "#{params[:action].to_s} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
-      # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-      @value = @model_class.where(id: params[:id].to_s).first # don't raise exception
+      logger.debug "#{params[:action]} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
+      # don't raise error- DELETE should be idempotent per REST.
+      @value = find_model_instance
+      # allowed_params used primarily for authorization. can't do this to get id param(s) because those are sent via route, not
+      # in wrapped params (if wrapped)
+      p_params = allowed_params
       @value.destroy if @value
       instance_variable_set(@model_at_singular_name_sym, @value)
       if !@value.respond_to?(:errors) || @value.errors.empty? || (request.format != 'text/html' && request.content_type != 'text/html')

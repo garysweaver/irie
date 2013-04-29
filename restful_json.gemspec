@@ -13,7 +13,4 @@ Gem::Specification.new do |s|
   s.files = Dir['lib/**/*'] + ['Rakefile', 'README.md']
   s.license = 'MIT'
   s.add_runtime_dependency 'activesupport', '>= 3.1.0' # ActiveSupport::Concern, class_attribute, etc.
-  s.add_development_dependency 'bundler', [">= 1.2.2"]
-  s.add_development_dependency 'appraisal'
-  s.add_development_dependency 'simplecov'
 end

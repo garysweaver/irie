@@ -727,7 +727,7 @@ module MyServiceController
 
     # use Permitters and AMS
     include RestfulJson::DefaultController
-    
+
     # or comment that last line and uncomment whatever you want to use
     #include ::ActionController::Serialization # AMS
     #include ::ActionController::StrongParameters
@@ -773,7 +773,7 @@ Don't do this:
 class ServiceController < ApplicationController
   include ::ActionController::Serialization
   include ::ActionController::StrongParameters
-  include ::TwinTurbo::Controller
+  include ::ActionController::Permittance
   include ::RestfulJson::Controller
 end
 

@@ -727,13 +727,12 @@ module MyServiceController
 
     # use Permitters and AMS
     include RestfulJson::DefaultController
+    
     # or comment that last line and uncomment whatever you want to use
     #include ::ActionController::Serialization # AMS
     #include ::ActionController::StrongParameters
-    #include ::TwinTurbo::Controller # Permitters which uses CanCan and Strong Parameters
+    #include ::ActionController::Permittance # Permitters
     #include ::RestfulJson::Controller
-
-    # If you want any additional inline class stuff, it goes here...
   end      
 end
 

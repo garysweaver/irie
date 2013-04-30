@@ -9,7 +9,7 @@ Why do you need this if Rails controllers already make it easy to provide RESTfu
 
 The goal of the project is to reduce service controller code in an intuitive way, not to be a be-everything DSL or limit what you can do in a controller. Choose what features to expose, and you can still define/redefine actions etc. at will.
 
-We test with travis-ci with with Rails 3.1, 3.2, and Rails 4. Feel free to submit issues and/or do a pull requests if you run into anything.
+We test with travis-ci with with Rails 3.1, 3.2, and Rails 4. Feel free to submit issues and/or do a pull request if you run into anything.
 
 You can use any of these for the JSON response (the view):
 * [ActiveModel::Serializers][active_model_serializers]

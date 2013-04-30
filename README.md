@@ -729,10 +729,10 @@ module MyServiceController
     include RestfulJson::DefaultController
 
     # or comment that last line and uncomment whatever you want to use
-    #include ::ActionController::Serialization # AMS
-    #include ::ActionController::StrongParameters
-    #include ::ActionController::Permittance # Permitters
-    #include ::RestfulJson::Controller
+    #include ActionController::Serialization # AMS
+    #include ActionController::StrongParameters
+    #include ActionController::Permittance # Permitters
+    #include RestfulJson::Controller
   end      
 end
 
@@ -771,10 +771,10 @@ Don't do this:
 
 ```ruby
 class ServiceController < ApplicationController
-  include ::ActionController::Serialization
-  include ::ActionController::StrongParameters
-  include ::ActionController::Permittance
-  include ::RestfulJson::Controller
+  include ActionController::Serialization
+  include ActionController::StrongParameters
+  include ActionController::Permittance
+  include RestfulJson::Controller
 end
 
 class FoobarsController < ServiceController

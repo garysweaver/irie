@@ -36,6 +36,7 @@ module RestfulJson
       class_attribute :param_to_through, instance_writer: true
       class_attribute :action_to_serializer, instance_writer: true
       class_attribute :action_to_serializer_for, instance_writer: true
+      class_attribute :query_includes, instance_writer: true
 
       # use values from config
       RestfulJson::CONTROLLER_OPTIONS.each do |key|
@@ -102,6 +103,10 @@ module RestfulJson
       def supports_functions(*args)
         args.extract_options! # remove hash from array- we're not using it yet
         self.supported_functions += args
+      end
+
+      def including(*args)
+        self.query_includes = args
       end
       
       # Specify a custom query. If action specified does not have a method, it will alias_method index to create a new action method with that query.
@@ -270,6 +275,9 @@ module RestfulJson
       if @model_class.primary_key.is_a? Array
         c = @model_class
         c.primary_key.each {|pkey|c.where(pkey.to_sym => params[pkey].to_s)}
+        if self.query_includes
+          value.includes(*(self.query_includes))
+        end
         # raise exception if not found
         @value = c.first!
       else
@@ -435,6 +443,10 @@ module RestfulJson
             value = value.where(t[attr_sym].try(predicate_sym, one_or_more_param))
           end
         end
+      end
+
+      if self.query_includes
+        value.includes(*(self.query_includes))
       end
 
       if p_params[:page] && self.supported_functions.include?(:page)

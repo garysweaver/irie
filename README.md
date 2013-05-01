@@ -614,6 +614,8 @@ query_for :index, is: ->(t,q) {
 }
 ```
 
+To avoid n+1 queries, use `.includes(...)` in your query to eager load any associations that you will need in the JSON view.
+
 ##### Define Custom Actions with Custom Queries
 
 You are still working with regular controllers here, so add or override methods if you want more!
@@ -701,6 +703,32 @@ And by default restful_json allows action specific `(action)_(model)_params` met
 ```ruby
 self.allow_action_specific_params_methods = true
 ```
+
+##### Avoid n+1 Queries
+
+Unless using a custom query, if you specify `including {some hash}`, that will add `.includes({some hash})` to any automatically generated queries (in the proper place) such that eager loading can be used to avoid n+1 queries:
+
+```ruby
+class PostsController < ApplicationController
+   include RestfulJson::DefaultController
+
+   # eager loads all the posts and the associated category and comments for each post (note: have to define .includes(...) in query_for query)
+   including :category, :comments
+end
+```
+
+or
+
+```ruby
+class PostsController < ApplicationController
+   include RestfulJson::DefaultController
+
+   # eager load all of the associated posts, the associated posts’ tags and comments, and every comment’s guest association
+   including posts: [{comments: :guest}, :tags]
+end
+```
+
+Be careful- Rails doesn't raise an error if it includes associations that don't exist (at least in Rails 3.1-4.0).
 
 ### With Rails-api
 

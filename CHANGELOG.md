@@ -1,3 +1,7 @@
+## restful_json 4.1.0 ##
+
+* Added including class method in controller to help avoid n+1 queries via calling includes(...).
+
 ## restful_json 4.0.0 ##
 
 * Extracted permitters into separate gem with some changes. See Permitters project.

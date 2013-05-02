@@ -1,7 +1,7 @@
 PATH
   remote: /Users/gary/github/restful_json
   specs:
-    restful_json (4.1.0)
+    restful_json (4.2.0)
       activesupport (>= 3.1.0)
 
 GEM

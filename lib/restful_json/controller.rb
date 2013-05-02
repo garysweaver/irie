@@ -37,6 +37,7 @@ module RestfulJson
       class_attribute :action_to_serializer, instance_writer: true
       class_attribute :action_to_serializer_for, instance_writer: true
       class_attribute :query_includes, instance_writer: true
+      class_attribute :action_to_query_includes, instance_writer: true
 
       # use values from config
       RestfulJson::CONTROLLER_OPTIONS.each do |key|
@@ -52,6 +53,7 @@ module RestfulJson
       self.param_to_through ||= {}
       self.action_to_serializer ||= {}
       self.action_to_serializer_for ||= {}
+      self.action_to_query_includes ||= {}
     end
 
     module ClassMethods
@@ -105,8 +107,26 @@ module RestfulJson
         self.supported_functions += args
       end
 
+      # Calls .includes(...) on queries. Take a hash of action as symbol to the includes, e.g. to include(:category, :comments):
+      #   including :category, :comments
+      # or includes({posts: [{comments: :guest}, :tags]}):
+      #   including posts: [{comments: :guest}, :tags]
       def including(*args)
         self.query_includes = args
+      end
+
+      # Calls .includes(...) only on specified action queries. Take a hash of action as symbol to the includes, e.g.:
+      #   includes_for :create, are: [:category, :comments]
+      #   includes_for :index, :a_custom_action, are: [posts: [{comments: :guest}, :tags]]
+      def includes_for(*args)
+        options = args.extract_options!
+        args.each do |an_action|
+          if options[:are]
+            self.action_to_query_includes.merge!({an_action.to_sym => options[:are]})
+          else
+            raise "#{self.class.name} must supply an :are option with includes_for #{an_action.inspect}"
+          end
+        end
       end
       
       # Specify a custom query. If action specified does not have a method, it will alias_method index to create a new action method with that query.
@@ -274,14 +294,19 @@ module RestfulJson
       # primary_key array support for composite_primary_keys.
       if @model_class.primary_key.is_a? Array
         c = @model_class
+        apply_includes params[:action].to_sym, value
         c.primary_key.each {|pkey|c.where(pkey.to_sym => params[pkey].to_s)}
-        if self.query_includes
-          value.includes(*(self.query_includes))
-        end
         # raise exception if not found
         @value = c.first!
       else
         @value = @model_class.where(@model_class.primary_key.to_sym => params[@model_class.primary_key].to_s).first! # raise exception if not found
+      end
+    end
+
+    def apply_includes(action_sym, value)
+      this_includes = self.action_to_query_includes[action_sym] || self.query_includes
+      if this_includes
+        value.includes(*this_includes)
       end
     end
 
@@ -383,13 +408,16 @@ module RestfulJson
     def index
       # could be index or another action if alias_method'd by query_for
       logger.debug "#{params[:action]} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
+      action_sym = params[:action].to_sym
       p_params = allowed_params
       t = @model_class.arel_table
       value = @model_class.scoped # returns ActiveRecord::Relation equivalent to select with no where clause
-      custom_query = self.action_to_query[params[:action].to_sym]
+      custom_query = self.action_to_query[action_sym]
       if custom_query
         value = custom_query.call(t, value)
       end
+
+      apply_includes action_sym, value
 
       self.param_to_query.each do |param_name, param_query|
         if params[param_name]
@@ -443,10 +471,6 @@ module RestfulJson
             value = value.where(t[attr_sym].try(predicate_sym, one_or_more_param))
           end
         end
-      end
-
-      if self.query_includes
-        value.includes(*(self.query_includes))
       end
 
       if p_params[:page] && self.supported_functions.include?(:page)

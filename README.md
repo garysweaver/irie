@@ -242,7 +242,9 @@ You should be able to use anything that works with normal render/responds_with i
 
 ### Application Configuration
 
-At the bottom of `config/environment.rb`, you can set restful_json can be configured one line at a time.
+In an initializer like `config/initializers/restful_json.rb` or in `config/environment.rb`, you can configure restful_json.
+
+Each application-level configuration option can be configured one line at a time:
 
 ```ruby
 RestfulJson.debug = true

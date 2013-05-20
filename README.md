@@ -1053,14 +1053,15 @@ If you are using Rails 3.1.x, note that respond_with returns HTTP 200 instead of
 
 Please fork, make changes in a separate branch, and do a pull request for your branch. Thanks!
 
-### Contributors
+### Authors
 
+This app was written by [FineLine Prototyping, Inc.](http://www.finelineprototyping.com) by the following contributors:
 * Gary Weaver (https://github.com/garysweaver)
 * Tommy Odom (https://github.com/tpodom)
 
 ### License
 
-Copyright (c) 2013 Gary S. Weaver, released under the [MIT license][lic].
+Copyright (c) 2013 FineLine Prototyping, Inc., released under the [MIT license][lic].
 
 [employee-training-tracker]: https://github.com/FineLinePrototyping/employee-training-tracker
 [built_with_angularjs]: http://builtwith.angularjs.org/

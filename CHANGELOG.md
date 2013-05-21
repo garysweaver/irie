@@ -1,4 +1,4 @@
-## restful_json 4.1.0 ##
+## restful_json 4.2.0 ##
 
 * Added `includes_for` class method in controller to help avoid n+1 queries via calling `.includes(...)` for a specific action.
 * Added apply_includes_to_custom_queries to config.

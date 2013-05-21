@@ -21,7 +21,7 @@ And can use any of the following for authorizing parameters in the incoming JSON
 * [Strong Parameters][strong_parameters]
 * Mass assignment security in Rails 3.x (attr_accessible, etc.).
 
-An example app using an older version of restful_json with AngularJS is [employee-training-tracker][employee-training-tracker], featured in [Built with AngularJS][built_with_angularjs].
+An example app using restful_json with AngularJS is [employee-training-tracker][employee-training-tracker], featured in [Built with AngularJS][built_with_angularjs].
 
 ### Usage
 

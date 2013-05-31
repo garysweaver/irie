@@ -91,7 +91,7 @@ https://example.org/foobars?skip=30&take=15
 In your Rails app's `Gemfile`:
 
 ```ruby
-gem 'restful_json', '~> 4.0.0'
+gem 'restful_json', '~> 4.2.0'
 ```
 
 Then:
@@ -107,7 +107,7 @@ bundle install
 [Strong Parameters][strong_parameters] is part of Rails 4, so *don't* include this gem if using Rails 4. However, if you are using Rails 3, it can be used on its own or as a dependency of Permitters:
 
 ```ruby
-gem 'strong_parameters', '~> 0.2.0'
+gem 'strong_parameters', '~> 0.2.1'
 ```
 
 Be sure to read the [Strong Parameters][strong_parameters] docs, because you need to use `config.active_record.whitelist_attributes = false` in your app config, etc. if using Rails 3. Also, this removes the need for `attr_accessible` or `attr_protected` in your models, so convert those restrictions to either Permitters or Strong Parameters.  And you'll need `ActiveModel::ForbiddenAttributesProtection` included in your models.
@@ -170,7 +170,7 @@ Read the [Permitters][permitters] documentation for more info on how you can enc
 [CanCan][cancan] can be used via Permitters or on its own:
 
 ```ruby
-gem 'cancan', '~> 1.6.9'
+gem 'cancan', '~> 1.6.10'
 ```
 
 And [CanCan][cancan] supports [Authlogic][authlogic], [Devise][devise], etc. for authentication. See the [CanCan][cancan] docs for more info.
@@ -190,7 +190,7 @@ So, for example, when a create is attempted, it will first call `authorize!(:cre
 [JBuilder][jbuilder] comes with Rails 4, or can be included in Rails 3 to provide JSON views. See [Railscast #320][railscast320] for more info on using JBuilder:
 
 ```ruby
-gem 'jbuilder', '~> 1.3.0'
+gem 'jbuilder', '~> 1.4.1'
 ```
 
 If you want to enable JBuilder for all restful_json services, you may want to disable all renders and respond_withs in the controller:
@@ -204,7 +204,7 @@ RestfulJson.render_enabled = false
 [ActiveModel::Serializers][active_model_serializers] is great for specifying what should go into the JSON responses as an alternative to JBuilder, and restful_json provides a `serialize_action` method to specify custom serializer if you don't want to use the default, e.g. `serialize_action :index, with: BarsSerializer` and `serialize_action :index, :my_other_list_action, with: BarsSerializer`.
 
 ```ruby
-gem 'active_model_serializers', '~> 0.7.0'
+gem 'active_model_serializers', '~> 0.8.1'
 ```
 
 Because of some issues with some versions of ActiveModel::Serializers using respond_with, you might want to set the option:
@@ -755,7 +755,7 @@ includes_for :index, :a_custom_action, are: [posts: [{comments: :guest}, :tags]]
 If you want to try out [rails-api][rails-api]:
 
 ```ruby
-gem 'rails-api', '~> 0.0.3'
+gem 'rails-api', '~> 0.1.0'
 ```
 
 In `app/controllers/my_service_controller.rb`:

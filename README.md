@@ -63,7 +63,7 @@ class FoobarsController < ApplicationController
 end
 ```
 
-so that you can do:
+Then, for example, you could call these:
 
 ```
 https://example.org/foobars?foo_id=123

@@ -16,7 +16,7 @@ For responses, you can use [JBuilder][jbuilder] (part of Rails 4), [ActiveModel:
 
 An example app using restful_json with AngularJS is [employee-training-tracker][employee-training-tracker], featured in [Built with AngularJS][built_with_angularjs].
 
-We test with [Travis-ci][travis] in Rails 3.1, 3.2, and Rails 4. Feel free to submit issues and/or do a pull request if you run into anything.
+[Travis-ci][travis] tests restful_json with Rails 3.1, 3.2, and Rails 4. Feel free to submit issues and/or do a pull request if you run into anything.
 
 ### Usage
 

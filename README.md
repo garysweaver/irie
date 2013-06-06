@@ -10,21 +10,17 @@ Why do you need this if Rails controllers already make it easy to provide RESTfu
 
 The goal of the project is to reduce service controller code in an intuitive way, not to be a be-everything DSL or limit what you can do in a controller. Choose what features to expose, and you can still define/redefine actions etc. at will.
 
-We test with [Travis-ci][travis] in Rails 3.1, 3.2, and Rails 4. Feel free to submit issues and/or do a pull request if you run into anything.
+For request parameter authorization, you can use [Strong Parameters][strong_parameters] (part of Rails 4) or [Permitters][permitters] (which uses Strong Parameters and an authorization solution like CanCan or custom authR). Or, you can use mass assignment security (part of Rails 3.x, i.e. attr_accessible and attr_protected).
 
-For the JSON view you can use [JBuilder][jbuilder] (part of Rails 4), [ActiveModel::Serializers][active_model_serializers], or almost anything else that will work with render/respond_with without anything special in the controller action method implementation.
-
-For authorizing paramters in the incoming JSON, you can [Strong Parameters][strong_parameters] (part of Rails 4), use [Permitters][permitters], or mass assignment security (e.g. Rails 3.x attr_accessible and attr_protected).
+For responses, you can use [JBuilder][jbuilder] (part of Rails 4), [ActiveModel::Serializers][active_model_serializers], or almost anything else that will work with render/respond_with without anything special in the controller action method implementation.
 
 An example app using restful_json with AngularJS is [employee-training-tracker][employee-training-tracker], featured in [Built with AngularJS][built_with_angularjs].
 
+We test with [Travis-ci][travis] in Rails 3.1, 3.2, and Rails 4. Feel free to submit issues and/or do a pull request if you run into anything.
+
 ### Usage
 
-You have a configurable generic Rails 3.1.x/3.2.x/4.x controller that does the index, show, create, and update and other custom actions easily for you.
-
-Everything is well-declared and fairly concise.
-
-You can have something as simple as:
+The following implements all common controller action methods, providing a basic JSON CRUD controller similar to a Rails controller created via `rails g scaffold ...`, except with less code.
 
 ```ruby
 class FoobarsController < ApplicationController
@@ -32,9 +28,7 @@ class FoobarsController < ApplicationController
 end
 ```
 
-which would use the restful_json configuration and the controller's classname for the service definition and provide a simple no-frills JSON CRUD controller that behaves somewhat similarly to a Rails controller created via `rails g scaffold ...`.
-
-Or, you can define many more bells and whistles with declarative ARel through HTTP(S):
+Or, use the provided class methods to declaratively allow use ARel-like queries via requests:
 
 ```ruby
 class FoobarsController < ApplicationController
@@ -69,17 +63,21 @@ class FoobarsController < ApplicationController
 end
 ```
 
-Now you can query like these:
+so that you can do:
 
 ```
 https://example.org/foobars?foo_id=123
 https://example.org/foobars?bar_date!gt=2012-08-08
 https://example.org/foobars?bar_date!gt=2012-08-08&count=
-https://example.org/foobars?and_one_more=an_attribute_value_on_my_assocs_assocs_assoc&uniq=
+https://example.org/foobars?and_one_more=123&uniq=
 https://example.org/foobars?page_count=
 https://example.org/foobars?page=1
 https://example.org/foobars?skip=30&take=15
 ```
+
+where each respectively will filter Foobars by foo_id 123, filter Foobars with bar_date greater than 2012-08-08, count Foobars with bar_date greater than 2012-08-08, return distinct Foobars where the attribute of an association of an association of an association is 123, count of all Foobars, or get the first page of Foobars, or get the 16th-30th Foobar in the index list, sorted by foo_date, foo_color, then bar_date descending.
+
+You only define what you need to provide. Limit to only what you need so that you are not opening up your data to the world, although since it easily integrates with common Rails authN/authR solutions (like Devise, Authlogic, CanCan) and parameter authR (Strong Parameters, Permitters, Mass Assignment Security)
 
 ### Installation
 

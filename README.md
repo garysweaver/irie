@@ -1,31 +1,26 @@
-[![Build Status](https://secure.travis-ci.org/rubyservices/restful_json.png?branch=master)](http://travis-ci.org/rubyservices/restful_json) [![Gem Version](https://badge.fury.io/rb/restful_json.png)](http://badge.fury.io/rb/restful_json)
-# Restful JSON
+[![Build Status](https://secure.travis-ci.org/rubyservices/restful_json.png?branch=master)][travis] [![Gem Version](https://badge.fury.io/rb/restful_json.png)][badgefury]
+
+# restful_json
 
 Develop declarative, featureful JSON service controllers to use with modern Javascript MVC frameworks like AngularJS, Ember, etc. with much less code. It is RESTful-ish instead of RESTful, since it isn't hypermedia-driven, but it meets the long-standing Rails definition of being RESTful.
 
 What does that mean? It means you typically won't have to write index, create, update, destroy, etc. methods in your controllers to filter, sort, and do complex queries.
 
-Why do you need this if Rails controllers already make it easy to provide RESTful JSON services via generated controllers? Because this is just as flexible, almost as declarative, and takes less code. Your controllers will be easier to read, and there will be less code to maintain. When you need an action method more customized, that method is all you will have to write.
+Why do you need this if Rails controllers already make it easy to provide RESTful JSON services via generated controllers? Because your controllers will be easier to read, and there will be less code to maintain. When you need an action method more customized, that method is all you will have to write.
 
 The goal of the project is to reduce service controller code in an intuitive way, not to be a be-everything DSL or limit what you can do in a controller. Choose what features to expose, and you can still define/redefine actions etc. at will.
 
-We test with travis-ci with with Rails 3.1, 3.2, and Rails 4. Feel free to submit issues and/or do a pull request if you run into anything.
+We test with [Travis-ci][travis] in Rails 3.1, 3.2, and Rails 4. Feel free to submit issues and/or do a pull request if you run into anything.
 
-You can use any of these for the JSON response (the view):
-* [ActiveModel::Serializers][active_model_serializers]
-* [JBuilder][jbuilder]
-* Almost anything else that will work with render/respond_with without anything special in the controller action method implementation.
+For the JSON view you can use [JBuilder][jbuilder] (part of Rails 4), [ActiveModel::Serializers][active_model_serializers], or almost anything else that will work with render/respond_with without anything special in the controller action method implementation.
 
-And can use any of the following for authorizing parameters in the incoming JSON (for create/update):
-* [Permitters][permitters]
-* [Strong Parameters][strong_parameters]
-* Mass assignment security in Rails 3.x (attr_accessible, etc.).
+For authorizing paramters in the incoming JSON, you can [Strong Parameters][strong_parameters] (part of Rails 4), use [Permitters][permitters], or mass assignment security (e.g. Rails 3.x attr_accessible and attr_protected).
 
 An example app using restful_json with AngularJS is [employee-training-tracker][employee-training-tracker], featured in [Built with AngularJS][built_with_angularjs].
 
 ### Usage
 
-You have a configurable generic Rails 3.1.x/3.2.x/4.0.x controller that does the index, show, create, and update and other custom actions easily for you.
+You have a configurable generic Rails 3.1.x/3.2.x/4.x controller that does the index, show, create, and update and other custom actions easily for you.
 
 Everything is well-declared and fairly concise.
 
@@ -733,7 +728,7 @@ class PostsController < ApplicationController
 end
 ```
 
-Be careful- Rails doesn't raise an error if it includes associations that don't exist (at least in Rails 3.1-4.0).
+Be careful- Rails doesn't raise an error if it includes associations that don't exist (at least in Rails 3.1-4.x).
 
 A relevant config option is:
 
@@ -1063,6 +1058,8 @@ This app was written by [FineLine Prototyping, Inc.](http://www.finelineprototyp
 
 Copyright (c) 2013 FineLine Prototyping, Inc., released under the [MIT license][lic].
 
+[travis]: http://travis-ci.org/rubyservices/restful_json
+[badgefury]: http://badge.fury.io/rb/restful_json
 [employee-training-tracker]: https://github.com/FineLinePrototyping/employee-training-tracker
 [built_with_angularjs]: http://builtwith.angularjs.org/
 [permitters]: https://github.com/permitters/permitters

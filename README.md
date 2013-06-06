@@ -597,7 +597,7 @@ or use the `->` Ruby 1.9 lambda stab operator (note lack of whitespace between s
 
 ```ruby
 # t is self.model_class.arel_table and q is self.model_class.scoped
-query_for :index, is: is: ->(t,q) {q.where(:status_code => 'green')}
+query_for :index, is: ->(t,q) {q.where(:status_code => 'green')}
 ```
 
 You can also filter out items that have associations that don't have a certain attribute value (or anything else you can think up with [ARel][arel]/[ActiveRecord relations][ar]), e.g. to filter the list where the object's apples and pears associations are green:

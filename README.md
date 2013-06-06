@@ -77,7 +77,7 @@ https://example.org/foobars?skip=30&take=15
 
 where each respectively will filter Foobars by foo_id 123, filter Foobars with bar_date greater than 2012-08-08, count Foobars with bar_date greater than 2012-08-08, return distinct Foobars where the attribute of an association of an association of an association is 123, count of all Foobars, or get the first page of Foobars, or get the 16th-30th Foobar in the index list, sorted by foo_date, foo_color, then bar_date descending.
 
-You only define what you need to provide. Limit to only what you need so that you are not opening up your data to the world, although since it easily integrates with common Rails authN/authR solutions (like Devise, Authlogic, CanCan) and parameter authR (Strong Parameters, Permitters, Mass Assignment Security)
+You only define what you need to provide and it can easily integrate with commonly used gems for authorization and authentication.
 
 ### Installation
 

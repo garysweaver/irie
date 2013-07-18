@@ -5,7 +5,7 @@ describe BarfoosController do
   before(:each) do
     @orig = RestfulJson.avoid_respond_with
     RestfulJson.avoid_respond_with = false
-    FoobarsController.test_role = 'admin'
+    BarfoosController.test_role = 'guest'
   end
 
   describe "GET index" do

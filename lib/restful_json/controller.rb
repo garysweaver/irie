@@ -22,7 +22,7 @@ module RestfulJson
     included do
       # this can be overriden in the controller via defining respond_to
       formats = RestfulJson.formats || ::Mime::EXTENSION_LOOKUP.keys.collect{|m|m.to_sym}
-      respond_to *formats
+      respond_to(*formats)
 
       # create class attributes for each controller option and set the value to the value in the app configuration
       class_attribute :model_class, instance_writer: true
@@ -34,8 +34,7 @@ module RestfulJson
       class_attribute :action_to_query, instance_writer: true
       class_attribute :param_to_query, instance_writer: true
       class_attribute :param_to_through, instance_writer: true
-      class_attribute :action_to_serializer, instance_writer: true
-      class_attribute :action_to_serializer_for, instance_writer: true
+      class_attribute :action_to_render_options, instance_writer: true
       class_attribute :query_includes, instance_writer: true
       class_attribute :action_to_query_includes, instance_writer: true
 
@@ -51,8 +50,7 @@ module RestfulJson
       self.action_to_query ||= {}
       self.param_to_query ||= {}
       self.param_to_through ||= {}
-      self.action_to_serializer ||= {}
-      self.action_to_serializer_for ||= {}
+      self.action_to_render_options ||= {}
       self.action_to_query_includes ||= {}
     end
 
@@ -64,7 +62,7 @@ module RestfulJson
       #   can_filter_by :attr_name_1, :attr_name_2 # implied using: [eq] if RestfulJson.can_filter_by_default_using = [:eq] 
       #   can_filter_by :attr_name_1, :attr_name_2, using: [:eq, :not_eq]
       #
-      # When :with_query is specified, it will call a supplied lambda. e.g. t is self.model_class.arel_table, q is self.model_class.scoped, and p is params[:my_param_name]:
+      # When :with_query is specified, it will call a supplied lambda. e.g. t is self.model_class.arel_table, q is self.model_class.all, and p is params[:my_param_name]:
       #   can_filter_by :my_param_name, with_query: ->(t,q,p) {...}
       #
       # When :through is specified, it will take the array supplied to through as 0 to many model names following by an attribute name. It will follow through
@@ -131,7 +129,7 @@ module RestfulJson
       
       # Specify a custom query. If action specified does not have a method, it will alias_method index to create a new action method with that query.
       #
-      # t is self.model_class.arel_table and q is self.model_class.scoped, e.g.
+      # t is self.model_class.arel_table and q is self.model_class.all, e.g.
       #   query_for :index, is: -> {|t,q| q.where(:status_code => 'green')}
       def query_for(*args)
         options = args.extract_options!
@@ -168,8 +166,8 @@ module RestfulJson
         options = args.extract_options!
         args.each do |an_action|
           if options[:with]
-            self.action_to_serializer[an_action.to_sym] = options[:with]
-            self.action_to_serializer_for[an_action.to_sym] = options[:for] if options[:for]
+            self.action_to_render_options[an_action.to_sym] ||= {}
+            self.action_to_render_options[an_action.to_sym]["restful_json_serialization_#{options[:for] && options[:for].to_sym == :array ? 'array' : 'default'}".to_sym] = options[:with]
           else
             raise "#{self.class.name} must supply an :with option with serialize_action #{an_action.inspect}"
           end
@@ -226,6 +224,11 @@ module RestfulJson
       class_eval "def #{@model_plural_name}_url;#{underscored_modules_and_underscored_plural_model_name}_url;end" unless @model_plural_name == underscored_modules_and_underscored_plural_model_name
       singularized_underscored_modules_and_underscored_plural_model_name = underscored_modules_and_underscored_plural_model_name
       class_eval "def #{@model_singular_name}_url(record);#{singularized_underscored_modules_and_underscored_plural_model_name}_url(record);end" unless @model_singular_name == singularized_underscored_modules_and_underscored_plural_model_name
+    end
+
+    # If Rails 3, returns @model_class.scoped. If not, returns @model_class.all. This helps avoid a deprecation warning.
+    def model_class_scoped
+      Rails::VERSION::MAJOR == 3 ? @model_class.scoped : @model_class.all
     end
 
     def convert_request_param_value_for_filtering(attr_sym, value)
@@ -347,7 +350,7 @@ module RestfulJson
     # It handles any format in theory that is supported by respond_to and has a `to_(some format)` method.
     def render_error(e, handling_data)
       i18n_key = handling_data[:i18n_key]
-      msg = result = t(i18n_key, default: e.message)
+      msg = t(i18n_key, default: e.message)
       status = handling_data[:status] || :internal_server_error
       if include_error_data?
         respond_to do |format|
@@ -375,23 +378,21 @@ module RestfulJson
         elsif !@value.nil? && ((read_only_action && RestfulJson.return_resource) || RestfulJson.avoid_respond_with)
           respond_with(@value) do |format|
             format.json do
-              # define local variables in blocks, not outside of them, to be safe, even though would work in this case              
-              custom_action_serializer = self.action_to_serializer[params[:action].to_sym]
-              custom_action_serializer_for = self.action_to_serializer_for[params[:action].to_sym]
-              serialization_key = single_value_response? ? (custom_action_serializer_for == :each ? :each_serializer : :serializer) : (custom_action_serializer_for == :array ? :serializer : :each_serializer)
               if !@value.respond_to?(:errors) || @value.errors.empty?
-                render custom_action_serializer ? {json: @value, status: success_code, serialization_key => custom_action_serializer} : {json: @value, status: success_code}
+                result = {json: @value, status: success_code}
+                result.merge!(additional_render_or_respond_success_options)
               else
-                render custom_action_serializer ? {json: {errors: @value.errors}, status: :unprocessable_entity, serialization_key => custom_action_serializer} : {json: {errors: @value.errors}, status: :unprocessable_entity}
+                result = {json: {errors: @value.errors}, status: :unprocessable_entity}
               end
+              render result
             end
           end
         else
-          # code duplicated from above because local vars don't always traverse well into block (based on wierd ruby-proc bug experienced)
-          custom_action_serializer = self.action_to_serializer[params[:action].to_sym]
-          custom_action_serializer_for = self.action_to_serializer_for[params[:action].to_sym]
-          serialization_key = single_value_response? ? (custom_action_serializer_for == :array ? :serializer : :each_serializer) : (custom_action_serializer_for == :each ? :each_serializer : :serializer)
-          respond_with @value, custom_action_serializer ? {(self.action_to_serializer_for[params[:action].to_sym] == :each ? :each_serializer : :serializer) => custom_action_serializer} : {}
+          if !@value.respond_to?(:errors) || @value.errors.empty?
+            respond_with @value, additional_render_or_respond_success_options
+          else
+            respond_with @value
+          end
         end
       else
         @value
@@ -400,6 +401,26 @@ module RestfulJson
 
     def single_value_response?
       SINGLE_VALUE_ACTIONS.include?(params[:action].to_sym)
+    end
+
+    # Returns additional rendering options. By default will massage self.action_to_render_options a little and return that,
+    # e.g. if you had used serialize_action to specify an array and each serializer for a specific action, if it is that action,
+    # it may return something like: {serializer: MyFooArraySerializer, each_serializer: MyFooSerializer}. If you'd like to do
+    # something custom in some situations, but default in others, you may also call default_additional_render_or_respond_success_options
+    # from within this method to get the defaults.
+    def additional_render_or_respond_success_options
+      default_additional_render_or_respond_success_options
+    end
+
+    def default_additional_render_or_respond_success_options
+      result = {}
+      if self.action_to_render_options[params[:action].to_sym]
+        custom_action_serializer = self.action_to_render_options[params[:action].to_sym][:restful_json_serialization_default]
+        result[(single_value_response? ? :serializer : :each_serializer)] = custom_action_serializer if custom_action_serializer
+        custom_action_array_serializer = self.action_to_render_options[params[:action].to_sym][:restful_json_serialization_array]
+        result[:serializer] = custom_action_array_serializer if custom_action_array_serializer && !single_value_response?
+      end
+      result
     end
 
     # The controller's index (list) method to list resources.
@@ -411,7 +432,7 @@ module RestfulJson
       action_sym = params[:action].to_sym
       p_params = allowed_params
       t = @model_class.arel_table
-      value = @model_class.scoped # returns ActiveRecord::Relation equivalent to select with no where clause
+      value = model_class_scoped
       custom_query = self.action_to_query[action_sym]
       if custom_query
         value = custom_query.call(t, value)
@@ -429,7 +450,7 @@ module RestfulJson
       self.param_to_through.each do |param_name, through_array|
         if p_params[param_name]
           # build query
-          # e.g. SomeModel.scoped.joins({:assoc_name => {:sub_assoc => {:sub_sub_assoc => :sub_sub_sub_assoc}}).where(sub_sub_sub_assoc_model_table_name: {column_name: value})
+          # e.g. SomeModel.all.joins({:assoc_name => {:sub_assoc => {:sub_sub_assoc => :sub_sub_sub_assoc}}).where(sub_sub_sub_assoc_model_table_name: {column_name: value})
           last_model_class = @model_class
           joins = nil # {:assoc_name => {:sub_assoc => {:sub_sub_assoc => :sub_sub_sub_assoc}}
           through_array.each do |association_or_attribute|
@@ -587,7 +608,7 @@ module RestfulJson
       @value = find_model_instance
       # allowed_params used primarily for authorization. can't do this to get id param(s) because those are sent via route, not
       # in wrapped params (if wrapped)
-      p_params = allowed_params
+      allowed_params
       @value.destroy if @value
       instance_variable_set(@model_at_singular_name_sym, @value)
       if !@value.respond_to?(:errors) || @value.errors.empty? || (request.format != 'text/html' && request.content_type != 'text/html')

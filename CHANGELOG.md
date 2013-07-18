@@ -1,3 +1,9 @@
+## restful_json 4.3.0 ##
+
+* Made `serialize_action` callable twice; once for array serializer and once for each serializer, for array actions.
+* Added `additional_render_or_respond_success_options` and `default_additional_render_or_respond_success_options` to allow custom logic for determination of serializers for an action.
+* Added `model_class_scoped` method to return `@model_class.all` or `@model_class.scoped` to hurdle deprecation.
+
 ## restful_json 4.2.0 ##
 
 * Added `includes_for` class method in controller to help avoid n+1 queries via calling `.includes(...)` for a specific action.

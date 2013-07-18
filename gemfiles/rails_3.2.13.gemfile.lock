@@ -1,7 +1,7 @@
 PATH
-  remote: /Users/gary/github/restful_json
+  remote: /Users/gary/github/FineLinePrototyping/restful_json
   specs:
-    restful_json (4.2.0)
+    restful_json (4.3.0)
       activesupport (>= 3.1.0)
 
 GEM
@@ -41,7 +41,7 @@ GEM
       rake
     arel (3.0.2)
     builder (3.0.4)
-    cancan (1.6.9)
+    cancan (1.6.10)
     diff-lcs (1.2.2)
     erubis (2.7.0)
     hike (1.2.1)
@@ -127,7 +127,7 @@ DEPENDENCIES
   active_model_serializers (~> 0.7.0)
   appraisal (~> 0.5.2)
   bundler (>= 1.2.2)
-  cancan (~> 1.6.9)
+  cancan (~> 1.6.10)
   json_spec
   permitters (~> 0.0.1)
   rails (= 3.2.13)

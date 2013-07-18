@@ -84,7 +84,7 @@ You only define what you need to provide and it can easily integrate with common
 In your Rails app's `Gemfile`:
 
 ```ruby
-gem 'restful_json', '~> 4.2.0'
+gem 'restful_json', '~> 4.3.0'
 ```
 
 Then:
@@ -183,7 +183,7 @@ So, for example, when a create is attempted, it will first call `authorize!(:cre
 [JBuilder][jbuilder] comes with Rails 4, or can be included in Rails 3 to provide JSON views. See [Railscast #320][railscast320] for more info on using JBuilder:
 
 ```ruby
-gem 'jbuilder', '~> 1.4.1'
+gem 'jbuilder', '~> 1.4.2'
 ```
 
 If you want to enable JBuilder for all restful_json services, you may want to disable all renders and respond_withs in the controller:
@@ -652,7 +652,9 @@ end
 
 ##### Custom Serializers
 
-If using ActiveModel::Serializers, you can use something other than the `(singular model name)Serializer` via `serialize_action`:
+If using ActiveModel::Serializers, the default is to use the default serializer used by ActiveModel::Serializers, e.g. `(singular model name)Serializer`. If you need to customize the serializer, there are a few ways to do it.
+
+The simplest way to customize it is by specifying `serialize_action`, e.g.
 
 ```ruby
 serialize_action :index, with: ListFoobarSerializer
@@ -660,13 +662,30 @@ serialize_action :index, with: ListFoobarSerializer
 
 The built-in actions that support custom serializers (you can add more) are: index, show, new, create, update, destroy, and any action you automatically have created via using the restful_json `query_for` method.
 
-It will use the `serializer` option for single result actions like show, new, create, update, destroy, and the `each_serializer` option with index and custom actions. Or, you can specify `for:` with `:array` or `:each`, e.g.:
+It will use the `serializer` option for single result actions like show, new, create, update, destroy, and the `each_serializer` option with index and custom actions. Or, you can specify `for:` with `:array`, e.g. the following would override the array serializer and the each serializer for the index and some_custom_action actions:
 
 ```ruby
-serialize_action :index, :some_custom_action, with: FoosSerializer, for: :array
+serialize_action :index, :some_custom_action, with: FooSerializer # implies each item in array will be serialized with this
+serialize_action :index, :some_custom_action, with: FooArraySerializer, for: :array
 ```
 
-Or, you could just use the default serialization, if you want.
+If you need more controller over the serializer used, you may override `additional_render_or_respond_success_options`:
+
+```ruby
+  # Returns additional rendering options. By default will massage self.action_to_render_options a little and return that,
+  # e.g. if you had used serialize_action to specify an array and each serializer for a specific action, if it is that action,
+  # it may return something like: {serializer: MyFooArraySerializer, each_serializer: MyFooSerializer}.
+  def additional_render_or_respond_success_options
+    if params['minimize']
+      result = {}
+      result[(single_value_response? ? :serializer : :each_serializer)] = MinimalBarfooSerializer
+      result[:serializer] = MinimalBarfooArraySerializer if !single_value_response?
+    else
+      result = default_additional_render_or_respond_success_options
+    end
+    result
+  end
+```
 
 ##### Custom Permitters
 

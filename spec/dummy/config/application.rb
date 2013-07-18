@@ -3,7 +3,12 @@ require File.expand_path('../boot', __FILE__)
 require 'rails/all'
 
 # Assets should be precompiled for production (so we don't need the gems loaded then)
-Bundler.require(*Rails.groups(assets: %w(development test)))
+if Rails::VERSION::MAJOR == 3
+    Bundler.require(*Rails.groups(assets: %w(development test)))
+else
+    #Rails 4
+    Bundler.require(:default, Rails.env)
+end
 
 module Dummy
   class Application < Rails::Application

@@ -272,20 +272,26 @@ module RestfulJson
       render_error(e, handling_data) unless @performed_render
     end
 
-    # Finds model using provided info in params, prior to any permittance,
-    # via where()...first.
-    #
-    # Supports composite_keys.
-    def find_model_instance
+    def do_find_model_instance(first_method)
       # to_s as safety measure for vulnerabilities similar to CVE-2013-1854.
       # primary_key array support for composite_primary_keys.
       if @model_class.primary_key.is_a? Array
         c = @model_class
         c.primary_key.each {|pkey|c.where(pkey.to_sym => params[pkey].to_s)}
-        @value = c.first
       else
-        @value = @model_class.where(@model_class.primary_key.to_sym => params[@model_class.primary_key].to_s).first
+        c = @model_class.where(@model_class.primary_key.to_sym => params[@model_class.primary_key].to_s)
       end
+
+      c = apply_includes params[:action].to_sym, c
+      @value = c.send first_method
+    end
+
+    # Finds model using provided info in params, prior to any permittance,
+    # via where()...first.
+    #
+    # Supports composite_keys.
+    def find_model_instance
+      do_find_model_instance(:first)
     end
 
     # Finds model using provided info in params, prior to any permittance,
@@ -293,24 +299,15 @@ module RestfulJson
     #
     # Supports composite_keys.
     def find_model_instance!
-      # to_s as safety measure for vulnerabilities similar to CVE-2013-1854.
-      # primary_key array support for composite_primary_keys.
-      if @model_class.primary_key.is_a? Array
-        c = @model_class
-        apply_includes params[:action].to_sym, value
-        c.primary_key.each {|pkey|c.where(pkey.to_sym => params[pkey].to_s)}
-        # raise exception if not found
-        @value = c.first!
-      else
-        @value = @model_class.where(@model_class.primary_key.to_sym => params[@model_class.primary_key].to_s).first! # raise exception if not found
-      end
+      do_find_model_instance(:first!)
     end
 
     def apply_includes(action_sym, value)
       this_includes = self.action_to_query_includes[action_sym] || self.query_includes
       if this_includes
-        value.includes(*this_includes)
+        value = value.includes(*this_includes)
       end
+      value
     end
 
     def allowed_params
@@ -438,7 +435,7 @@ module RestfulJson
         value = custom_query.call(t, value)
       end
 
-      apply_includes action_sym, value
+      value = apply_includes action_sym, value
 
       self.param_to_query.each do |param_name, param_query|
         if params[param_name]

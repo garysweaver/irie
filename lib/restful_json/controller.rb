@@ -282,7 +282,7 @@ module RestfulJson
         c = @model_class.where(@model_class.primary_key.to_sym => params[@model_class.primary_key].to_s)
       end
 
-      c = apply_includes params[:action].to_sym, c
+      c = apply_includes(c)
       @value = c.send first_method
     end
 
@@ -302,8 +302,12 @@ module RestfulJson
       do_find_model_instance(:first!)
     end
 
-    def apply_includes(action_sym, value)
-      this_includes = self.action_to_query_includes[action_sym] || self.query_includes
+    def current_action_includes
+      self.action_to_query_includes[params[:action].to_sym] || self.query_includes
+    end
+
+    def apply_includes(value)
+      this_includes = current_action_includes
       if this_includes
         value = value.includes(*this_includes)
       end
@@ -426,16 +430,15 @@ module RestfulJson
     def index
       # could be index or another action if alias_method'd by query_for
       logger.debug "#{params[:action]} called in #{self.class}: model=#{@model_class}, request.format=#{request.format}, request.content_type=#{request.content_type}, params=#{params.inspect}" if self.debug
-      action_sym = params[:action].to_sym
       p_params = allowed_params
       t = @model_class.arel_table
       value = model_class_scoped
-      custom_query = self.action_to_query[action_sym]
+      custom_query = self.action_to_query[params[:action].to_sym]
       if custom_query
         value = custom_query.call(t, value)
       end
 
-      value = apply_includes action_sym, value
+      value = apply_includes(value)
 
       self.param_to_query.each do |param_name, param_query|
         if params[param_name]

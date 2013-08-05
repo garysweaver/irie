@@ -16,7 +16,7 @@ For responses, you can use [JBuilder][jbuilder] (part of Rails 4), [ActiveModel:
 
 An example app using restful_json with AngularJS is [employee-training-tracker][employee-training-tracker], featured in [Built with AngularJS][built_with_angularjs].
 
-[Travis-ci][travis] tests restful_json with Rails 3.1, 3.2, and Rails 4. Feel free to submit issues and/or do a pull request if you run into anything.
+[Travis-ci][travis] tests restful_json with Rails 3.2 and Rails 4. Feel free to submit issues and/or do a pull request if you run into anything.
 
 ### Usage
 
@@ -1025,7 +1025,7 @@ or if using Rails 4.x, you should consider including the modules separately so t
 
 Also, in past versions, everything was done to the models whether you wanted it done or not. Have been trying to transition away from forcing anything, so starting with v3.3, ensure the following is done.
 
-If you are using Rails 3.1-3.2 and want to use Permitters or Strong Parameters in all models:
+If you are using Rails 3.2 and want to use Permitters or Strong Parameters in all models:
 
 Make sure you include Strong Parameters:
 
@@ -1060,6 +1060,32 @@ Configuration, suggestions, and what to use and how may continue to change, but 
 Strong Parameters and JBuilder are included in Rails 4. You can use Permitters and ActiveModel::Serializers but for Permitters, you shouldn't define `gem 'strong_parameters'`.
 
 If you are using Rails 3.1.x, note that respond_with returns HTTP 200 instead of 204 for update and destroy, unless return_resource is true.
+
+### Troubleshooting
+
+If you get `missing FROM-clause entry for table` errors, it might mean that `including`/`includes_for` you are using are overlapping with joins that are being done in the query. This is the nasty head of AR relational includes, unfortunately.
+
+To fix, you may decide to either: (1) change order/definition of includes in `including`/`includes_for`, (2) don't use `including`/`includes_for` for the actions it affects (may cause n+1 queries), (3) implement `apply_includes` to apply `value = value.includes(*current_action_includes)` in an appropriate order (messy), or (4) use custom query (if index/custom list action) to define joins with handcoded SQL, e.g. (thanks to Tommy):
+
+```ruby
+query_for :index, is: ->(t,q) {
+  # Using standard joins performs an INNER JOIN like we want, but doesn't eager load.
+  # Using includes does an eager load, but does a LEFT OUTER JOIN, which isn't really what we want, but in this scenario is probably ok.
+  # Using standard joins & includes results in bad SQL with table aliases.
+  # So, using includes & custom joins seems like a decent solution.
+  q.includes(:bartender, :waitress, :owner, :customer)
+    .joins('INNER JOIN employees bartenders ON bartenders.employee_id = shifts.bartender_id')
+    .joins('INNER JOIN waitresses shift_workers ON shift_workers.id = shifts.waitress_id')
+    .where(bartenders: {certified: 'yes'})
+    .where(shift_workers: {attitude: 'great'})
+}
+
+# set includes for all actions except index
+including :owner, :customer, :bartender, :waitress
+
+# includes specified in query_for function above
+includes_for :index, are: []
+```
 
 ### Contributing
 

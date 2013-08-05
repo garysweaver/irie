@@ -1,9 +1,22 @@
 ActiveRecord::Base.establish_connection(:adapter => "sqlite3", :database => ":memory:")
 
 ActiveRecord::Schema.define(:version => 1) do
+  create_table :foos do |t|
+    t.string :code
+    t.integer :bar_id
+    t.integer :barfoo_id
+  end
+
+  create_table :bars do |t|
+    t.integer :foobar_id
+    t.string :code
+  end
+
   create_table :foobars do |t|
-    t.string :foo_id
-    t.string :bar_id
+    t.integer :bar_id
+    t.integer :foo_id
+    t.integer :barfoo_id
+    t.integer :foobar_id
     t.datetime :foo_date
     t.datetime :bar_date
   end

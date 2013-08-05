@@ -10,6 +10,10 @@ describe FoobarsController do
     @orig = RestfulJson.avoid_respond_with
     RestfulJson.avoid_respond_with = false
     FoobarsController.test_role = 'admin'
+    10.times do |c|
+      Foo.where(:id => c, :code => "123#{c}").first_or_create
+      Bar.where(:id => c, :code => "abc#{c}").first_or_create
+    end
   end
 
   after(:each) do
@@ -20,25 +24,26 @@ describe FoobarsController do
     it 'returns foobars in correct order' do
       Foobar.delete_all
       expected = []
+      
       10.times do |c|
-        expected << Foobar.create(foo_id: c)
+        expected << Foobar.create(foo: Foo.where(id: c).first)
       end
       get :index, :format => :json
       assigns(:foobars).should eq(expected.reverse)
       # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
-      @response.body.should be_json_eql("{\"foobars\":[{\"id\":\"x\",\"foo_id\":\"9\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"8\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"7\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"6\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"5\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"4\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"3\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"2\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"1\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null},{\"id\":\"x\",\"foo_id\":\"0\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null}]}")
+      @response.body.should be_json_eql('{"foobars":[{"bar":null,"bar_date":null,"foo":{"bar_id":null,"barfoo_id":null,"code":"1239"},"foo_date":null},{"bar":null,"bar_date":null,"foo":{"bar_id":null,"barfoo_id":null,"code":"1238"},"foo_date":null},{"bar":null,"bar_date":null,"foo":{"bar_id":null,"barfoo_id":null,"code":"1237"},"foo_date":null},{"bar":null,"bar_date":null,"foo":{"bar_id":null,"barfoo_id":null,"code":"1236"},"foo_date":null},{"bar":null,"bar_date":null,"foo":{"bar_id":null,"barfoo_id":null,"code":"1235"},"foo_date":null},{"bar":null,"bar_date":null,"foo":{"bar_id":null,"barfoo_id":null,"code":"1234"},"foo_date":null},{"bar":null,"bar_date":null,"foo":{"bar_id":null,"barfoo_id":null,"code":"1233"},"foo_date":null},{"bar":null,"bar_date":null,"foo":{"bar_id":null,"barfoo_id":null,"code":"1232"},"foo_date":null},{"bar":null,"bar_date":null,"foo":{"bar_id":null,"barfoo_id":null,"code":"1231"},"foo_date":null},{"bar":null,"bar_date":null,"foo":{"bar_id":null,"barfoo_id":null,"code":"1230"},"foo_date":null}]}')
     end
   end
 
   describe "GET show" do
     it 'assigns foobar' do
       Foobar.delete_all
-      b = Foobar.create(foo_id: '1')
+      b = Foobar.create(foo: Foo.where(id: 1).first)
       get :show, Foobar.primary_key => b.id, :format => :json
       assigns(:foobar).is_a?(Foobar).should be
       response.status.should eq(200), "show failed (got #{response.status}): #{response.body}"
       # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
-      @response.body.should be_json_eql("{\"foobar\":{\"id\":#{b.id},\"foo_id\":\"1\",\"bar_id\":null,\"foo_date\":null,\"bar_date\":null}}")
+      @response.body.should be_json_eql('{"foobar":{"bar":null,"bar_date":null,"foo":{"bar_id":null,"barfoo_id":null,"code":"1231"},"foo_date":null}}')
     end
 
     it 'fails for bad id' do
@@ -56,17 +61,17 @@ describe FoobarsController do
       assigns(:foobar).is_a?(Foobar).should be
       response.status.should eq(200), "new failed (got #{response.status}): #{response.body}"
       # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
-      @response.body.should be_json_eql('{"foobar":{"id":null,"foo_id":null,"bar_id":null,"foo_date":null,"bar_date":null}}')
+      @response.body.should be_json_eql('{"foobar":{"bar":null,"bar_date":null,"foo":null,"foo_date":null}}')
     end
   end
 
   describe "GET edit" do
     it 'assigns foobar' do
       Foobar.delete_all
-      b = Foobar.create(foo_id: '1')
+      b = Foobar.create(foo: Foo.where(id: 1).first)
       get :edit, Foobar.primary_key => b.id, :format => :json
       assigns(:foobar).is_a?(Foobar).should be
-      assigns(:foobar).foo_id.should eq('1')
+      assigns(:foobar).foo_id.should eq(1)
     end
 
     it 'fails for bad id' do
@@ -85,24 +90,24 @@ describe FoobarsController do
       Foobar.delete_all
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
-      foo_id = SecureRandom.urlsafe_base64
+      before_count = Foobar.count
       #autolog do
-        post :create, foo_id: foo_id, format: :json
+        post :create, foobar: {foo: Foo.where(id: 1).first.to_json}, format: :json
       #end
       response.status.should eq(201), "create failed (got #{response.status}): #{response.body}"
-      Foobar.where(foo_id: foo_id).should_not be_empty, "should have created param"
+      Foobar.count.should eq(before_count + 1)
+      @response.body.should be_json_eql('{"foobar":{"bar":null,"bar_date":null,"foo":null,"foo_date":null}}')
     end
 
     it 'does not accept non-whitelisted params' do
       Foobar.delete_all
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
-      bar_id = SecureRandom.urlsafe_base64
-      post :create, bar_id: bar_id, format: :json
+      post :create, foobar: {bar: Bar.where(id: 1).first}, format: :json
       response.status.should eq(201), "create failed (got #{response.status}): #{response.body}"
       # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
-      @response.body.should be_json_eql("{\"foobar\":{\"id\":\"x\",\"foo_id\":null,\"bar_id\":null,\"foo_date\":null,\"bar_date\":null}}")
-      Foobar.where(bar_id: bar_id).should be_empty, "should not have created with non-whitelisted param"
+      @response.body.should be_json_eql('{"foobar":{"bar":null,"bar_date":null,"foo":null,"foo_date":null}}')
+      Foobar.where(bar_id: 1).should be_empty, "should not have created with non-whitelisted param"
     end
 
     it 'does not accept whitelisted params when cancan disallows user' do
@@ -112,12 +117,12 @@ describe FoobarsController do
       @request.env['CONTENT_TYPE'] = 'application/json'
       foo_id = SecureRandom.urlsafe_base64
       begin
-        put :create, foo_id: foo_id, format: :json
+        put :create, foo: Foo.where(id: 1).first, format: :json
         fail "cancan should not allow put" if response.status < 400
       rescue
       end
       assert_match '', @response.body
-      Foobar.where(foo_id: foo_id).should be_empty, "should not have updated with whitelisted param when cancan disallows user"
+      Foobar.where(foo_id: 1).should be_empty, "should not have updated with whitelisted param when cancan disallows user"
     end
 
     #TODO: implement ability in permitters to return 400 Bad Request like strong_parameters, if invalid params provided. currently is just ignored

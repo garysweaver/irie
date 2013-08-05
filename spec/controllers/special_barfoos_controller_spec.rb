@@ -22,7 +22,7 @@ describe SpecialBarfoosController do
         get :some_action, format: :json
         #end
         # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
-        @response.body.should be_json_eql('{"special_barfoos":[{"id":"x","favorite_food":"borscht 2"},{"id":"x","favorite_food":"borscht 5"},{"id":"x","favorite_food":"borscht 8"}]}')
+        @response.body.should be_json_eql('{"special_barfoos":[{"favorite_food":"borscht 2","foobars":[]},{"favorite_food":"borscht 5","foobars":[]},{"favorite_food":"borscht 8","foobars":[]}]}')
       ensure
         RestfulJson.avoid_respond_with = orig
       end
@@ -55,7 +55,7 @@ describe SpecialBarfoosController do
       Barfoo.delete_all
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
-      b = Barfoo.create(status: 1, favorite_food: "borscht 1", favorite_drink: "vodka 1")
+      b = Barfoo.create(status: 1, favorite_food: "borscht", favorite_drink: "vodka")
       favorite_food = "test"
       put :update, Foobar.primary_key => b.id, favorite_food: favorite_food, format: :json
       expected_code = Rails::VERSION::MAJOR == 3 && Rails::VERSION::MINOR == 1 ? 200 : 204
@@ -70,7 +70,7 @@ describe SpecialBarfoosController do
       Barfoo.delete_all
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
-      b = Barfoo.create(status: 1, favorite_food: "borscht 1", favorite_drink: "vodka 1")
+      b = Barfoo.create(status: 1, favorite_food: "borscht", favorite_drink: "vodka")
       favorite_food = "." * 51 # max length 15 in model
       put :update, Foobar.primary_key => b.id, favorite_food: favorite_food, format: :json
       expected_code = Rails::VERSION::MAJOR == 3 && Rails::VERSION::MINOR == 1 ? 422 : 422
@@ -82,7 +82,7 @@ describe SpecialBarfoosController do
       Barfoo.delete_all
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
-      b = Barfoo.create(status: 1, favorite_food: "borscht 1", favorite_drink: "vodka 1")
+      b = Barfoo.create(status: 1, favorite_food: "borscht", favorite_drink: "vodka")
       favorite_drink = SecureRandom.urlsafe_base64
       put :update, Barfoo.primary_key => b.id, favorite_drink: favorite_drink, format: :json
       expected_code = Rails::VERSION::MAJOR == 3 && Rails::VERSION::MINOR == 1 ? 200 : 204

@@ -9,10 +9,7 @@ gem 'appraisal', '~> 0.5.2'
 gem 'bundler', '>= 1.2.2'
 gem 'active_model_serializers', '~> 0.7.0'
 gem 'permitters', '~> 0.0.1'
-
-unless ENV['CI']
-  gem 'simplecov', '~> 0.7.1'
-end
+gem 'simplecov', '~> 0.7.1'
 
 #gem 'activerecord-jdbc-adapter', platform: :jruby
 #gem 'activerecord-jdbcsqlite3-adapter', platform: :jruby

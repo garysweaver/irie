@@ -108,38 +108,44 @@ Be sure to read the [Strong Parameters][strong_parameters] docs, because you nee
 As noted in [Strong Parameters][strong_parameters], it is suggested to encapsulate the permitting into a private method in the controller, so we allow:
 
 ```ruby
-def foobar_params
-  params.require(:foobar).permit(:name, :age)
-end
+private
+
+  def foobar_params
+    params.require(:foobar).permit(:name, :age)
+  end
 ```
 
 or if `self.allow_action_specific_params_methods = true` is set in restful_json configuration, as it is by default:
 
 ```ruby
-def create_foobar_params
-  params.require(:foobar).permit(:name, :age)
-end
+private
 
-def update_foobar_params
-  params.require(:foobar).permit(:age)
-end
+  def create_foobar_params
+    params.require(:foobar).permit(:name, :age)
+  end
+
+  def update_foobar_params
+    params.require(:foobar).permit(:age)
+  end
 ```
 
-and even other actions if you want:
+and even other actions, if needed:
 
 ```ruby
-def index_foobars_params
-  params.require(:foobars).permit(:foo_id)
-end
+private
 
-# where 'some_action' is a custom action created by query_for
-def some_action_foobars_params
-  params.require(:foobars).permit(:foo_id)
-end
+  def index_foobars_params
+    params.require(:foobars).permit(:foo_id)
+  end
 
-def show_foobar_params
-  params.require(:foobar).permit(:id)
-end
+  # where 'some_action' is a custom action created by query_for
+  def some_action_foobars_params
+    params.require(:foobars).permit(:foo_id)
+  end
+
+  def show_foobar_params
+    params.require(:foobar).permit(:id)
+  end
 ```
 
 ##### Permitters
@@ -714,12 +720,9 @@ By convention, a restful_json controller can call the `(singular model name)_par
 ```ruby
 self.actions_supporting_params_methods = [:create, :update]
 ```
+e.g., starting in restful_json v4.4, in FoobarsController after any other specifics, it would look for a foobar_params method in your controller, and if it is there, it will call it, expecting it to permit params. But, if you change the value of `self.actions_supporting_params_methods` in restful_json config or controller config, it will use whatever you specified.
 
-And by default restful_json allows action specific `(action)_(model)_params` methods, so you only need to define a method like `create_foobar_params` and it will try to call that on create:
-
-```ruby
-self.allow_action_specific_params_methods = true
-```
+Also, if you have a method like `create_foobar_params`, and it will try to call that on create (and similar for `update_foobar_params` and update).
 
 ##### Avoid n+1 Queries
 
@@ -912,13 +915,37 @@ For more realistic use that takes advantage of existing configuration in the con
 
 ### Error Handling
 
-#### Properly Handling Non-controller-action Errors
+#### Validation Errors
 
-Some things restful_json can't do in the controller, like responding with json for a json request when the route is not setup correctly or an action is missing.
+Validation errors (for validations you put in your models) are handled in the controller and returned as an error response in JSON.
+
+#### RecordNotFound and Other Non-validation Errors
+
+##### Rails 4 Default Rack Error Handling
 
 Rails 4 has basic error handling for non-HTML formats defined in the [public_exceptions][public_exceptions] and [show_exceptions][show_exceptions] Rack middleware.
 
-Rails 3.2.x has support for `config.exceptions_app` which can be defined as the following to simulate Rails 4 exception handling:
+To use the Rails 4 default Rack error handling, you need to remove all of the default configuration for rescue handlers in restful_json via:
+
+```ruby
+  RestfulJson.configure do
+    self.rescue_handlers = []
+  end
+```
+
+If you don't want to handle it the way Rack does by default, read on...
+
+#### Rails 3.2.x+ Rack Exceptions App Customization
+
+First, ensure that you've unset restful_json's rescue_handlers to use the Rails 3.2+ Rack error handling:
+
+```ruby
+  RestfulJson.configure do
+    self.rescue_handlers = []
+  end
+```
+
+Rails 3.2.x has support for `config.exceptions_app` which can be defined as the following in your Rails app configuration to simulate Rails 4 exception handling, or if you want to customize Rails 4's Rack exception handling:
 
 ```ruby
 config.exceptions_app = lambda do |env|
@@ -953,17 +980,11 @@ Unfortunately, this doesn't work for Rails 3.1.x. However, in many scenarios the
 
 But, if you can make Rack respond a little better for some errors, that's great.
 
-To let all errors and exceptions fall out of restful_json action methods so that they will all be handled (without `error_data` in response) in the same way as routing, missing action, and other errors caught by Rack, just use:
+#### The Default Way Non-validation Errors Are Handled
 
-```ruby
-  RestfulJson.configure do
-    self.rescue_handlers = []
-  end
-```
+The default configuration will use a configuration to use rescue_handlers which is just a way to configure how the controller's action methods rescue non-validation errors to render a response.
 
-#### Controller Error-handling Configuration
-
-The default configuration will rescue StandardError in each action method and will render as 404 for ActiveRecord::RecordNotFound or 500 for all other StandardError (and ancestors, like a normal rescue).
+The standard configuration will rescue StandardError in each action method and will render as 404 for ActiveRecord::RecordNotFound or 500 for all other StandardError (and ancestors, like a normal rescue).
 
 There are a few options to customize the rescue and error rendering behavior.
 
@@ -993,13 +1014,17 @@ RestfulJson.configure do
 end
 ```
 
-The `return_error_data` config option will not only return a response with `status` and `error` but also an `error_data` containing the `e.class.name`, `e.message`, and cleaned `e.backtrace`.
+The `return_error_data` restful_json config option (true by default) will not only return a response with `status` and `error` but also an `error_data` containing the `e.class.name`, `e.message`, and cleaned `e.backtrace`.
 
-If you want to rescue using `rescue_from` in a controller or ApplicationController, let all errors and exceptions fall out of restful_json action methods with:
+You can turn off backtrace cleaning in `error_data` by setting `clean_backtrace` per handler to false, e.g.:
 
 ```ruby
 RestfulJson.configure do
-  self.rescue_handlers = []
+  self.rescue_class = Exception
+  self.rescue_handlers = [
+    {exception_ancestor_classes: [ActiveRecord::RecordNotFound], status: :not_found, i18n_key: 'api.not_found'.freeze},
+    {i18n_key: 'api.internal_server_error'.freeze, clean_backtrace: false}
+  ]
 end
 ```
 

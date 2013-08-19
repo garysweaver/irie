@@ -83,6 +83,9 @@ RestfulJson.configure do
   
   # will define order of errors handled and what status and/or i18n message key to use
   self.rescue_handlers = []
+
+  # default to checking for the StrongParameters default method (singular model name)_params and using it if haven't tried
+  self.actions_supporting_params_methods = [:create, :update]
   
   # rescue_handlers are an ordered array of handlers to handle rescue of self.rescue_class or sub types.
   # can use optional i18n_key for message, but will default to e.message if i18n_key not found.

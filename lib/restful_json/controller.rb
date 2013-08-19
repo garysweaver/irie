@@ -52,6 +52,7 @@ module RestfulJson
       self.param_to_through ||= {}
       self.action_to_render_options ||= {}
       self.action_to_query_includes ||= {}
+      self.actions_supporting_params_methods ||= []
     end
 
     module ClassMethods
@@ -308,7 +309,7 @@ module RestfulJson
 
     def apply_includes(value)
       this_includes = current_action_includes
-      if this_includes
+      if this_includes && this_includes.size > 0
         value = value.includes(*this_includes)
       end
       value
@@ -327,10 +328,14 @@ module RestfulJson
       if self.actions_that_permit.include?(action_sym)
         if self.use_permitters
           return permitted_params_using(self.action_to_permitter[action_sym] || permitter_class)
-        elsif self.allow_action_specific_params_methods && respond_to?(action_specific_params_method)
+        elsif self.allow_action_specific_params_methods && self.respond_to?(action_specific_params_method, true)
           return __send__(action_specific_params_method)
-        elsif self.actions_supporting_params_methods.include?(action_sym) && respond_to?(model_name_params_method)
-          return __send__(model_name_params_method)
+        elsif self.actions_supporting_params_methods.include?(action_sym)
+          if self.respond_to?(model_name_params_method, true)
+            return __send__(model_name_params_method)
+          elsif defined?(::ActionController::StrongParameters)
+            raise "#{self.class.name} needs a method (can be private): #{model_name_params_method}#{self.allow_action_specific_params_methods ? " or #{action_specific_params_method}" : ''}"
+          end
         end
       end
 
@@ -350,6 +355,7 @@ module RestfulJson
     #
     # It handles any format in theory that is supported by respond_to and has a `to_(some format)` method.
     def render_error(e, handling_data)
+      use_backtrace_cleaner = handling_data[:clean_backtrace] || true
       i18n_key = handling_data[:i18n_key]
       msg = t(i18n_key, default: e.message)
       status = handling_data[:status] || :internal_server_error

@@ -1,7 +1,7 @@
 PATH
   remote: /Users/gary/github/FineLinePrototyping/restful_json
   specs:
-    restful_json (4.3.1)
+    restful_json (4.4.0)
       activesupport (>= 3.1.0)
 
 GEM

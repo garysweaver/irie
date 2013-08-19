@@ -1,3 +1,10 @@
+## restful_json 4.4.0 ##
+
+* Fix for "The method .includes() must contain arguments." Now does not call includes on the relation if empty.
+* Added clean_backtrace option to not clean backtraces in error_data if using error_handlers.
+* Fixing Strong Parameters support for (model name)_params private method in Ruby 1.9.3/2.0.0.
+* If using Strong Parameters, create/update now defaults to looking for (model name)_params method in controller.
+ 
 ## restful_json 4.3.1 ##
 
 * Fix for including/includes_for

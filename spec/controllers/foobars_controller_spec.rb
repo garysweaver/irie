@@ -125,6 +125,18 @@ describe FoobarsController do
       Foobar.where(foo_id: 1).should be_empty, "should not have updated with whitelisted param when cancan disallows user"
     end
 
+    it "fails for invalid json" do
+      begin
+        @request.env['RAW_POST_DATA'] = "{this is invalid json'}"
+        post :create, format: :json
+        fail "should have raised error"
+      rescue => e
+        response.status.should eq(500), "expected response status 500 (#{response.status}): #{response.body}"
+      ensure
+        @request.env.delete('RAW_POST_DATA')
+      end
+    end
+
     #TODO: implement ability in permitters to return 400 Bad Request like strong_parameters, if invalid params provided. currently is just ignored
     #it 'fails for rejected params' do
     #  Foobar.delete_all

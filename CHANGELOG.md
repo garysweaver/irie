@@ -1,3 +1,11 @@
+## restful_json 4.5.1 ##
+
+* Changed `render_error` method name to `render_rj_action_error` to avoid Rails conflict.
+
+## restful_json 4.5.0 ##
+
+* Changed config: `rescue_handlers` -> `rj_action_rescue_handlers`, `rescue_class` -> `rj_action_rescue_class` to avoid conflicts with rescue_from.
+
 ## restful_json 4.4.0 ##
 
 * Fix for "The method .includes() must contain arguments." Now does not call includes on the relation if empty.

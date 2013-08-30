@@ -270,7 +270,7 @@ module RestfulJson
       # this is something we intended to rescue, so log it
       logger.error(e)
       # render error only if we haven't rendered response yet
-      render_error(e, handling_data) unless @performed_render
+      render_rj_action_error(e, handling_data) unless @performed_render
     end
 
     def do_find_model_instance(first_method)
@@ -354,7 +354,7 @@ module RestfulJson
     # {"status": "not_found", "error", "Couldn't find Bar with id=23423423"}
     #
     # It handles any format in theory that is supported by respond_to and has a `to_(some format)` method.
-    def render_error(e, handling_data)
+    def render_rj_action_error(e, handling_data)
       use_backtrace_cleaner = handling_data[:clean_backtrace] || true
       i18n_key = handling_data[:i18n_key]
       msg = t(i18n_key, default: e.message)

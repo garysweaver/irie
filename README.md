@@ -84,7 +84,7 @@ You only define what you need to provide and it can easily integrate with common
 In your Rails app's `Gemfile`:
 
 ```ruby
-gem 'restful_json', '~> 4.5.0'
+gem 'restful_json' # and use ~> and set to latest version
 ```
 
 Then:

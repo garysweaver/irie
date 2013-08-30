@@ -245,8 +245,8 @@ describe FoobarsController do
     end
 
     it 'should not fail with i18n message if has 500 error with missing optional i18n key' do
-      orig_handlers = RestfulJson.rescue_handlers
-      RestfulJson.rescue_handlers = {status: :internal_server_error, i18n_key: 'this_is_an_missing_and_invalid_i18n_key'.freeze}
+      orig_handlers = RestfulJson.rj_action_rescue_handlers
+      RestfulJson.rj_action_rescue_handlers = {status: :internal_server_error, i18n_key: 'this_is_an_missing_and_invalid_i18n_key'.freeze}
       begin
         Foobar.delete_all
         # won't wrap in test without this per https://github.com/rails/rails/issues/6633
@@ -265,7 +265,7 @@ describe FoobarsController do
         response.status.should eq(500), "destroy should have failed with 500 (got #{response.status}): #{response.body}"
       ensure
         # we're not expecting an exception, but want to reset app-wide config back just in case
-        RestfulJson.rescue_handlers = orig_handlers
+        RestfulJson.rj_action_rescue_handlers = orig_handlers
       end
     end
   end

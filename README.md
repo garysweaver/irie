@@ -84,7 +84,7 @@ You only define what you need to provide and it can easily integrate with common
 In your Rails app's `Gemfile`:
 
 ```ruby
-gem 'restful_json', '~> 4.3.0'
+gem 'restful_json', '~> 4.5.0'
 ```
 
 Then:
@@ -303,33 +303,33 @@ RestfulJson.configure do
   self.return_error_data = true
   
   # the class that is rescued in each action method, but if nil will always reraise and not handle
-  self.rescue_class = StandardError
+  self.rj_action_rescue_class = StandardError
   
   # will define order of errors handled and what status and/or i18n message key to use
-  self.rescue_handlers = []
+  self.rj_action_rescue_handlers = []
 
   # default to checking for the StrongParameters default method (singular model name)_params and using it if haven't tried
   self.actions_supporting_params_methods = [:create, :update]
   
-  # rescue_handlers are an ordered array of handlers to handle rescue of self.rescue_class or sub types.
+  # rescue_handlers are an ordered array of handlers to handle rescue of self.rj_action_rescue_class or sub types.
   # can use optional i18n_key for message, but will default to e.message if i18n_key not found.
   
   # support 404 error for ActiveRecord::RecordNotFound if using ActiveRecord.
   begin
     require 'active_record/errors'
-    self.rescue_handlers << {exception_classes: [ActiveRecord::RecordNotFound], status: :not_found, i18n_key: 'api.not_found'.freeze}
+    self.rj_action_rescue_handlers << {exception_classes: [ActiveRecord::RecordNotFound], status: :not_found, i18n_key: 'api.not_found'.freeze}
   rescue LoadError, NameError
   end
   
   # support 403 error for CanCan::AccessDenied if using CanCan
   begin
     require 'cancan/exceptions'
-    self.rescue_handlers << {exception_classes: [CanCan::AccessDenied], status: :forbidden, i18n_key: 'api.not_found'.freeze}
+    self.rj_action_rescue_handlers << {exception_classes: [CanCan::AccessDenied], status: :forbidden, i18n_key: 'api.not_found'.freeze}
   rescue LoadError, NameError
   end
   
-  # support 500 error for everything else that is a self.rescue_class (in action)
-  self.rescue_handlers << {status: :internal_server_error, i18n_key: 'api.internal_server_error'.freeze}
+  # support 500 error for everything else that is a self.rj_action_rescue_class (in action)
+  self.rj_action_rescue_handlers << {status: :internal_server_error, i18n_key: 'api.internal_server_error'.freeze}
   
 end
 ```
@@ -352,7 +352,7 @@ All of the app-level configuration parameters are configurable at the controller
   self.use_permitters = true
   self.avoid_respond_with = true
   self.return_error_data = true
-  self.rescue_class = StandardError
+  self.rj_action_rescue_class = StandardError
   self.action_to_permitter = {create: nil, update: nil}
   self.actions_that_authorize = [:create, :update]
   self.allow_action_specific_params_methods = true
@@ -360,7 +360,7 @@ All of the app-level configuration parameters are configurable at the controller
   
   require 'active_record/errors'
   require 'cancan/exceptions'
-  self.rescue_handlers [
+  self.rj_action_rescue_handlers [
     {exception_classes: [ActiveRecord::RecordNotFound], status: :not_found, i18n_key: 'api.not_found'.freeze},
     {exception_classes: [CanCan::AccessDenied], status: :forbidden, i18n_key: 'api.not_found'.freeze},
     {status: :internal_server_error, i18n_key: 'api.internal_server_error'.freeze}
@@ -932,7 +932,7 @@ To use the Rails 4 default Rack error handling, you need to remove all of the de
 
 ```ruby
   RestfulJson.configure do
-    self.rescue_handlers = []
+    self.rj_action_rescue_handlers = []
   end
 ```
 
@@ -944,7 +944,7 @@ First, ensure that you've unset restful_json's rescue_handlers to use the Rails 
 
 ```ruby
   RestfulJson.configure do
-    self.rescue_handlers = []
+    self.rj_action_rescue_handlers = []
   end
 ```
 
@@ -991,14 +991,14 @@ The standard configuration will rescue StandardError in each action method and w
 
 There are a few options to customize the rescue and error rendering behavior.
 
-The `rescue_class` config option specifies what to rescue. Set to StandardError to behave like a normal rescue. Set to nil to just reraise everything rescued (to disable handling).
+The `rj_action_rescue_class` config option specifies what to rescue. Set to StandardError to behave like a normal rescue. Set to nil to just reraise everything rescued (to disable handling).
 
-The `rescue_handlers` config option is like a minimalist set of rescue blocks that apply to every action method. For example, the following would effectively `rescue => e` (rescuing `StandardError`) and then for `ActiveRecord::RecordNotFound`, it would uses response status `:not_found` (HTTP 404). Otherwise it uses status `:internal_server_error` (HTTP 500). In both cases the error message is `e.message`:
+The `rj_action_rescue_handlers` config option is like a minimalist set of rescue blocks that apply to every action method. For example, the following would effectively `rescue => e` (rescuing `StandardError`) and then for `ActiveRecord::RecordNotFound`, it would uses response status `:not_found` (HTTP 404). Otherwise it uses status `:internal_server_error` (HTTP 500). In both cases the error message is `e.message`:
 
 ```ruby
 RestfulJson.configure do
-  self.rescue_class = StandardError
-  self.rescue_handlers = [
+  self.rj_action_rescue_class = StandardError
+  self.rj_action_rescue_handlers = [
     {exception_classes: [ActiveRecord::RecordNotFound], status: :not_found},
     {status: :internal_server_error}
   ]
@@ -1009,8 +1009,8 @@ In a slightly more complicated case, this configuration would catch all exceptio
 
 ```ruby
 RestfulJson.configure do
-  self.rescue_class = Exception
-  self.rescue_handlers = [
+  self.rj_action_rescue_class = Exception
+  self.rj_action_rescue_handlers = [
     {exception_ancestor_classes: [ActiveRecord::RecordNotFound], status: :not_found, i18n_key: 'api.not_found'.freeze},
     {i18n_key: 'api.internal_server_error'.freeze}
   ]
@@ -1023,8 +1023,8 @@ You can turn off backtrace cleaning in `error_data` by setting `clean_backtrace`
 
 ```ruby
 RestfulJson.configure do
-  self.rescue_class = Exception
-  self.rescue_handlers = [
+  self.rj_action_rescue_class = Exception
+  self.rj_action_rescue_handlers = [
     {exception_ancestor_classes: [ActiveRecord::RecordNotFound], status: :not_found, i18n_key: 'api.not_found'.freeze},
     {i18n_key: 'api.internal_server_error'.freeze, clean_backtrace: false}
   ]
@@ -1036,6 +1036,8 @@ end
 See the [changelog][changelog] for basically what happened when, and git log for everything else.
 
 ### Upgrading
+
+To avoid an internal conflict with Rails' `rj_action_rescue_from` using the same variable, if you had set `rj_action_rescue_handlers` in your config or controller for restful_json use, please change the variable name to `rj_action_rescue_handlers`. Also similarly change `rj_action_rescue_class` to `rj_action_rescue_class`.
 
 The class method:
 

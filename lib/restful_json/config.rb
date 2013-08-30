@@ -16,8 +16,8 @@ module RestfulJson
     :actions_supporting_params_methods,
     :avoid_respond_with,
     :return_error_data,
-    :rescue_class,
-    :rescue_handlers,
+    :rj_action_rescue_class,
+    :rj_action_rescue_handlers,
     :apply_includes_to_custom_queries
   ]
   
@@ -79,10 +79,10 @@ RestfulJson.configure do
   self.return_error_data = true
   
   # the class that is rescued in each action method, but if nil will always reraise and not handle
-  self.rescue_class = StandardError
+  self.rj_action_rescue_class = StandardError
   
   # will define order of errors handled and what status and/or i18n message key to use
-  self.rescue_handlers = []
+  self.rj_action_rescue_handlers = []
 
   # default to checking for the StrongParameters default method (singular model name)_params and using it if haven't tried
   self.actions_supporting_params_methods = [:create, :update]
@@ -93,18 +93,18 @@ RestfulJson.configure do
   # support 404 error for ActiveRecord::RecordNotFound if using ActiveRecord.
   begin
     require 'active_record/errors'
-    self.rescue_handlers << {exception_classes: [ActiveRecord::RecordNotFound], status: :not_found, i18n_key: 'api.not_found'.freeze}
+    self.rj_action_rescue_handlers << {exception_classes: [ActiveRecord::RecordNotFound], status: :not_found, i18n_key: 'api.not_found'.freeze}
   rescue LoadError, NameError
   end
   
   # support 403 error for CanCan::AccessDenied if using CanCan
   begin
     require 'cancan/exceptions'
-    self.rescue_handlers << {exception_classes: [CanCan::AccessDenied], status: :forbidden, i18n_key: 'api.not_found'.freeze}
+    self.rj_action_rescue_handlers << {exception_classes: [CanCan::AccessDenied], status: :forbidden, i18n_key: 'api.not_found'.freeze}
   rescue LoadError, NameError
   end
   
   # support 500 error for everything else that is a self.rescue_class (in action)
-  self.rescue_handlers << {status: :internal_server_error, i18n_key: 'api.internal_server_error'.freeze}
+  self.rj_action_rescue_handlers << {status: :internal_server_error, i18n_key: 'api.internal_server_error'.freeze}
   
 end

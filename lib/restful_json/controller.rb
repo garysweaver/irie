@@ -242,15 +242,15 @@ module RestfulJson
       self.return_error_data
     end
 
-    # Searches through self.rescue_handlers for appropriate handler.
-    # self.rescue_handlers is an array of hashes where there is key :exception_classes and/or :exception_ancestor_classes
+    # Searches through self.rj_action_rescue_handlers for appropriate handler.
+    # self.rj_action_rescue_handlers is an array of hashes where there is key :exception_classes and/or :exception_ancestor_classes
     # along with :i18n_key and :status keys.
     # :exception_classes contains an array of classes to exactly match the exception.
     # :exception_ancestor_classes contains an array of classes that can match an ancestor of the exception.
     # If exception handled, returns hash, hopefully containing keys :i18n_key and :status.
     # Otherwise, returns nil which indicates that this exception should not be handled.
     def exception_handling_data(e)
-      self.rescue_handlers.each do |handler|
+      self.rj_action_rescue_handlers.each do |handler|
         return handler if (handler.key?(:exception_classes) && handler[:exception_classes].include?(e.class))
         if handler.key?(:exception_ancestor_classes)
           handler[:exception_ancestor_classes].each do |ancestor|
@@ -264,7 +264,7 @@ module RestfulJson
     end
 
     def handle_or_raise(e)
-      raise e if self.rescue_class.nil?
+      raise e if self.rj_action_rescue_class.nil?
       handling_data = exception_handling_data(e)
       raise e unless handling_data
       # this is something we intended to rescue, so log it
@@ -342,7 +342,7 @@ module RestfulJson
       params
     end
 
-    # Renders error using handling data options (where options are probably hash from self.rescue_handlers that was matched).
+    # Renders error using handling data options (where options are probably hash from self.rj_action_rescue_handlers that was matched).
     #
     # If include_error_data? is true, it returns something like the following (with the appropriate HTTP status code via setting appropriate status in respond_do:
     # {"status": "not_found",
@@ -539,7 +539,7 @@ module RestfulJson
       @value = value
       instance_variable_set(@model_at_plural_name_sym, @value)
       render_or_respond(true)
-    rescue self.rescue_class => e
+    rescue self.rj_action_rescue_class => e
       handle_or_raise(e)
     end
 
@@ -552,7 +552,7 @@ module RestfulJson
       allowed_params
       instance_variable_set(@model_at_singular_name_sym, @value)
       render_or_respond(true, @value.nil? ? :not_found : :ok)
-    rescue self.rescue_class => e
+    rescue self.rj_action_rescue_class => e
       handle_or_raise(e)
     end
 
@@ -565,7 +565,7 @@ module RestfulJson
       @value = @model_class.new
       instance_variable_set(@model_at_singular_name_sym, @value)
       render_or_respond(true)
-    rescue self.rescue_class => e
+    rescue self.rj_action_rescue_class => e
       handle_or_raise(e)
     end
 
@@ -578,7 +578,7 @@ module RestfulJson
       allowed_params
       instance_variable_set(@model_at_singular_name_sym, @value)
       @value
-    rescue self.rescue_class => e
+    rescue self.rj_action_rescue_class => e
       handle_or_raise(e)
     end
 
@@ -589,7 +589,7 @@ module RestfulJson
       @value.save
       instance_variable_set(@model_at_singular_name_sym, @value)
       render_or_respond(false, :created)
-    rescue self.rescue_class => e
+    rescue self.rj_action_rescue_class => e
       handle_or_raise(e)
     end
 
@@ -603,7 +603,7 @@ module RestfulJson
       @value.update_attributes(p_params) unless @value.nil?
       instance_variable_set(@model_at_singular_name_sym, @value)
       render_or_respond(true, @value.nil? ? :not_found : :ok)
-    rescue self.rescue_class => e
+    rescue self.rj_action_rescue_class => e
       handle_or_raise(e)
     end
 
@@ -625,7 +625,7 @@ module RestfulJson
       else
         render_or_respond(false)
       end
-    rescue self.rescue_class => e
+    rescue self.rj_action_rescue_class => e
       handle_or_raise(e)
     end
   end

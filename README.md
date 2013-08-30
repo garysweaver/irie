@@ -2,82 +2,60 @@
 
 # restful_json
 
-Develop declarative, featureful JSON service controllers to use with modern Javascript MVC frameworks like AngularJS, Ember, etc. with much less code. It is RESTful-ish instead of RESTful, since it isn't hypermedia-driven, but it meets the long-standing Rails definition of being RESTful.
-
-What does that mean? It means you typically won't have to write index, create, update, destroy, etc. methods in your controllers to filter, sort, and do complex queries.
-
-Why do you need this if Rails controllers already make it easy to provide RESTful JSON services via generated controllers? Because your controllers will be easier to read, and there will be less code to maintain. When you need an action method more customized, that method is all you will have to write.
-
-The goal of the project is to reduce service controller code in an intuitive way, not to be a be-everything DSL or limit what you can do in a controller. Choose what features to expose, and you can still define/redefine actions etc. at will.
-
-For request parameter authorization, you can use [Strong Parameters][strong_parameters] (part of Rails 4) or [Permitters][permitters] (which uses Strong Parameters and an authorization solution like CanCan or custom authR). Or, you can use mass assignment security (part of Rails 3.x, i.e. attr_accessible and attr_protected).
-
-For responses, you can use [JBuilder][jbuilder] (part of Rails 4), [ActiveModel::Serializers][active_model_serializers], or almost anything else that will work with render/respond_with without anything special in the controller action method implementation.
-
-An example app using restful_json with AngularJS is [employee-training-tracker][employee-training-tracker], featured in [Built with AngularJS][built_with_angularjs].
-
-[Travis-ci][travis] tests restful_json with Rails 3.2 and Rails 4. Feel free to submit issues and/or do a pull request if you run into anything.
-
-### Usage
-
-The following implements all common controller action methods, providing a basic JSON CRUD controller similar to a Rails controller created via `rails g scaffold ...`, except with less code.
+In Rails 4, the following implements standard Rails actions similar to a controller that makes parameter permittance, optional action authorization, and declarative query support (for use by Javascript MVC frameworks such as AngularJS and Ember) easier:
 
 ```ruby
 class FoobarsController < ApplicationController
-  include RestfulJson::DefaultController
+  # add standard Rails action methods
+  include RestfulJson::Controller
+
+  # standard Rails 4 respond_to: http://api.rubyonrails.org/classes/ActionController/Responder.html
+  respond_to :json, :html
+
+private
+  # standard Rails 4 request params permittance: https://github.com/rails/strong_parameters
+  def foobar_params
+    params.require(:foobar).permit(:name)
+  end
 end
 ```
 
-Or, use the provided class methods to declaratively allow use ARel-like queries via requests:
+The behavior of index, other core actions, and even custom actions can be implemented and customized easily.
+
+Typically, either the default behavior or one or two lines of filtering config is necessary for the typical JS app, but you can go nuts if you'd like. Here are some of the methods available to customize your controller:
 
 ```ruby
 class FoobarsController < ApplicationController
-  include RestfulJson::DefaultController
+  include RestfulJson::Controller
+  respond_to :json, :html
 
   query_for :index, is: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
-  
-  # use can_filter_by followed by the request parameter name(s)
-  
-  # implies using: [:eq] because RestfulJson.can_filter_by_default_using = [:eq]
-  can_filter_by :foo_id
-  
+  can_filter_by :name
   can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt], with_default: Time.now
-  
   can_filter_by :a_request_param_name, with_query: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
-  
   can_filter_by :and_another, through: [:some_attribute_on_this_model]
-  
   can_filter_by :one_more, through: [:some_association, :some_attribute_on_some_association_model]
-  
   can_filter_by :and_one_more, through: [:my_assoc, :my_assocs_assoc, :my_assocs_assocs_assoc, :an_attribute_on_my_assocs_assocs_assoc]
-  
   supports_functions :count, :uniq, :take, :skip, :page, :page_count
-  
-  order_by {:foo_date => :asc}, :foo_color, {:bar_date => :desc} # assumes :asc for foo_color, since hash not provided
-
-  serialize_action :index, with: ListFoobarSerializer
-  
-  # optional. by default acts like Rails and will serve in json or html
-  respond_to :json, :html
-  
+  order_by {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
 end
 ```
 
-Then, for example, you could call these:
+Then, after implementing your json views, you could call these:
 
 ```
-https://example.org/foobars?foo_id=123
-https://example.org/foobars?bar_date!gt=2012-08-08
-https://example.org/foobars?bar_date!gt=2012-08-08&count=
-https://example.org/foobars?and_one_more=123&uniq=
-https://example.org/foobars?page_count=
-https://example.org/foobars?page=1
-https://example.org/foobars?skip=30&take=15
+https://example.org/foobars?name=apple # gets Foo with name 'apple'
+https://example.org/foobars?bar_date!gt=2012-08-08 # gets Foos with bar_date > 2012-08-08
+https://example.org/foobars?bar_date!gt=2012-08-08&count= # count of Foos with bar_date > 2012-08-08
+https://example.org/foobars?and_one_more=123&uniq= # distinct values of Foos where my_assoc.my_assocs_assoc.my_assocs_assocs_assoc.an_attribute_on_my_assocs_assocs_assoc is 123
+https://example.org/foobars?page_count= # Foo.all.count / RestfulJson.number_of_records_in_a_page
+https://example.org/foobars?page=1 # Foo.all.take(15)
+https://example.org/foobars?skip=30&take=15 # Foo.all.skip(30).take(15)
 ```
 
-where each respectively will filter Foobars by foo_id 123, filter Foobars with bar_date greater than 2012-08-08, count Foobars with bar_date greater than 2012-08-08, return distinct Foobars where the attribute of an association of an association of an association is 123, count of all Foobars, or get the first page of Foobars, or get the 16th-30th Foobar in the index list, sorted by foo_date, foo_color, then bar_date descending.
+You are declaring those methods to allow them to be called, though. The intent is for nothing to be allowed unless you define it. It's as secure as you make it.
 
-You only define what you need to provide and it can easily integrate with commonly used gems for authorization and authentication.
+It can also easily integrate with commonly used gems for authorization and authentication.
 
 ### Installation
 
@@ -93,160 +71,31 @@ Then:
 bundle install
 ```
 
-#### Optional
+#### Authorization
 
-##### Strong Parameters
-
-[Strong Parameters][strong_parameters] is part of Rails 4, so *don't* include this gem if using Rails 4. However, if you are using Rails 3, it can be used on its own or as a dependency of Permitters:
+Optionally, your controller has an `authorize!(action_sym, model_class)` method like [CanCan][cancan], it will use it. If you'd like to use it, then:
 
 ```ruby
-gem 'strong_parameters', '~> 0.2.1'
+gem 'cancan' # and use ~> and set to latest compatible version
 ```
 
-Be sure to read the [Strong Parameters][strong_parameters] docs, because you need to use `config.active_record.whitelist_attributes = false` in your app config, etc. if using Rails 3. Also, this removes the need for `attr_accessible` or `attr_protected` in your models, so convert those restrictions to either Permitters or Strong Parameters.  And you'll need `ActiveModel::ForbiddenAttributesProtection` included in your models.
-
-As noted in [Strong Parameters][strong_parameters], it is suggested to encapsulate the permitting into a private method in the controller, so we allow:
-
-```ruby
-private
-
-  def foobar_params
-    params.require(:foobar).permit(:name, :age)
-  end
-```
-
-or if `self.allow_action_specific_params_methods = true` is set in restful_json configuration, as it is by default:
-
-```ruby
-private
-
-  def create_foobar_params
-    params.require(:foobar).permit(:name, :age)
-  end
-
-  def update_foobar_params
-    params.require(:foobar).permit(:age)
-  end
-```
-
-and even other actions, if needed:
-
-```ruby
-private
-
-  def index_foobars_params
-    params.require(:foobars).permit(:foo_id)
-  end
-
-  # where 'some_action' is a custom action created by query_for
-  def some_action_foobars_params
-    params.require(:foobars).permit(:foo_id)
-  end
-
-  def show_foobar_params
-    params.require(:foobar).permit(:id)
-  end
-```
-
-##### Permitters
-
-[Permitters][permitters] can use Strong Parameters and CanCan or another authorization solution for parameter authorization:
-
-```ruby
-gem 'permitters', '~> 0.0.1'
-```
-
-The default restful_json configuration is for only create and update actions to use permitters:
-
-```ruby
-self.actions_that_permit = [:create, :update]
-```
-
-Read the [Permitters][permitters] documentation for more info on how you can encapsulate and easily share permittance and authorization.
-
-##### CanCan
-
-[CanCan][cancan] can be used via Permitters or on its own:
-
-```ruby
-gem 'cancan', '~> 1.6.10'
-```
-
-And [CanCan][cancan] supports [Authlogic][authlogic], [Devise][devise], etc. for authentication. See the [CanCan][cancan] docs for more info.
-
-The default restful_json configuration is for `authorize!(permission, model)` to be called for create and update:
-
+You can change this in the configuration or on the controller:
 ```ruby
 self.actions_that_authorize = [:create, :update]
 ```
 
 So, for example, when a create is attempted, it will first call `authorize!(:create, Foobar)`.
 
-`CanCan::ModelAdditions` needs to be included on any model that you plan to use CanCan with, per the CanCan documentation.
-
-##### JBuilder
-
-[JBuilder][jbuilder] comes with Rails 4, or can be included in Rails 3 to provide JSON views. See [Railscast #320][railscast320] for more info on using JBuilder:
-
-```ruby
-gem 'jbuilder', '~> 1.4.2'
-```
-
-If you want to enable JBuilder for all restful_json services, you may want to disable all renders and respond_withs in the controller:
-
-```ruby
-RestfulJson.render_enabled = false
-```
-
-##### ActiveModel::Serializers
-
-[ActiveModel::Serializers][active_model_serializers] is great for specifying what should go into the JSON responses as an alternative to JBuilder, and restful_json provides a `serialize_action` method to specify custom serializer if you don't want to use the default, e.g. `serialize_action :index, with: BarsSerializer` and `serialize_action :index, :my_other_list_action, with: BarsSerializer`.
-
-```ruby
-gem 'active_model_serializers', '~> 0.8.1'
-```
-
-Because of some issues with some versions of ActiveModel::Serializers using respond_with, you might want to set the option:
-
-```ruby
-RestfulJson.avoid_respond_with = true
-```
-
-##### Mass Assignment Security
-
-To use mass assignment security in Rails 3.x, specify this in restful_json config/controller config:
-
-```ruby
-self.use_permitters = false
-```
-
-Don't use any of these, as they each include Strong Parameters:
-
-```ruby
-include ActionController::StrongParameters
-include RestfulJson::DefaultController
-```
-
-Only the main controller is needed:
-
-```ruby
-include RestfulJson::Controller
-```
-
-Then, make sure that attr_accessible and/or attr_protected, etc. are used properly. 
-
-##### Other Options
-
-You should be able to use anything that works with normal render/responds_with in Rails controllers without additional code in the controller. If you'd like to use something that requires additional code in the action methods of the controller, and you think it would be a good fit, feel free to do a pull request.
+See the [CanCan][cancan] documentation for how to include it in your application.
 
 ### Application Configuration
 
-In an initializer like `config/initializers/restful_json.rb` or in `config/environment.rb`, you can configure restful_json.
+The default config may be fine, but you can customize it.
 
 Each application-level configuration option can be configured one line at a time:
 
 ```ruby
-RestfulJson.debug = true
+RestfulJson.number_of_records_in_a_page = 30
 ```
 
 or in bulk, like:
@@ -254,166 +103,57 @@ or in bulk, like:
 ```ruby
 RestfulJson.configure do
   
+  # the methods that call authorize! action_sym, @model_class, if responds to authorize!
+  self.actions_that_authorize = [:create, :update]
+
   # default for :using in can_filter_by
   self.can_filter_by_default_using = [:eq]
   
-  # to log debug info during request handling
-  self.debug = false
-  
   # delimiter for values in request parameter values
-  self.filter_split = ','.freeze
+  self.filter_split = ','  
   
-  # equivalent to specifying respond_to :json, :html in the controller, and can be overriden in the controller. Note that by default responders gem sets respond_to :html in application_controller.rb.
-  self.formats = :json, :html
+  # delimiter for ARel predicate in the request parameter name
+  self.predicate_prefix = '.'
   
   # default number of records to return if using the page request function
   self.number_of_records_in_a_page = 15
   
-  # delimiter for ARel predicate in the request parameter name
-  self.predicate_prefix = '!'.freeze
-  
-  # if true, will render resource and HTTP 201 for post/create or resource and HTTP 200 for put/update. ignored if render_enabled is false.
-  self.return_resource = false
-  
-  # if false, controller actions will just set instance variable and return it instead of calling setting instance variable and then calling render/respond_with
-  self.render_enabled = true
-  
-  # use Permitters
-  self.use_permitters = true
-  
-  # instead of using Rails default respond_with, explicitly define render in respond_with block
-  self.avoid_respond_with = true
-  
-  # use the permitter_class for create and update, if use_permitters = true
-  self.action_to_permitter = {create: nil, update: nil}
-  
-  # the methods that call authorize! action_sym, @model_class
-  self.actions_that_authorize = [:create, :update]
-  
-  # if not using permitters, will check respond_to?("(action)_(plural_or_singular_model_name)_params".to_sym) and if true will __send__(method)
-  self.allow_action_specific_params_methods = true
-  
-  # if not using permitters, will check respond_to?("(singular_model_name)_params".to_sym) and if true will __send__(method)
-  self.actions_that_permit = [:create, :update]
-  
-  # will call .includes(...) for including and/or including_for_action when action was generated by query_for
-  self.apply_includes_to_custom_queries = true
-  
-  # in error JSON, break out the exception info into fields for debugging
-  self.return_error_data = true
-  
-  # the class that is rescued in each action method, but if nil will always reraise and not handle
-  self.rj_action_rescue_class = StandardError
-  
-  # will define order of errors handled and what status and/or i18n message key to use
-  self.rj_action_rescue_handlers = []
-
-  # default to checking for the StrongParameters default method (singular model name)_params and using it if haven't tried
-  self.actions_supporting_params_methods = [:create, :update]
-  
-  # rescue_handlers are an ordered array of handlers to handle rescue of self.rj_action_rescue_class or sub types.
-  # can use optional i18n_key for message, but will default to e.message if i18n_key not found.
-  
-  # support 404 error for ActiveRecord::RecordNotFound if using ActiveRecord.
-  begin
-    require 'active_record/errors'
-    self.rj_action_rescue_handlers << {exception_classes: [ActiveRecord::RecordNotFound], status: :not_found, i18n_key: 'api.not_found'.freeze}
-  rescue LoadError, NameError
-  end
-  
-  # support 403 error for CanCan::AccessDenied if using CanCan
-  begin
-    require 'cancan/exceptions'
-    self.rj_action_rescue_handlers << {exception_classes: [CanCan::AccessDenied], status: :forbidden, i18n_key: 'api.not_found'.freeze}
-  rescue LoadError, NameError
-  end
-  
-  # support 500 error for everything else that is a self.rj_action_rescue_class (in action)
-  self.rj_action_rescue_handlers << {status: :internal_server_error, i18n_key: 'api.internal_server_error'.freeze}
-  
 end
 ```
+
+You may want to put any configuration in an initializer like `config/initializers/restful_json.rb`.
 
 ### Controller Configuration
 
+The default controller config may be fine, but you can customize it.
+
 In the controller, you can set a variety of class attributes with `self.something = ...` in the body of your controller.
 
-All of the app-level configuration parameters are configurable at the controller level:
+All of the app-level configuration parameters are configurable in the controller class body:
 
 ```ruby
-  self.can_filter_by_default_using = [:eq]
-  self.debug = false
-  self.filter_split = ','.freeze
-  self.formats = :json, :html
-  self.number_of_records_in_a_page = 15
-  self.predicate_prefix = '!'.freeze
-  self.return_resource = false
-  self.render_enabled = true
-  self.use_permitters = true
-  self.avoid_respond_with = true
-  self.return_error_data = true
-  self.rj_action_rescue_class = StandardError
-  self.action_to_permitter = {create: nil, update: nil}
+  # the methods that call authorize! action_sym, @model_class, if responds to authorize!
   self.actions_that_authorize = [:create, :update]
-  self.allow_action_specific_params_methods = true
-  self.actions_that_permit = [:create, :update]
+
+  # default for :using in can_filter_by
+  self.can_filter_by_default_using = [:eq]
   
-  require 'active_record/errors'
-  require 'cancan/exceptions'
-  self.rj_action_rescue_handlers [
-    {exception_classes: [ActiveRecord::RecordNotFound], status: :not_found, i18n_key: 'api.not_found'.freeze},
-    {exception_classes: [CanCan::AccessDenied], status: :forbidden, i18n_key: 'api.not_found'.freeze},
-    {status: :internal_server_error, i18n_key: 'api.internal_server_error'.freeze}
-  ]
+  # delimiter for values in request parameter values
+  self.filter_split = ','  
+  
+  # delimiter for ARel predicate in the request parameter name
+  self.predicate_prefix = '.'
+  
+  # default number of records to return if using the page request function
+  self.number_of_records_in_a_page = 15
 ```
 
-In addition there are some that are controller-only...
-
-If you don't use the standard controller naming convention, you can define this in the controller:
+Controller-only config options:
 
 ```ruby
 self.model_class = YourModel
-```
-
-If it doesn't handle the other forms well, you can explicitly define the singular/plural names:
-
-```ruby
 self.model_singular_name = 'your_model'
 self.model_plural_name = 'your_models'
-```
-
-These are used for *_url method definitions, to set instance variables like `@foobar` and `@foobars` dynamically, etc.
-
-Other class attributes are available for setting/overriding, but they are all set by the other class methods defined in the next section.
-
-#### Routing
-
-You can just add normal Rails RESTful routes in `config/routes.rb`, e.g. for the Foobar model:
-
-```ruby
-MyAppName::Application.routes.draw do
-  resources :foobars
-end
-```
-
-Supports static, nested, etc. routes also, e.g.:
-
-```ruby
-MyAppName::Application.routes.draw do
-  namespace :my_service_controller_module do
-    resources :foobars
-  end
-end
-```
-
-Can pass in params from the path for use in filters, etc. as if they were request parameters:
-
-```ruby
-MyAppName::Application.routes.draw do
-  namespace :my_service_controller_module do
-    match 'bar/:bar_id/foobars(.:format)' => 'foobars#index'
-  end
-end    
 ```
 
 #### Default Filtering by Attribute(s)
@@ -421,7 +161,7 @@ end
 First, declare in the controller:
 
 ```ruby
-can_filter_by :foo_id
+can_filter_by :foo_id # allows http://localhost:3000/foobars?foo_id=1
 ```
 
 If `RestfulJson.can_filter_by_default_using = [:eq]` as it is by default, then you can now get Foobars with a foo_id of '1':
@@ -659,437 +399,43 @@ MyAppName::Application.routes.draw do
 end
 ```
 
-##### Custom Serializers
-
-If using ActiveModel::Serializers, the default is to use the default serializer used by ActiveModel::Serializers, e.g. `(singular model name)Serializer`. If you need to customize the serializer, there are a few ways to do it.
-
-The simplest way to customize it is by specifying `serialize_action`, e.g.
-
-```ruby
-serialize_action :index, with: ListFoobarSerializer
-```
-
-The built-in actions that support custom serializers (you can add more) are: index, show, new, create, update, destroy, and any action you automatically have created via using the restful_json `query_for` method.
-
-It will use the `serializer` option for single result actions like show, new, create, update, destroy, and the `each_serializer` option with index and custom actions. Or, you can specify `for:` with `:array`, e.g. the following would override the array serializer and the each serializer for the index and some_custom_action actions:
-
-```ruby
-serialize_action :index, :some_custom_action, with: FooSerializer # implies each item in array will be serialized with this
-serialize_action :index, :some_custom_action, with: FooArraySerializer, for: :array
-```
-
-If you need more controller over the serializer used, you may override `additional_render_or_respond_success_options`:
-
-```ruby
-  # Returns additional rendering options. By default will massage self.action_to_render_options a little and return that,
-  # e.g. if you had used serialize_action to specify an array and each serializer for a specific action, if it is that action,
-  # it may return something like: {serializer: MyFooArraySerializer, each_serializer: MyFooSerializer}.
-  def additional_render_or_respond_success_options
-    if params['minimize']
-      result = {}
-      result[(single_value_response? ? :serializer : :each_serializer)] = MinimalBarfooSerializer
-      result[:serializer] = MinimalBarfooArraySerializer if !single_value_response?
-    else
-      result = default_additional_render_or_respond_success_options
-    end
-    result
-  end
-```
-
-##### Custom Permitters
-
-If using Permitters, you can use something other than the `(singular model name)Permitter` via `permit_action`:
-
-```ruby
-permit_action :index, with: ListFoobarPermitter
-```
-
-The built-in actions that support custom permitters (you can add more) are: index, show, new, create, update, destroy, and any action you automatically have created via using the restful_json `query_for` method.
-
-The default configuration specifies permitter as `nil` which indicates the default of `(singular model name)Permitter`:
-
-```ruby
-self.action_to_permitter = {create: nil, update: nil}
-```
-
-By using that app or controller config parameter, you can define default permitter classes for other actions that restful_json manages if you wish.
-
-##### Strong Parameters Params Methods
-
-Strong Parameters documentation suggests encapsulating permitting into a private method in the controller. We make this suggestion a convention to make development easier.
-
-By convention, a restful_json controller can call the `(singular model name)_params` method for create and update actions. This is configured via:
-
-```ruby
-self.actions_supporting_params_methods = [:create, :update]
-```
-e.g., starting in restful_json v4.4, in FoobarsController after any other specifics, it would look for a foobar_params method in your controller, and if it is there, it will call it, expecting it to permit params. But, if you change the value of `self.actions_supporting_params_methods` in restful_json config or controller config, it will use whatever you specified.
-
-Also, if you have a method like `create_foobar_params`, and it will try to call that on create (and similar for `update_foobar_params` and update).
-
 ##### Avoid n+1 Queries
 
-Call `include(...) to eager load and avoid n+1 queries:
-
 ```ruby
-class PostsController < ApplicationController
-   include RestfulJson::DefaultController
-
-   # eager loads all the posts and the associated category and comments for each post (note: have to define .includes(...) in query_for query)
-   including :category, :comments
-end
+# load all the posts and the associated category and comments for each post (note: have to define .includes(...) in query_for query)
+including :category, :comments
 ```
 
 or
 
 ```ruby
-class PostsController < ApplicationController
-   include RestfulJson::DefaultController
-
-   # eager load all of the associated posts, the associated posts’ tags and comments, and every comment’s guest association
-   including posts: [{comments: :guest}, :tags]
-end
+# load all of the associated posts, the associated posts’ tags and comments, and every comment’s guest association
+including posts: [{comments: :guest}, :tags]
 ```
 
-Be careful- Rails doesn't raise an error if it includes associations that don't exist (at least in Rails 3.1-4.x).
-
-A relevant config option is:
-
-```ruby
-self.apply_includes_to_custom_queries = true
-```
-
-If that is instead set to true as it is by default, it will also try to call `.includes` on the relation returned from your custom `query_for` query, e.g. if you called index and in the controller defined `including ...` or `includes_for :index, are: ...`, it will execute your custom query and then take the resuling relation and call `.includes(...)` on it. If `self.apply_includes_to_custom_queries = false`, it won't do that.
-
-If you have action-specific ActiveModel::Serializers or JBuilder views that require different includes (such as an index action that only includes abbreviated info and a show action that includes more associations), you can handle that with `includes_for`. Some examples:
+and action-specific:
 
 ```ruby
 includes_for :create, are: [:category, :comments]
-includes_for :index, :a_custom_action, are: [posts: [{comments: :guest}, :tags]]
+includes_for :index, :something_alias_methoded_from_index, are: [posts: [{comments: :guest}, :tags]]
 ```
-
-### With Rails-api
-
-If you want to try out [rails-api][rails-api]:
-
-```ruby
-gem 'rails-api', '~> 0.1.0'
-```
-
-In `app/controllers/my_service_controller.rb`:
-
-```ruby
-module MyServiceController
-  extend ActiveSupport::Concern
-  
-  included do
-    # Rails-api lets you choose features. You might not need all of these, or may need others.
-    include AbstractController::Translation
-    include ActionController::HttpAuthentication::Basic::ControllerMethods
-    include AbstractController::Layouts
-    include ActionController::MimeResponds
-    include ActionController::Cookies
-    include ActionController::ParamsWrapper
-
-    # use Permitters and AMS
-    include RestfulJson::DefaultController
-
-    # or comment that last line and uncomment whatever you want to use
-    #include ActionController::Serialization # AMS
-    #include ActionController::StrongParameters
-    #include ActionController::Permittance # Permitters
-    #include RestfulJson::Controller
-  end      
-end
-
-class FoobarsController < ActionController::API
-  include MyServiceController  
-end
-
-class BarfoosController < ActionController::API
-  include MyServiceController  
-end
-```
-
-Note that in `/config/initializers/wrap_parameters.rb` you might need to add `include ActionController::ParamsWrapper` prior to the `wrap_parameters` call. For example, for unwrapped JSON, it would look like:
-
-```ruby
-ActiveSupport.on_load(:action_controller) do
-  # without include of ParamsWrapper, will get undefined method `wrap_parameters' for ActionController::API:Class (NoMethodError)
-  include ActionController::ParamsWrapper
-  # in this case it's expecting unwrapped params, but we could maybe use wrap_parameters format: [:json]
-  wrap_parameters format: []
-end
-
-# Disable root element in JSON by default.
-ActiveSupport.on_load(:active_record) do
-  self.include_root_in_json = false
-end
-```
-
-### Refactoring and Customing the Default Behavior
-
-##### Parent/Ancestor Class Definition Not Supported
-
-Don't subclass and include in the parent, that puts the class attributes into the parent which means they would be shared by the children and bad things can happen.
-
-Don't do this:
-
-```ruby
-class ServiceController < ApplicationController
-  include ActionController::Serialization
-  include ActionController::StrongParameters
-  include ActionController::Permittance
-  include RestfulJson::Controller
-end
-
-class FoobarsController < ServiceController
-end
-
-class BarfoosController < ServiceController
-end
-```
-
-And don't do this:
-
-```ruby
-class FoobarsController < ApplicationController
-  include RestfulJson::DefaultController
-end
-
-class FoobarsController < ServiceController
-end
-
-class BarfoosController < ServiceController
-end
-```
-
-It may appear to work when using the same controller or even on each new controller load, but when you make requests to BarfoosController, make a request to FoobarsController, and then make a request back to the BarfoosController, it may fail in very strange ways, such as missing column(s) from SQL results (because it isn't using the correct model).
-
-##### Customizing Behavior via Patch
-
-In `config/initializers/restful_json.rb` you can monkey patch the RestfulJson::Controller module. The DefaultController includes that, so it will get your changes also:
-
-```ruby
-module RestfulJson
-  module Controller
-    
-    # class methods that should be implemented or overriden go in ClassMethods
-
-    module ClassMethods
-      def hello(name)
-        class_attribute :name, instance_writer: true
-        self.name = name        
-      end
-    end
-
-    # instance methods that should be implemented or overriden.
-
-    def index
-      render :json => {:hello => self.name}
-    end
-
-  end
-end
-```
-
-Now in your controller, if you:
-
-```ruby
-class FoobarsController < ApplicationController
-  include RestfulJson::DefaultController
-  hello 'world'
-end
-```
-
-RestfulJson::DefaultController includes RestfulJson::Controller, which you patched, so when you call:
-
-```
-http://localhost:3000/foobars
-```
-
-You would get the response:
-
-```
-{'hello': 'world'}
-```
-
-For more realistic use that takes advantage of existing configuration in the controller, take a look at the controller in `lib/restful_json/controller.rb` to see how the actions are defined, and just copy/paste into your controller or module, etc. and modify as needed.
-
-### Error Handling
-
-#### Validation Errors
-
-Validation errors (for validations you put in your models) are handled in the controller and returned as an error response in JSON.
-
-#### RecordNotFound and Other Non-validation Errors
 
 ##### Rails 4 Default Rack Error Handling
 
 Rails 4 has basic error handling for non-HTML formats defined in the [public_exceptions][public_exceptions] and [show_exceptions][show_exceptions] Rack middleware.
 
-To use the Rails 4 default Rack error handling, you need to remove all of the default configuration for rescue handlers in restful_json via:
+If you want to customize Rails 4's Rack exception handling, search the web for customizing `config.exceptions_app`, although the default behavior should work for most.
 
-```ruby
-  RestfulJson.configure do
-    self.rj_action_rescue_handlers = []
-  end
-```
 
-If you don't want to handle it the way Rack does by default, read on...
+### Refactoring
 
-#### Rails 3.2.x+ Rack Exceptions App Customization
+If you want to refactor, do it via modules/concerns, not subclassing.
 
-First, ensure that you've unset restful_json's rescue_handlers to use the Rails 3.2+ Rack error handling:
-
-```ruby
-  RestfulJson.configure do
-    self.rj_action_rescue_handlers = []
-  end
-```
-
-Rails 3.2.x has support for `config.exceptions_app` which can be defined as the following in your Rails app configuration to simulate Rails 4 exception handling, or if you want to customize Rails 4's Rack exception handling:
-
-```ruby
-config.exceptions_app = lambda do |env|
-  exception = env["action_dispatch.exception"]
-  status = env["PATH_INFO"][1..-1]
-  request = ActionDispatch::Request.new(env)
-  content_type = request.formats.first
-  body = { :status => status, :error => exception.message }
-  format = content_type && "to_#{content_type.to_sym}"
-  if format && body.respond_to?(format)
-    formatted_body = body.public_send(format)
-    [status, {'Content-Type' => "#{content_type}; charset=#{ActionDispatch::Response.default_charset}",
-            'Content-Length' => body.bytesize.to_s}, [formatted_body]]
-  else
-    found = false
-    path = "#{public_path}/#{status}.#{I18n.locale}.html" if I18n.locale
-    path = "#{public_path}/#{status}.html" unless path && (found = File.exist?(path))
-
-    if found || File.exist?(path)
-      [status, {'Content-Type' => "text/html; charset=#{ActionDispatch::Response.default_charset}",
-              'Content-Length' => body.bytesize.to_s}, [File.read(path)]]
-    else
-      [404, { "X-Cascade" => "pass" }, []]
-    end
-  end
-end
-```
-
-That is just a collapsed version of the behavior of [public_exceptions][public_exceptions] as of April 2013, pre-Rails 4.0.0, so please look at the latest version and adjust accordingly. Use at your own risk, obviously.
-
-Unfortunately, this doesn't work for Rails 3.1.x. However, in many scenarios there is the chance at a rare situation when the proper format is not returned to the client, even if everything is controlled as much as possible on the server. So, the client really needs to be able to handle such a case of unexpected format with a generic error.
-
-But, if you can make Rack respond a little better for some errors, that's great.
-
-#### The Default Way Non-validation Errors Are Handled
-
-The default configuration will use a configuration to use rescue_handlers which is just a way to configure how the controller's action methods rescue non-validation errors to render a response.
-
-The standard configuration will rescue StandardError in each action method and will render as 404 for ActiveRecord::RecordNotFound or 500 for all other StandardError (and ancestors, like a normal rescue).
-
-There are a few options to customize the rescue and error rendering behavior.
-
-The `rj_action_rescue_class` config option specifies what to rescue. Set to StandardError to behave like a normal rescue. Set to nil to just reraise everything rescued (to disable handling).
-
-The `rj_action_rescue_handlers` config option is like a minimalist set of rescue blocks that apply to every action method. For example, the following would effectively `rescue => e` (rescuing `StandardError`) and then for `ActiveRecord::RecordNotFound`, it would uses response status `:not_found` (HTTP 404). Otherwise it uses status `:internal_server_error` (HTTP 500). In both cases the error message is `e.message`:
-
-```ruby
-RestfulJson.configure do
-  self.rj_action_rescue_class = StandardError
-  self.rj_action_rescue_handlers = [
-    {exception_classes: [ActiveRecord::RecordNotFound], status: :not_found},
-    {status: :internal_server_error}
-  ]
-end
-```
-
-In a slightly more complicated case, this configuration would catch all exceptions raised with each actinon method that had `ActiveRecord::RecordNotFound` as an ancestor and use the error message defined by i18n key 'api.not_found'. All other exceptions would use status `:internal_server_error` (because it is a default, and doesn't have to be specified) but would use the error message defined by i18n key 'api.internal_server_error':
-
-```ruby
-RestfulJson.configure do
-  self.rj_action_rescue_class = Exception
-  self.rj_action_rescue_handlers = [
-    {exception_ancestor_classes: [ActiveRecord::RecordNotFound], status: :not_found, i18n_key: 'api.not_found'.freeze},
-    {i18n_key: 'api.internal_server_error'.freeze}
-  ]
-end
-```
-
-The `return_error_data` restful_json config option (true by default) will not only return a response with `status` and `error` but also an `error_data` containing the `e.class.name`, `e.message`, and cleaned `e.backtrace`.
-
-You can turn off backtrace cleaning in `error_data` by setting `clean_backtrace` per handler to false, e.g.:
-
-```ruby
-RestfulJson.configure do
-  self.rj_action_rescue_class = Exception
-  self.rj_action_rescue_handlers = [
-    {exception_ancestor_classes: [ActiveRecord::RecordNotFound], status: :not_found, i18n_key: 'api.not_found'.freeze},
-    {i18n_key: 'api.internal_server_error'.freeze, clean_backtrace: false}
-  ]
-end
-```
+The reason for this is that including `RestfulJson::Controller` defines various class attributes. These class attributes are shared by all descendants unless they are redefined. Ignoring this can lead to config arrays and hashes being shared between classes, and trying to work around this is nasty. Lions and Tigers and Deep Cloning! Oh My! No, we don't do that.
 
 ### Release Notes
 
 See the [changelog][changelog] for basically what happened when, and git log for everything else.
-
-### Upgrading
-
-To avoid an internal conflict with Rails' `rj_action_rescue_from` using the same variable, if you had set `rj_action_rescue_handlers` in your config or controller for restful_json use, please change the variable name to `rj_action_rescue_handlers`. Also similarly change `rj_action_rescue_class` to `rj_action_rescue_class`.
-
-The class method:
-
-```ruby
-acts_as_restful_json
-```
-
-Which depended on [Permitters][permitters] for Rails 3.x can be replaced with:
-
-```ruby
-include RestfulJson::DefaultController
-```
-
-or if using Rails 4.x, you should consider including the modules separately so that you don't include the `ActionController::StrongParameters` module twice in a controller, for example.
-
-Also, in past versions, everything was done to the models whether you wanted it done or not. Have been trying to transition away from forcing anything, so starting with v3.3, ensure the following is done.
-
-If you are using Rails 3.2 and want to use Permitters or Strong Parameters in all models:
-
-Make sure you include Strong Parameters:
-
-```ruby
-gem "strong_parameters"
-```
-
-Include this in `config/environment.rb`:
-
-```ruby
-ActiveRecord::Base.send(:include, ActiveModel::ForbiddenAttributesProtection)
-```
-
-If you want to use Permitters in all models, you need CanCan:
-
-Make sure you include CanCan:
-
-```ruby
-gem "cancan"
-```
-
-Include this in `config/environment.rb`
-
-```ruby
-ActiveRecord::Base.send(:include, CanCan::ModelAdditions)
-```
-
-Configuration, suggestions, and what to use and how may continue to change, but read this doc fully and hopefully it is correct!
-
-### Rails Version-specific Eccentricities
-
-Strong Parameters and JBuilder are included in Rails 4. You can use Permitters and ActiveModel::Serializers but for Permitters, you shouldn't define `gem 'strong_parameters'`.
-
-If you are using Rails 3.1.x, note that respond_with returns HTTP 200 instead of 204 for update and destroy, unless return_resource is true.
 
 ### Troubleshooting
 
@@ -1135,17 +481,9 @@ Copyright (c) 2013 FineLine Prototyping, Inc., released under the [MIT license][
 [badgefury]: http://badge.fury.io/rb/restful_json
 [employee-training-tracker]: https://github.com/FineLinePrototyping/employee-training-tracker
 [built_with_angularjs]: http://builtwith.angularjs.org/
-[permitters]: https://github.com/permitters/permitters
-[jbuilder]: https://github.com/rails/jbuilder
 [cancan]: https://github.com/ryanb/cancan
-[strong_parameters]: https://github.com/rails/strong_parameters
-[active_model_serializers]: https://github.com/josevalim/active_model_serializers
-[authlogic]: https://github.com/binarylogic/authlogic
-[devise]: https://github.com/plataformatec/devise
 [arel]: https://github.com/rails/arel
 [ar]: http://api.rubyonrails.org/classes/ActiveRecord/Relation.html
-[rails-api]: https://github.com/rails-api/rails-api
-[railscast320]: http://railscasts.com/episodes/320-jbuilder
 [public_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/public_exceptions.rb
 [show_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/show_exceptions.rb
 [changelog]: https://github.com/rubyservices/restful_json/blob/master/CHANGELOG.md

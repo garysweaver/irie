@@ -1,0 +1,1 @@
+json.check "simple_barfoos-show: #{@simple_barfoo.favorite_food}"

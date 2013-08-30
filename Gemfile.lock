@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    restful_json (4.5.0)
+    restful_json (5.0.0)
       activesupport (>= 3.1.0)
 
 GEM
@@ -17,8 +17,6 @@ GEM
       rack-cache (~> 1.2)
       rack-test (~> 0.6.1)
       sprockets (~> 2.2.1)
-    active_model_serializers (0.7.0)
-      activemodel (>= 3.0)
     activemodel (3.2.13)
       activesupport (= 3.2.13)
       builder (~> 3.0.0)
@@ -34,10 +32,12 @@ GEM
     erubis (2.7.0)
     hike (1.2.3)
     i18n (0.6.1)
+    jbuilder (1.5.1)
+      activesupport (>= 3.0.0)
+      multi_json (>= 1.2.0)
     journey (1.0.4)
     json (1.8.0)
     multi_json (1.7.2)
-    permitters (0.0.1)
     rack (1.4.5)
     rack-cache (1.2)
       rack (>= 0.4)
@@ -87,11 +87,10 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  active_model_serializers (~> 0.7.0)
   appraisal (~> 0.5.2)
   bundler (>= 1.2.2)
   cancan (~> 1.6.10)
-  permitters (~> 0.0.1)
+  jbuilder
   restful_json!
   rspec (~> 2.13.0)
   rspec-rails (~> 2.13.0)

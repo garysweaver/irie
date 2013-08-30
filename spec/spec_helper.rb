@@ -24,8 +24,6 @@ require 'rspec/rails'
 require 'json_spec'
 require 'restful_json'
 
-RestfulJson.debug = true
-
 Rails.backtrace_cleaner.remove_silencers!
 
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each { |f| require f }

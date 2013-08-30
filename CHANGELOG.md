@@ -1,3 +1,12 @@
+## restful_json 5.0.0 ##
+
+* Assumes Rails 4+ and will look for (model_name)_params or (action)_(model_name)_params for params permittance
+* Removed support for permitters
+* Removed support for active_model_serializers
+* Removed error handling to use Rails
+* Removed rendering code to just return value
+* Cleaned up excessive config methods and some other cruft
+
 ## restful_json 4.5.1 ##
 
 * Changed `render_error` method name to `render_rj_action_error` to avoid Rails conflict.

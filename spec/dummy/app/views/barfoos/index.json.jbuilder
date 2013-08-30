@@ -1,0 +1,1 @@
+json.check "barfoos-index: size=#{@barfoos.length}, ids=#{@barfoos.collect(&:id).join(',')}"

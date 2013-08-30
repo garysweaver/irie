@@ -1,0 +1,1 @@
+json.check "foobars-edit: #{@foobar.id}"

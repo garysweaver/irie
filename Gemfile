@@ -7,9 +7,8 @@ gem 'rspec-rails', '~> 2.13.0'
 gem 'cancan', '~> 1.6.10'
 gem 'appraisal', '~> 0.5.2'
 gem 'bundler', '>= 1.2.2'
-gem 'active_model_serializers', '~> 0.7.0'
-gem 'permitters', '~> 0.0.1'
 gem 'simplecov', '~> 0.7.1'
+gem 'jbuilder'
 
 #gem 'activerecord-jdbc-adapter', platform: :jruby
 #gem 'activerecord-jdbcsqlite3-adapter', platform: :jruby

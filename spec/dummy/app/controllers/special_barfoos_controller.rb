@@ -1,5 +1,6 @@
 class SpecialBarfoosController < ApplicationController
   include RestfulJson::Controller
+  respond_to :json
   
   # make it use Barfoo class under the hood
   self.model_class = Barfoo

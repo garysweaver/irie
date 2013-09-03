@@ -45,8 +45,8 @@ Then, after implementing your json views, you could call these:
 
 ```
 https://example.org/foobars?name=apple # gets Foo with name 'apple'
-https://example.org/foobars?bar_date!gt=2012-08-08 # gets Foos with bar_date > 2012-08-08
-https://example.org/foobars?bar_date!gt=2012-08-08&count= # count of Foos with bar_date > 2012-08-08
+https://example.org/foobars?bar_date.gt=2012-08-08 # gets Foos with bar_date > 2012-08-08
+https://example.org/foobars?bar_date.gt=2012-08-08&count= # count of Foos with bar_date > 2012-08-08
 https://example.org/foobars?and_one_more=123&uniq= # distinct values of Foos where my_assoc.my_assocs_assoc.my_assocs_assocs_assoc.an_attribute_on_my_assocs_assocs_assoc is 123
 https://example.org/foobars?page_count= # Foo.all.count / RestfulJson.number_of_records_in_a_page
 https://example.org/foobars?page=1 # Foo.all.take(15)
@@ -73,20 +73,7 @@ bundle install
 
 #### Authorization
 
-Optionally, your controller has an `authorize!(action_sym, model_class)` method like [CanCan][cancan], it will use it. If you'd like to use it, then:
-
-```ruby
-gem 'cancan' # and use ~> and set to latest compatible version
-```
-
-You can change this in the configuration or on the controller:
-```ruby
-self.actions_that_authorize = [:create, :update]
-```
-
-So, for example, when a create is attempted, it will first call `authorize!(:create, Foobar)`.
-
-See the [CanCan][cancan] documentation for how to include it in your application.
+Putting `include RestfulJson::Authorizing`, your controller will automatically call `authorize!` with the action and the controller's model class, so you can use [CanCan][cancan] or a similar authorizer.
 
 ### Application Configuration
 
@@ -103,9 +90,6 @@ or in bulk, like:
 ```ruby
 RestfulJson.configure do
   
-  # the methods that call authorize! action_sym, @model_class, if responds to authorize!
-  self.actions_that_authorize = [:create, :update]
-
   # default for :using in can_filter_by
   self.can_filter_by_default_using = [:eq]
   
@@ -132,9 +116,6 @@ In the controller, you can set a variety of class attributes with `self.somethin
 All of the app-level configuration parameters are configurable in the controller class body:
 
 ```ruby
-  # the methods that call authorize! action_sym, @model_class, if responds to authorize!
-  self.actions_that_authorize = [:create, :update]
-
   # default for :using in can_filter_by
   self.can_filter_by_default_using = [:eq]
   
@@ -229,13 +210,13 @@ can_filter_by :seen_on, using: [:gteq, :eq_any]
 Get Foobars with seen_on of 2012-08-08 or later using the [ARel][arel] gteq predicate splitting the request param on `predicate_prefix` (configurable), you'd use:
 
 ```
-http://localhost:3000/foobars?seen_on!gteq=2012-08-08
+http://localhost:3000/foobars?seen_on.gteq=2012-08-08
 ```
 
 Multiple values are separated by `filter_split` (configurable):
 
 ```
-http://localhost:3000/foobars?seen_on!eq_any=2012-08-08,2012-09-09
+http://localhost:3000/foobars?seen_on.eq_any=2012-08-08,2012-09-09
 ```
 
 #### Supported Functions
@@ -420,18 +401,97 @@ includes_for :create, are: [:category, :comments]
 includes_for :index, :something_alias_methoded_from_index, are: [posts: [{comments: :guest}, :tags]]
 ```
 
-##### Rails 4 Default Rack Error Handling
+##### Customizing Parameter Permittance
 
-Rails 4 has basic error handling for non-HTML formats defined in the [public_exceptions][public_exceptions] and [show_exceptions][show_exceptions] Rack middleware.
+Each action except `new` defined by `RestfulJson::Controller` calls a corresponding `params_for_*` method. For `create` and `update` this calls `(model_name)_params` method expecting you to have defined that method to call `permit`, e.g.
+
+```ruby
+def foobar_params
+  params.require(:foobar).permit(:name)
+end
+```
+
+But, if you need action-specific permittance, just override the corresponding `params_for_*` method, e.g. if you'd like to override the params permittance for both create and update actions, you can implement the `params_for_create` and `params_for_update` methods, and you won't even need to implement a `(model_name)_params`, since those two method are what call that:
+
+```ruby
+def params_for_create
+  params.require(:foobar).permit(:name, :color)
+end
+
+def params_for_update
+  params.require(:foobar).permit(:color)
+end
+```
+
+##### Customizing Rendering
+
+Similarly, all action methods defined by `RestfulJson::Controller` have a corresponding `render_*` method.
+
+If you'd like to override create and update with a custom status and location while using Rails implicit rendering for (unraised) validation errors, you might do something like:
+
+```ruby
+def render_create(value)
+  value.respond_to?(:errors) && value.errors.size > 0 ? render_validation_errors(value) : respond_with(value, status: :ok, location: @value)
+end
+
+def render_update(value)
+  value.respond_to?(:errors) && value.errors.size > 0 ? render_validation_errors(value) : render(status: :ok)
+end
+```
+
+##### Customizing Validation Error Rendering
+
+The default `render_create(value)` and `render_update(value)` methods in the `RestfulJson::Controller` call the default `render_validation_errors(value)` method that either use implicit rendering for html format or for other formats will render the `errors` object in the specified format using an HTTP 422 status code. This is easier than having to deal with error data in your view, but you could always handle the errors in the view yourself by overriding that:
+
+```ruby
+def render_validation_errors(value)
+  value
+end
+```
+
+##### Rails 4 Default Rack Exception Handling
+
+Rails 4 has basic exception handling in the [public_exceptions][public_exceptions] and [show_exceptions][show_exceptions] Rack middleware.
 
 If you want to customize Rails 4's Rack exception handling, search the web for customizing `config.exceptions_app`, although the default behavior should work for most.
 
-
 ### Refactoring
 
-If you want to refactor, do it via modules/concerns, not subclassing.
+If you want to refactor, do it via modules/concerns, not subclassing. `include RestfulJson::Controller` defines various class attributes. These class attributes are shared by all descendants unless they are redefined. Ignoring this can lead to one controller overriding/altering the config of another.
 
-The reason for this is that including `RestfulJson::Controller` defines various class attributes. These class attributes are shared by all descendants unless they are redefined. Ignoring this can lead to config arrays and hashes being shared between classes, and trying to work around this is nasty. Lions and Tigers and Deep Cloning! Oh My! No, we don't do that.
+It's helpful to have a single module you maintain that contains all of the other modules to include in your service controllers, e.g. in `config/initializers/my_service.rb`, you might define this to have RestfulJson and its `authorize!` support:
+
+```ruby
+module My
+  module Service
+    extend ::ActiveSupport::Concern
+    included do
+      include ::RestfulJson::Controller
+      include ::RestfulJson::Authorizing
+    end
+
+    module ClassMethods
+      def some_class_method
+        # ...
+      end
+    end
+
+    def some_instance_method
+      # ...
+    end
+  end
+end
+```
+
+And in `app/controllers/foobars_controller.rb`, you just need:
+
+```ruby
+class FoobarsController
+  include My::Service
+
+  # ...
+end
+```
 
 ### Release Notes
 

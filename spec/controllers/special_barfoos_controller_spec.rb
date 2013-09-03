@@ -29,14 +29,12 @@ describe SpecialBarfoosController do
       favorite_food = "test"
       put :update, Foobar.primary_key => b.id, favorite_food: favorite_food, format: :json
       # this really should be 204. :( not our problem
-      response.status.should eq(200), "update failed (got #{response.status}): #{response.body}"
+      response.status.should eq(204), "update failed (got #{response.status}): #{response.body}"
       assert_match '', @response.body
       Barfoo.where(favorite_food: favorite_food).should_not be_empty, "should have updated param"
     end
 
-    # AMS actually doesn't support Rails 3.1, but this is the only thing failing so far. It is either trying to use a serializer or not
-    # wrapping json when there is a validation error.
-    it 'responds if doesn\'t validate', :if => !(Rails::VERSION::MAJOR == 3 && Rails::VERSION::MINOR == 1) do
+    it 'responds if doesn\'t validate' do
       Barfoo.delete_all
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
@@ -55,7 +53,7 @@ describe SpecialBarfoosController do
       favorite_drink = SecureRandom.urlsafe_base64
       put :update, Barfoo.primary_key => b.id, favorite_drink: favorite_drink, format: :json
       # this really should be 204. :( not our problem
-      response.status.should eq(200), "update failed (got #{response.status}): #{response.body}"
+      response.status.should eq(204), "update failed (got #{response.status}): #{response.body}"
       assert_match '', @response.body
       Barfoo.where(favorite_drink: favorite_drink).should be_empty, "should not have updated with non-whitelisted param"
     end

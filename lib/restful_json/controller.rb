@@ -3,7 +3,6 @@ module RestfulJson
     extend ::ActiveSupport::Concern
 
     NILS = ['NULL'.freeze, 'null'.freeze, 'nil'.freeze]
-    SINGLE_VALUE_ACTIONS = [:create, :update, :destroy, :show, :new, :edit]
 
     included do
       # create class attributes for each controller option and set the value to the value in the app configuration
@@ -220,36 +219,9 @@ module RestfulJson
       value
     end
 
-    def allowed_params
-      action_sym = params[:action].to_sym
-      singular = single_value_response?
-      action_specific_params_method = singular ? (@action_to_singular_action_model_params_method[action_sym] ||= "#{action_sym}_#{@model_singular_name}_params".to_sym) : (@action_to_plural_action_model_params_method[action_sym] ||= "#{action_sym}_#{@model_plural_name}_params".to_sym)
-      
-      if self.respond_to?(:authorize!, true) && self.actions_that_authorize.include?(action_sym)
-        __send__(:authorize!, action_sym, @model_class)
-      end
-
-      if self.respond_to?(action_specific_params_method, true)
-        return __send__(action_specific_params_method)
-      elsif self.actions_that_permit.include?(action_sym)
-        if self.respond_to?(@model_singular_name_params_sym, true)
-          return __send__(@model_singular_name_params_sym)
-        else
-          raise "#{self.class.name} needs a method (can be private): #{action_specific_params_method} or #{@model_singular_name_params_sym}"
-        end
-      end
-
-      params
-    end
-
-    def single_value_response?
-      SINGLE_VALUE_ACTIONS.include?(params[:action].to_sym)
-    end
-
     # The controller's index (list) method to list resources.
     def index
-      # Note: this method be alias_method'd by query_for, so it is more than just for index.
-      aparams = allowed_params
+      aparams = params_for_index
       t = @model_class.arel_table
       value = @model_class.all
       custom_query = self.action_to_query[params[:action].to_sym]
@@ -350,50 +322,115 @@ module RestfulJson
         value = value.to_a
       end
 
-      instance_variable_set(@model_at_plural_name_sym, value.to_a)
+      render_index instance_variable_set(@model_at_plural_name_sym, value.to_a)
+    end
+
+    def params_for_index
+      params
+    end
+
+    def render_index(value)
+      value
     end
 
     # The controller's show (get) method to return a resource.
     def show
-      aparams = allowed_params
+      aparams = params_for_show
       value = find_model_instance!(aparams)
-      instance_variable_set(@model_at_singular_name_sym, value)
+      render_show instance_variable_set(@model_at_singular_name_sym, value)
+    end
+
+    def params_for_show
+      params
+    end
+
+    def render_show(value)
+      value
     end
 
     # The controller's new method (e.g. used for new record in html format).
     def new
-      allowed_params
-      instance_variable_set(@model_at_singular_name_sym, @model_class.new)
+      render_new instance_variable_set(@model_at_singular_name_sym, @model_class.new)
+    end
+
+    def render_new(value)
+      value
     end
 
     # The controller's edit method (e.g. used for edit record in html format).
     def edit
-      aparams = allowed_params
+      aparams = params_for_edit
       value = find_model_instance!(aparams)
-      instance_variable_set(@model_at_singular_name_sym, value)
+      render_edit instance_variable_set(@model_at_singular_name_sym, value)
+    end
+
+    def params_for_edit
+      params
+    end
+
+    def render_edit(value)
+      value
     end
 
     # The controller's create (post) method to create a resource.
     def create
-      aparams = allowed_params
-      value = @model_class.new(aparams).save
-      instance_variable_set(@model_at_singular_name_sym, value)
+      aparams = params_for_create
+      value = @model_class.new(aparams)
+      value.save
+      render_create instance_variable_set(@model_at_singular_name_sym, value)
+    end
+
+    def params_for_create
+      __send__(@model_singular_name_params_sym)
+    end
+
+    def render_create(value)
+      value.respond_to?(:errors) && value.errors.size > 0 ? render_validation_errors(value) : respond_with(value, status: :created, location: @value)
     end
 
     # The controller's update (put) method to update a resource.
     def update
-      aparams = allowed_params
+      aparams = params_for_update
       value = find_model_instance!(aparams)
       value.update_attributes(aparams) unless value.nil?
-      instance_variable_set(@model_at_singular_name_sym, value)
+      render_update instance_variable_set(@model_at_singular_name_sym, value)
+    end
+
+    def params_for_update
+      __send__(@model_singular_name_params_sym)
+    end
+
+    def render_update(value)
+      value.respond_to?(:errors) && value.errors.size > 0 ? render_validation_errors(value) : render(status: :no_content)
     end
 
     # The controller's destroy (delete) method to destroy a resource.
+    # RESTful delete is idempotent, i.e. does not fail if the record does not exist.
     def destroy
-      aparams = allowed_params
+      aparams = params_for_destroy
       value = find_model_instance(aparams)
       value.destroy if value
-      instance_variable_set(@model_at_singular_name_sym, value)
+      render_destroy instance_variable_set(@model_at_singular_name_sym, value)
+    end
+
+    def params_for_destroy
+      params
+    end
+
+    def render_destroy(value)
+      value
+    end
+
+    def render_validation_errors(value)
+      #TODO: bad test request format?
+      content_type = request.formats.first.to_s.reverse.split('/')[0].split('-')[0].reverse
+      # use implicit rendering for html if html or we don't know
+      return value if request.format.html?
+      # Rails 4.0.0 still punts in validation error handling. :(
+      # This probably won't work.
+      respond_to do |format|
+        format.any { render content_type.to_sym => { errors: value.errors }, status: 422 }
+      end
     end
   end
 end

@@ -5,33 +5,35 @@ module RestfulJson
     NILS = ['NULL'.freeze, 'null'.freeze, 'nil'.freeze]
 
     included do
-      # create class attributes for each controller option and set the value to the value in the app configuration
+      # create class attributes for each controller option
+      class_attribute :action_to_query, instance_writer: true
+      class_attribute :action_to_query_includes, instance_writer: true
+      class_attribute :can_be_ordered_by, instance_writer: true
+      class_attribute :default_ordered_by, instance_writer: true
       class_attribute :model_class, instance_writer: true
       class_attribute :model_singular_name, instance_writer: true
-      class_attribute :model_plural_name, instance_writer: true
+      class_attribute :model_plural_name, instance_writer: true      
       class_attribute :param_to_attr_and_arel_predicate, instance_writer: true
-      class_attribute :supported_functions, instance_writer: true
-      class_attribute :ordered_by, instance_writer: true
-      class_attribute :action_to_query, instance_writer: true
       class_attribute :param_to_query, instance_writer: true
       class_attribute :param_to_through, instance_writer: true
-      class_attribute :action_to_render_options, instance_writer: true
       class_attribute :query_includes, instance_writer: true
-      class_attribute :action_to_query_includes, instance_writer: true
+      class_attribute :supported_functions, instance_writer: true
 
-      # use values from config
+      # define attributes for config keys and use values from config
       RestfulJson::CONTROLLER_OPTIONS.each do |key|
         class_attribute key, instance_writer: true
         self.send("#{key}=".to_sym, RestfulJson.send(key))
       end
-
-      self.param_to_attr_and_arel_predicate ||= {}
-      self.supported_functions ||= []
-      self.ordered_by ||= []
+      
       self.action_to_query ||= {}
+      self.action_to_query_includes ||= {}
+      self.can_be_ordered_by ||= []
+      self.default_ordered_by ||= []
+      self.function_param_names = {}      
+      self.param_to_attr_and_arel_predicate ||= {}
       self.param_to_query ||= {}
       self.param_to_through ||= {}
-      self.action_to_query_includes ||= {}
+      self.supported_functions ||= []
     end
 
     module ClassMethods
@@ -126,13 +128,40 @@ module RestfulJson
         end
       end
 
+      # A whitelist of orderable attributes.
+      #
+      # If no options are provided or the :using option is provided, defines attributes that are orderable through the operation(s) already defined in can_filter_by_default_using, or can specify attributes:
+      #   can_order_by :attr_name_1, :attr_name_2
+      # So that you could call: http://.../foobars?order=attr_name_1,-attr_name_2
+      # to order by attr_name_1 asc then attr_name_2 desc.
+      #
+      # When :through is specified, it will take the array supplied to through as 0 to many model names following by an attribute name. It will follow through
+      # each association until it gets to the attribute to filter by that via ARel joins, e.g. if the model Foobar has an association to :foo, and on the Foo model there is an assocation
+      # to :bar, and you want to order by bar.name (foobar.foo.bar.name):
+      #  can_order_by :my_param_name, through: [:foo, :bar, :name]
+      def can_order_by(*args)
+        options = args.extract_options!
+
+        args.each do |arg|
+          # store as strings because we have to do a string comparison later to avoid req param symbol attack
+          self.can_be_ordered_by << arg.to_s unless self.can_be_ordered_by.include?(arg.to_s)
+        end
+
+        # This does the same as the through in can_filter_by: it just sets up joins in the index action.
+        if options[:through]
+          args.each do |through_key|
+            self.param_to_through[through_key.to_sym] = options[:through]
+          end
+        end
+      end
+
       # Takes an string, symbol, array, hash to indicate order. If not a hash, assumes is ascending. Is cumulative and order defines order of sorting, e.g:
       #   #would order by foo_color attribute ascending
-      #   order_by :foo_color
+      #   default_order :foo_color
       # or
-      #   order_by {:foo_date => :asc}, :foo_color, 'foo_name', {:bar_date => :desc}
-      def order_by(args)
-        self.ordered_by = (Array.wrap(self.ordered_by) + Array.wrap(args)).flatten.compact.collect {|item|item.is_a?(Hash) ? item : {item.to_sym => :asc}}
+      #   default_order {:foo_date => :asc}, :foo_color, 'foo_name', {:bar_date => :desc}
+      def default_order(args)
+        self.default_ordered_by = (Array.wrap(self.default_ordered_by) + Array.wrap(args)).flatten.compact.collect {|item|item.is_a?(Hash) ? item : {item.to_sym => :asc}}
       end
     end
 
@@ -170,12 +199,11 @@ module RestfulJson
       class_eval "def #{@model_singular_name}_url(record);#{singularized_underscored_modules_and_underscored_plural_model_name}_url(record);end" unless @model_singular_name == singularized_underscored_modules_and_underscored_plural_model_name
     end
 
+    # By default this converts request parameter filter values 'NULL', 'null', 'nil' to nil.
+    # This is what converts passed in filter values, so could override to parse other date
+    # format, etc.
     def convert_request_param_value_for_filtering(attr_sym, value)
-      nil_value?(value) ? nil : value
-    end
-
-    def nil_value?(value)
-      value && NILS.include?(value)
+      value && NILS.include?(value) ? nil : value
     end
 
     def find_model_instance_with(aparams, first_sym)
@@ -285,41 +313,114 @@ module RestfulJson
         end
       end
 
-      if aparams[:page] && self.supported_functions.include?(:page)
-        page = aparams[:page].to_i
-        page = 1 if page < 1 # to avoid people using this as a way to get all records unpaged, as that probably isn't the intent?
-        #TODO: to_s is hack to avoid it becoming an Arel::SelectManager for some reason which not sure what to do with
-        value = value.skip((self.number_of_records_in_a_page * (page - 1)).to_s)
-        value = value.take((self.number_of_records_in_a_page).to_s)
+      if self.supported_functions.include?(:page)
+        page_param_names = Array.wrap(self.function_param_names[:page] || :page)
+        page_param_names.each do |page_param_name|
+          page_param = aparams[page_param_name]
+          if page_param
+            page = page_param.to_i
+            page = 1 if page < 1 # to avoid people using this as a way to get all records unpaged, as that probably isn't the intent?
+            #TODO: to_s is hack to avoid it becoming an Arel::SelectManager for some reason which not sure what to do with
+            value = value.skip((self.number_of_records_in_a_page * (page - 1)).to_s)
+            value = value.take((self.number_of_records_in_a_page).to_s)
+          end
+        end
       end
 
-      if aparams[:skip] && self.supported_functions.include?(:skip)
-        # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-        value = value.skip(aparams[:skip].to_s)
+      if self.supported_functions.include?(:skip)
+        skip_param_names = Array.wrap(self.function_param_names[:skip] || :skip)
+        skip_param_names.each do |skip_param_name|
+          skip_param = aparams[skip_param_name]
+          if skip_param
+            # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
+            value = value.skip(skip_param.to_s)
+          end
+        end
       end
 
-      if aparams[:take] && self.supported_functions.include?(:take)
-        # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-        value = value.take(aparams[:take].to_s)
+      if self.supported_functions.include?(:take)
+        take_param_names = Array.wrap(self.function_param_names[:take] || :take)
+        take_param_names.each do |take_param_name|
+          take_param = aparams[take_param_name]
+          if take_param
+            # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
+            value = value.take(take_param.to_s)
+          end
+        end
       end
-
-      if aparams[:uniq] && self.supported_functions.include?(:uniq)
-        value = value.uniq
+      
+      if self.supported_functions.include?(:uniq)
+        uniq_param_names = Array.wrap(self.function_param_names[:uniq] || :uniq)
+        uniq_param_names.each do |uniq_param_name|
+          uniq_param = aparams[uniq_param_name]
+          if uniq_param
+            value = value.uniq
+          end
+        end
       end
 
       # these must happen at the end and are independent
-      if aparams[:count] && self.supported_functions.include?(:count)
-        value = value.count.to_i
-      elsif aparams[:page_count] && self.supported_functions.include?(:page_count)
-        count_value = value.count.to_i # this executes the query so nothing else can be done in AREL
-        value = (count_value / self.number_of_records_in_a_page) + (count_value % self.number_of_records_in_a_page ? 1 : 0)
-      else
-        #TODO: also declaratively specify order via order=attr1,attr2, etc. like can_filter_by w/queries, subattrs, and direction.
-        self.ordered_by.each do |attr_to_direction|
-          # this looks nasty, but makes no sense to iterate keys if only single of each
-          value = value.order(t[attr_to_direction.keys[0]].send(attr_to_direction.values[0]))
+      stop_building_query = false
+
+      # assuming this is first so we won't worry about checking stop_building_query
+      if self.supported_functions.include?(:count)
+        count_param_names = Array.wrap(self.function_param_names[:count] || :count)
+        count_param_names.each do |count_param_name|
+          count_param = aparams[count_param_name]
+          if count_param
+            value = value.count.to_i
+            stop_building_query = true
+          end
         end
-        value = value.to_a
+      end
+
+      if !stop_building_query && self.supported_functions.include?(:page_count)
+        page_count_param_names = Array.wrap(self.function_param_names[:page_count] || :page_count)
+        page_count_param_names.each do |page_count_param_name|
+          page_count_param = aparams[page_count_param_name]
+          if page_count_param
+            count_value = value.count.to_i # this executes the query so nothing else can be done in AREL
+            value = (count_value / self.number_of_records_in_a_page) + (count_value % self.number_of_records_in_a_page ? 1 : 0)
+            stop_building_query = true
+          end
+        end
+      end
+
+      if !stop_building_query
+        already_ordered_by = []
+        # assuming this is last so we won't worry about setting stop_building_query again.
+        order_param_names = Array.wrap(self.function_param_names[:order] || :order)
+        order_param_names.each do |order_param_name|
+          orig_order_param = aparams[order_param_name]
+          if orig_order_param
+            order_params = orig_order_param.split(self.filter_split)
+            order_params.each do |individual_order_param|
+              # remove optional preceding - or + to act as directional
+              direction = :asc
+              if individual_order_param[0] == '-'
+                direction = :desc
+                individual_order_param = individual_order_param.reverse.chomp('-').reverse
+              elsif individual_order_param[0] == '+'
+                individual_order_param = individual_order_param.reverse.chomp('+').reverse
+              end
+              # order of logic here is important:
+              # do not to_sym the partial param value until passes whitelist to avoid symbol attack
+              if self.can_be_ordered_by.include?(individual_order_param) && !already_ordered_by.include?(individual_order_param.to_sym)                
+                value = value.order(individual_order_param.to_sym => direction)
+                already_ordered_by << individual_order_param.to_sym
+              end
+            end
+          end
+        end
+
+        self.default_ordered_by.each do |attr_to_direction|
+          attr_key = attr_to_direction.keys[0].to_sym
+          direction = attr_to_direction.values[0].to_sym
+          if !already_ordered_by.include?(attr_key)
+            value = value.order(attr_key => direction)
+            already_ordered_by << attr_key
+          end
+        end
       end
 
       render_index instance_variable_set(@model_at_plural_name_sym, value.to_a)

@@ -1,11 +1,15 @@
 ## restful_json 5.0.0 ##
 
-* Assumes Rails 4+ and will look for (model_name)_params or (action)_(model_name)_params for params permittance
-* Removed support for permitters
-* Removed support for active_model_serializers
-* Removed error handling to use Rails
-* Removed rendering code to just return value
-* Cleaned up excessive config methods and some other cruft
+* Assumes Rails 4+.
+* Simplification of configuration, usage, and implementation.
+* CanCan/authR support now via `RestfulJson::Authorizing`.
+* Removed direct support for permitters. The controller can define `params_for_*` methods or use `before_action`.
+* Removed direct support for active_model_serializers. The controller can define `render_*` methods.
+* Removed exception handlers so can use default Rack exception handling or `rescue_from`.
+* Authorization support handled via separate module using `before_action`.
+* Added action-specific validation error handling methods.
+* Added can_order_by.
+* Renamed order_by -> default_order_by to clarify intent.
 
 ## restful_json 4.5.1 ##
 

@@ -2,7 +2,7 @@
 
 # restful_json
 
-In Rails 4, the following implements standard Rails actions similar to a controller that makes parameter permittance, optional action authorization, and declarative query support (for use by Javascript MVC frameworks such as AngularJS and Ember) easier:
+In Rails 4, using `include RestfulJson::Controller` implements standard Rails actions in a conventional way to reduce the code you have to write, e.g. the following implements index, show, create, update, and destroy actions, so that you only have to write the views:
 
 ```ruby
 class FoobarsController < ApplicationController
@@ -20,9 +20,7 @@ private
 end
 ```
 
-The behavior of index, other core actions, and even custom actions can be implemented and customized easily.
-
-Typically, either the default behavior or one or two lines of filtering config is necessary for the typical JS app, but you can go nuts if you'd like. Here are some of the methods available to customize your controller:
+Often the index action contains code to filter, order, etc. to reduce the amount of data retrieved for the client. Server-side pagination or chunking may be required for larger datasets. So, we support most things you would need to do. It should not allow an ability unless you specifically declare it:
 
 ```ruby
 class FoobarsController < ApplicationController
@@ -30,32 +28,41 @@ class FoobarsController < ApplicationController
   respond_to :json, :html
 
   query_for :index, is: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
-  can_filter_by :name
-  can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt], with_default: Time.now
-  can_filter_by :a_request_param_name, with_query: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
-  can_filter_by :and_another, through: [:some_attribute_on_this_model]
-  can_filter_by :one_more, through: [:some_association, :some_attribute_on_some_association_model]
-  can_filter_by :and_one_more, through: [:my_assoc, :my_assocs_assoc, :my_assocs_assocs_assoc, :an_attribute_on_my_assocs_assocs_assoc]
+  can_filter_by :name, with_default: 'anonymous'
+  can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt]
+  can_filter_by :some_attribute, through: [:assoc_name, :sub_assoc_name, :some_attribute]
   supports_functions :count, :uniq, :take, :skip, :page, :page_count
-  order_by {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
+  can_order_by :foo_date, :foo_color
+  default_order {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
 end
 ```
 
 Then, after implementing your json views, you could call these:
 
 ```
-https://example.org/foobars?name=apple # gets Foo with name 'apple'
-https://example.org/foobars?bar_date.gt=2012-08-08 # gets Foos with bar_date > 2012-08-08
+https://example.org/foobars?name=apple # gets Foobar with name 'apple'
+https://example.org/foobars?bar_date.gt=2012-08-08 # gets Foobars with bar_date > 2012-08-08
 https://example.org/foobars?bar_date.gt=2012-08-08&count= # count of Foos with bar_date > 2012-08-08
-https://example.org/foobars?and_one_more=123&uniq= # distinct values of Foos where my_assoc.my_assocs_assoc.my_assocs_assocs_assoc.an_attribute_on_my_assocs_assocs_assoc is 123
-https://example.org/foobars?page_count= # Foo.all.count / RestfulJson.number_of_records_in_a_page
-https://example.org/foobars?page=1 # Foo.all.take(15)
-https://example.org/foobars?skip=30&take=15 # Foo.all.skip(30).take(15)
+https://example.org/foobars?some_attribute=123&uniq= # joins to filter by assoc_name.sub_assoc_name.some_attribute
+https://example.org/foobars?page_count= # Foobar.all.count / RestfulJson.number_of_records_in_a_page
+https://example.org/foobars?page=1 # Foobar.all.take(15)
+https://example.org/foobars?skip=30&take=15 # Foobar.all.skip(30).take(15)
+https://example.org/foobars?order=foo_color,-foo_date # Foobar.all.order(:foo_color).order(foo_date: :desc)
 ```
 
-You are declaring those methods to allow them to be called, though. The intent is for nothing to be allowed unless you define it. It's as secure as you make it.
+And some methods like `query_for` and `can_filter_by` can take lambdas if you want a concise way to define queries, e.g.:
 
-It can also easily integrate with commonly used gems for authorization and authentication.
+```ruby
+query_for :index, is: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
+```
+
+and:
+
+```ruby
+can_filter_by :a_request_param_name, with_query: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
+```
+
+It can also easily integrate with commonly used gems for authorization via `include RestfulJson::Authorizing` and most authentication solutions (using `before_action` or similar).
 
 ### Installation
 
@@ -90,16 +97,22 @@ or in bulk, like:
 ```ruby
 RestfulJson.configure do
   
-  # default for :using in can_filter_by
+  # Default for :using in can_filter_by.
   self.can_filter_by_default_using = [:eq]
   
-  # delimiter for values in request parameter values
-  self.filter_split = ','  
+  # Delimiter for values in request parameter values.
+  self.filter_split = ','
+
+  # Use one or more alternate request parameter names for functions,
+  # e.g. use z_uniq instead of uniq, and allow translations of take:
+  #   self.function_param_names = {uniq: :z_uniq, take: [:take, :nehmen, :prendre]}
+  # Supported_functions in the controller will still expect the original name, e.g. uniq.
+  self.function_param_names = {}
   
-  # delimiter for ARel predicate in the request parameter name
+  # Delimiter for ARel predicate in the request parameter name.
   self.predicate_prefix = '.'
   
-  # default number of records to return if using the page request function
+  # Default number of records to return if using the page request function.
   self.number_of_records_in_a_page = 15
   
 end
@@ -116,16 +129,22 @@ In the controller, you can set a variety of class attributes with `self.somethin
 All of the app-level configuration parameters are configurable in the controller class body:
 
 ```ruby
-  # default for :using in can_filter_by
+  # Default for :using in can_filter_by.
   self.can_filter_by_default_using = [:eq]
   
-  # delimiter for values in request parameter values
-  self.filter_split = ','  
+  # Delimiter for values in request parameter values.
+  self.filter_split = ','
+
+  # Use one or more alternate request parameter names for functions,
+  # e.g. use z_uniq instead of uniq, and allow translations of take:
+  #   self.function_param_names = {uniq: :z_uniq, take: [:take, :nehmen, :prendre]}
+  # Supported_functions in the controller will still expect the original name, e.g. uniq.
+  self.function_param_names = {}
   
-  # delimiter for ARel predicate in the request parameter name
+  # Delimiter for ARel predicate in the request parameter name.
   self.predicate_prefix = '.'
   
-  # default number of records to return if using the page request function
+  # Default number of records to return if using the page request function.
   self.number_of_records_in_a_page = 15
 ```
 
@@ -314,7 +333,27 @@ http://localhost:3000/foobars?skip=15&take=15
 http://localhost:3000/foobars?skip=30&take=15
 ```
 
-##### Custom Queries
+#### Sorting (ORDER BY)
+
+Allow request specified order:
+
+```ruby
+can_order_by :foo_date, :foo_color
+```
+
+Will let the client send the order parameter with those parameters and optional +/- prefix to designate sort direction, e.g. the following will sort by foo_date ascending then foo_color descending:
+
+```
+http://localhost:3000/foobars?order=foo_date,-foo_color
+```
+
+The `default_order` specifies an ordered array of hashes of attributes to sort direction or attributes that should be ascending: 
+
+```ruby
+default_order {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
+```
+
+#### Custom Queries
 
 To filter the list where the status_code attribute is 'green':
 
@@ -344,7 +383,7 @@ query_for :index, is: ->(t,q) {
 
 To avoid n+1 queries, use `.includes(...)` in your query to eager load any associations that you will need in the JSON view.
 
-##### Define Custom Actions with Custom Queries
+#### Define Custom Actions with Custom Queries
 
 You are still working with regular controllers here, so add or override methods if you want more!
 
@@ -380,7 +419,7 @@ MyAppName::Application.routes.draw do
 end
 ```
 
-##### Avoid n+1 Queries
+#### Avoid n+1 Queries
 
 ```ruby
 # load all the posts and the associated category and comments for each post (note: have to define .includes(...) in query_for query)
@@ -401,7 +440,7 @@ includes_for :create, are: [:category, :comments]
 includes_for :index, :something_alias_methoded_from_index, are: [posts: [{comments: :guest}, :tags]]
 ```
 
-##### Customizing Parameter Permittance
+#### Customizing Parameter Permittance
 
 Each action except `new` defined by `RestfulJson::Controller` calls a corresponding `params_for_*` method. For `create` and `update` this calls `(model_name)_params` method expecting you to have defined that method to call `permit`, e.g.
 
@@ -423,7 +462,7 @@ def params_for_update
 end
 ```
 
-##### Customizing Rendering
+#### Customizing Rendering
 
 Similarly, all action methods defined by `RestfulJson::Controller` have a corresponding `render_*` method.
 
@@ -439,7 +478,7 @@ def render_update(value)
 end
 ```
 
-##### Customizing Validation Error Rendering
+#### Customizing Validation Error Rendering
 
 The default `render_create(value)` and `render_update(value)` methods in the `RestfulJson::Controller` call the default `render_validation_errors(value)` method that either use implicit rendering for html format or for other formats will render the `errors` object in the specified format using an HTTP 422 status code. This is easier than having to deal with error data in your view, but you could always handle the errors in the view yourself by overriding that:
 
@@ -449,15 +488,17 @@ def render_validation_errors(value)
 end
 ```
 
-##### Rails 4 Default Rack Exception Handling
+#### Exception Handling
 
 Rails 4 has basic exception handling in the [public_exceptions][public_exceptions] and [show_exceptions][show_exceptions] Rack middleware.
 
 If you want to customize Rails 4's Rack exception handling, search the web for customizing `config.exceptions_app`, although the default behavior should work for most.
 
+You can also use `rescue_from` or `around_action` in Rails to have more control over error rendering.
+
 ### Refactoring
 
-If you want to refactor, do it via modules/concerns, not subclassing. `include RestfulJson::Controller` defines various class attributes. These class attributes are shared by all descendants unless they are redefined. Ignoring this can lead to one controller overriding/altering the config of another.
+If you want to refactor your restful_json controllers, do it via modules/concerns, not subclassing. `include RestfulJson::Controller` defines various class attributes. These class attributes are shared by all descendants unless they are redefined. Ignoring this can lead to one controller overriding/altering the config of another.
 
 It's helpful to have a single module you maintain that contains all of the other modules to include in your service controllers, e.g. in `config/initializers/my_service.rb`, you might define this to have RestfulJson and its `authorize!` support:
 

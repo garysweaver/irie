@@ -16,7 +16,7 @@ describe FoobarsController do
   end
 
   describe "GET index" do
-    it 'returns foobars in correct order' do
+    it 'returns foobars in default order' do
       Foobar.delete_all
       expected = []
       
@@ -28,6 +28,20 @@ describe FoobarsController do
       # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
       last_id = Foobar.last.id
       @response.body.should eq("{\"check\":\"foobars-index: size=10, ids=#{last_id.downto(last_id-9).collect{|i|i}.join(',')}\"}")
+    end
+
+    it 'allows requested ascending order' do
+      Foobar.delete_all
+      expected = []
+      
+      10.times do |c|
+        expected << Foobar.create(foo: Foo.where(id: c).first)
+      end
+      get :index, format: :json, order: 'foo_id'
+      assigns(:foobars).should eq(expected)
+      # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
+      last_id = Foobar.last.id
+      @response.body.should eq("{\"check\":\"foobars-index: size=10, ids=#{(last_id-9).upto(last_id).collect{|i|i}.join(',')}\"}")
     end
   end
 

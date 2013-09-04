@@ -43,6 +43,30 @@ describe FoobarsController do
       last_id = Foobar.last.id
       @response.body.should eq("{\"check\":\"foobars-index: size=10, ids=#{(last_id-9).upto(last_id).collect{|i|i}.join(',')}\"}")
     end
+
+    it 'returns foobars with simple filter' do
+      Foobar.delete_all
+      expected = []
+      
+      10.times do |c|
+        fb = Foobar.create(foo: Foo.where(id: c).first)
+        expected << fb if c == 5
+      end
+      get :index, format: :json, foo_id: 5
+      assigns(:foobars).should eq(expected)
+    end
+
+    it 'returns foobars with a query' do
+      Foobar.delete_all
+      expected = []
+      
+      10.times do |c|
+        fb = Foobar.create(foo: Foo.where(id: c).first)
+        expected << fb if c == 5
+      end
+      get :index, format: :json, a_query: 5
+      assigns(:foobars).should eq(expected)
+    end
   end
 
   describe "GET show" do
@@ -154,8 +178,12 @@ describe FoobarsController do
       Foobar.delete_all
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
-      b = Foobar.create(bar_id: SecureRandom.urlsafe_base64)
+      random_id = "k#{SecureRandom.urlsafe_base64}"
+      b = Foobar.create(bar_id: random_id)
       bar_id = '1'
+      # this test was intermittently failing, so have a test setup check. I think SecureRandom was
+      # returning 1 strangely, so prefixed with k.
+      Foobar.where(bar_id: bar_id).should be_empty, "test setup failure. we deleted all Foobars but bar_id=#{random_id}, but one existed with bar_id=#{bar_id}"
       put :update, Foobar.primary_key => b.id, bar_id: bar_id, format: :json
       response.status.should eq(204), "update failed (got #{response.status}): #{response.body}"
       assert_match '', @response.body

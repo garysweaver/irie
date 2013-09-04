@@ -10,6 +10,7 @@
 * Added action-specific validation error handling methods.
 * Added can_order_by.
 * Renamed order_by -> default_order_by to clarify intent.
+* Removed with_default on can_filter_by and replaced with default_value.
 
 ## restful_json 4.5.1 ##
 

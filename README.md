@@ -28,11 +28,12 @@ class FoobarsController < ApplicationController
   respond_to :json, :html
 
   query_for :index, is: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
-  can_filter_by :name, with_default: 'anonymous'
+  can_filter_by :name
   can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt]
   can_filter_by :some_attribute, through: [:assoc_name, :sub_assoc_name, :some_attribute]
   supports_functions :count, :uniq, :take, :skip, :page, :page_count
   can_order_by :foo_date, :foo_color
+  default_value :name, eq: 'anonymous'
   default_order {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
 end
 ```
@@ -156,7 +157,7 @@ self.model_singular_name = 'your_model'
 self.model_plural_name = 'your_models'
 ```
 
-#### Default Filtering by Attribute(s)
+#### Filtering by Attribute(s)
 
 First, declare in the controller:
 
@@ -170,17 +171,33 @@ If `RestfulJson.can_filter_by_default_using = [:eq]` as it is by default, then y
 http://localhost:3000/foobars?foo_id=1
 ```
 
-`can_filter_by` without an option means you can send in that request param (via routing or directly, just like normal in Rails) and it will use that in the ARel query (safe from SQL injection and only letting you do what you tell it). `:using` means you can use those [ARel][arel] predicates for filtering. If you do `Arel::Predications.public_instance_methods.sort` in Rails console, you can see a list of the available predicates. So, you could get crazy with:
+`can_filter_by` without an option means you can send in that request param (via routing or directly), and it will use that in the ARel query (safe from SQL injection and only letting you do what you tell it).
+
+`:using` means you can use those [ARel][arel] predicates for filtering:
+
+```ruby
+can_filter_by :seen_on, using: [:gteq, :eq_any]
+```
+
+By appending the predicate prefix (`.` by default) to the request parameter name, you can use any [ARel][arel] predicate you allowed, e.g.:
+
+```
+http://localhost:3000/foobars?seen_on.gteq=2012-08-08
+```
+
+If you do `Arel::Predications.public_instance_methods.sort` in Rails console, you can see a list of the available predicates. So, you could get crazy with:
 
 ```ruby
 can_filter_by :does_not_match, :does_not_match_all, :does_not_match_any, :eq, :eq_all, :eq_any, :gt, :gt_all, :gt_any, :gteq, :gteq_all, :gteq_any, :in, :in_all, :in_any, :lt, :lt_all, :lt_any, :lteq, :lteq_all, :lteq_any, :matches, :matches_all, :matches_any, :not_eq, :not_eq_all, :not_eq_any, :not_in, :not_in_all, :not_in_any
 ```
 
-`can_filter_by` can also specify a `:with_query` to provide a lambda that takes the request parameter in when it is provided by the request.
+You may specify a `:with_query` to provide a lambda:
 
 ```ruby
 can_filter_by :a_request_param_name, with_query: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
 ```
+
+The third argument sent to the lambda is the request parameter value converted by the `convert_request_param_value_for_filtering(attr_sym, value)` method which may be customized. See elsewhere in this document for more information about the behavior of this method; it doesn't convert everything to a Ruby value by default, so unless you override that method, the value is going to be a string or nil.
 
 And `can_filter_by` can specify a `:through` to provide an easy way to inner join through a bunch of models using ActiveRecord relations, by specifying 0-to-many association names to go "through" to the final argument, which is the attribute name on the last model. The following is equivalent to the last query:
 
@@ -218,25 +235,28 @@ and use this to get valleys associated with unicorns who in turn have a friend n
 http://localhost:3000/magical_valleys?magical_unicorn_friend_name=Oscar
 ```
 
-#### Other Filters by Attribute(s)
+##### Customizing Request Parameter Value Conversion
 
-First, declare in the controller:
+The `convert_request_param_value_for_filtering(attr_sym, value)` method by default just converts strings that look null ('NULL', 'null', and 'nil') to nil:
 
 ```ruby
-can_filter_by :seen_on, using: [:gteq, :eq_any]
+def convert_request_param_value_for_filtering(attr_sym, value)
+  value && NILS.include?(value) ? nil : value
+end
 ```
 
-Get Foobars with seen_on of 2012-08-08 or later using the [ARel][arel] gteq predicate splitting the request param on `predicate_prefix` (configurable), you'd use:
+#### Default Filters
 
-```
-http://localhost:3000/foobars?seen_on.gteq=2012-08-08
+Specify default filters to define attributes, ARel predicates, and values to use if no filter is provided by the client with the same param name, e.g. if you have:
+
+```ruby
+  can_filter_by :attr_name_1
+  can_filter_by :production_date, :creation_date, using: [:gt, :eq, :lteq]
+  default_filter :attr_name_1, eq: 5
+  default_filter :production_date, :creation_date, gt: 1.year.ago, lteq: 1.year.from_now
 ```
 
-Multiple values are separated by `filter_split` (configurable):
-
-```
-http://localhost:3000/foobars?seen_on.eq_any=2012-08-08,2012-09-09
-```
+and both attr_name_1 and production_date are supplied by the client, then it would filter by the client's attr_name_1 and production_date and filter creation_date by both > 1 year ago and <= 1 year from now.
 
 #### Supported Functions
 
@@ -353,7 +373,7 @@ The `default_order` specifies an ordered array of hashes of attributes to sort d
 default_order {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
 ```
 
-#### Custom Queries
+#### Custom Index Queries
 
 To filter the list where the status_code attribute is 'green':
 

@@ -2,13 +2,14 @@ module RestfulJson
   module Controller
     extend ::ActiveSupport::Concern
 
-    NILS = ['NULL'.freeze, 'null'.freeze, 'nil'.freeze]
+    NILS = ['NULL'.freeze, 'null'.freeze, 'nil'.freeze].to_set
 
     included do
       # create class attributes for each controller option
       class_attribute :action_to_query, instance_writer: true
       class_attribute :action_to_query_includes, instance_writer: true
       class_attribute :can_be_ordered_by, instance_writer: true
+      class_attribute :default_filtered_by, instance_writer: true
       class_attribute :default_ordered_by, instance_writer: true
       class_attribute :model_class, instance_writer: true
       class_attribute :model_singular_name, instance_writer: true
@@ -28,6 +29,7 @@ module RestfulJson
       self.action_to_query ||= {}
       self.action_to_query_includes ||= {}
       self.can_be_ordered_by ||= []
+      self.default_filtered_by ||= {}
       self.default_ordered_by ||= []
       self.function_param_names = {}      
       self.param_to_attr_and_arel_predicate ||= {}
@@ -54,6 +56,8 @@ module RestfulJson
       def can_filter_by(*args)
         options = args.extract_options!
 
+        raise "with_default is no longer supported. Please use default_filter." if options[:with_default]
+
         # :using is the default action if no options are present
         if options[:using] || options.size == 0
           predicates = Array.wrap(options[:using] || self.can_filter_by_default_using)
@@ -77,6 +81,21 @@ module RestfulJson
           args.each do |through_key|
             self.param_to_through[through_key.to_sym] = options[:through]
           end
+        end
+      end
+
+      # Specify default filters and predicates to use if no filter is provided by the client with
+      # the same param name, e.g. if you have:
+      #   default_filter :attr_name_1, eq: 5
+      #   default_filter :production_date, :creation_date, gt: 1.year.ago, lteq: 1.year.from_now
+      # and both attr_name_1 and production_date are supplied by the client, then it would filter
+      # by the client's attr_name_1 and production_date and filter creation_date by
+      # both > 1 year ago and <= 1 year from now.
+      def default_filter(*args)
+        options = args.extract_options!
+        
+        args.each do |attr_name|
+          (self.default_filtered_by[attr_name.to_sym] ||= {}).merge(options)
         end
       end
 
@@ -260,14 +279,14 @@ module RestfulJson
       value = apply_includes(value)
 
       self.param_to_query.each do |param_name, param_query|
-        if aparams[param_name]
+        unless aparams[param_name].nil?
           # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-          value = param_query.call(t, value, aparams[param_name].to_s)
+          value = param_query.call(t, value, convert_request_param_value_for_filtering(param_name, aparams[param_name].to_s))
         end
       end
 
       self.param_to_through.each do |param_name, through_array|
-        if aparams[param_name]
+        unless aparams[param_name].nil?
           # build query
           # e.g. SomeModel.all.joins({:assoc_name => {:sub_assoc => {:sub_sub_assoc => :sub_sub_sub_assoc}}).where(sub_sub_sub_assoc_model_table_name: {column_name: value})
           last_model_class = @model_class
@@ -296,19 +315,25 @@ module RestfulJson
         end
       end
 
+      filtered_by_param_names = []
       self.param_to_attr_and_arel_predicate.keys.each do |param_name|
-        options = param_to_attr_and_arel_predicate[param_name][2]
-        # to_s as safety measure for vulnerabilities similar to CVE-2013-1854 
-        param = aparams[param_name].to_s || options[:with_default]
-
-        if param.present? && param_to_attr_and_arel_predicate[param_name]
+        if param_to_attr_and_arel_predicate[param_name]
           attr_sym = param_to_attr_and_arel_predicate[param_name][0]
           predicate_sym = param_to_attr_and_arel_predicate[param_name][1]
-          if predicate_sym == :eq
-            value = value.where(attr_sym => convert_request_param_value_for_filtering(attr_sym, param))
-          else
-            one_or_more_param = param.split(self.filter_split).collect{|v|convert_request_param_value_for_filtering(attr_sym, v)}
+          options = param_to_attr_and_arel_predicate[param_name][2]
+          unless aparams[param_name].nil?
+            # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
+            one_or_more_param = aparams[param_name].to_s.split(self.filter_split).collect{|v|convert_request_param_value_for_filtering(attr_sym, v)}
             value = value.where(t[attr_sym].try(predicate_sym, one_or_more_param))
+            filtered_by_param_names << attr_sym
+          end
+        end
+      end
+
+      self.default_filtered_by.each do |attr_sym, predicates_to_default_values|
+        unless filtered_by_param_names.include?(attr_sym) || predicates_to_default_values.blank?
+          predicates_to_default_values.each do |predicate_sym, one_or_more_default_value|
+            value = value.where(t[attr_sym].try(predicate_sym, Array.wrap(one_or_more_default_value)))
           end
         end
       end
@@ -424,6 +449,9 @@ module RestfulJson
       end
 
       render_index instance_variable_set(@model_at_plural_name_sym, value.to_a)
+    rescue => e
+      puts "WTF req params: #{params.inspect}"
+      raise e
     end
 
     def params_for_index

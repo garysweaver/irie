@@ -60,7 +60,7 @@ query_for index: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'
 and:
 
 ```ruby
-can_filter_by :a_request_param_name, with_query: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
+can_filter_by_query a_request_param_name: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
 ```
 
 It can also easily integrate with commonly used gems for authorization via `include RestfulJson::Authorizing` and most authentication solutions (using `before_action` or similar).
@@ -191,14 +191,6 @@ If you do `Arel::Predications.public_instance_methods.sort` in Rails console, yo
 can_filter_by :does_not_match, :does_not_match_all, :does_not_match_any, :eq, :eq_all, :eq_any, :gt, :gt_all, :gt_any, :gteq, :gteq_all, :gteq_any, :in, :in_all, :in_any, :lt, :lt_all, :lt_any, :lteq, :lteq_all, :lteq_any, :matches, :matches_all, :matches_any, :not_eq, :not_eq_all, :not_eq_any, :not_in, :not_in_all, :not_in_any
 ```
 
-You may specify a `:with_query` to provide a lambda:
-
-```ruby
-can_filter_by :a_request_param_name, with_query: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
-```
-
-The third argument sent to the lambda is the request parameter value converted by the `convert_request_param_value_for_filtering(attr_sym, value)` method which may be customized. See elsewhere in this document for more information about the behavior of this method.
-
 And `can_filter_by` can specify a `:through` to provide an easy way to inner join through a bunch of models using ActiveRecord relations, by specifying 0-to-many association names to go "through" to the final argument, which is the attribute name on the last model. The following is equivalent to the last query:
 
 ```ruby
@@ -208,7 +200,7 @@ can_filter_by :a_request_param_name, through: [:some_assoc, :some_attr]
 Let's say you are in MagicalValleyController, and the MagicalValley model `has many :magical_unicorns`. The MagicalUnicorn model has an attribute called `name`. You want to return MagicalValleys that are associated with all of the MagicalUnicorns named 'Rainbow'. You could do either:
 
 ```ruby
-can_filter_by :magical_unicorn_name, with_query: ->(t,q,param_value) {q.joins(:magical_unicorns).where(:magical_unicorns=>{name: param_value})}
+can_filter_by_query magical_unicorn_name: ->(t,q,param_value) {q.joins(:magical_unicorns).where(:magical_unicorns=>{name: param_value})}
 ```
 
 or:
@@ -234,6 +226,14 @@ and use this to get valleys associated with unicorns who in turn have a friend n
 ```
 http://localhost:3000/magical_valleys?magical_unicorn_friend_name=Oscar
 ```
+
+Use `can_filter_by_query` to provide a lambda:
+
+```ruby
+can_filter_by_query a_request_param_name: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
+```
+
+The third argument sent to the lambda is the request parameter value converted by the `convert_request_param_value_for_filtering(attr_sym, value)` method which may be customized. See elsewhere in this document for more information about the behavior of this method.
 
 ##### Customizing Request Parameter Value Conversion
 

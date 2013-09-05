@@ -1,9 +1,10 @@
 class FoobarsController < ApplicationController
   include RestfulJson::Controller
   include RestfulJson::Authorizing
+  include RestfulJson::Controller::StatusAndLocation
   respond_to :json
   
-  can_filter_by :a_query, with_query: ->(t, q, value) {q.where(foo_id: value)}
+  can_filter_by_query a_query: ->(t, q, value) {q.where(foo_id: value)}
   can_filter_by :foo_id
   can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt]
   supports_functions :count

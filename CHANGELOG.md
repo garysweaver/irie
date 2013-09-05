@@ -4,13 +4,18 @@
 * Simplification of configuration, usage, and implementation.
 * CanCan/authR support now via `RestfulJson::Authorizing`.
 * Removed direct support for permitters. The controller can define `params_for_*` methods or use `before_action`.
-* Removed direct support for active_model_serializers. The controller can define `render_*` methods.
+* Removed direct support for active_model_serializers. The controller can define serializer(s) in `valid_render_options`.
 * Removed exception handlers so can use default Rack exception handling or `rescue_from`.
 * Authorization support handled via separate module using `before_action`.
 * Added action-specific validation error handling methods.
 * Added can_order_by.
 * Renamed order_by -> default_order_by to clarify intent.
-* Removed with_default on can_filter_by and replaced with default_value.
+* Removed with_default on can_filter_by and replaced with method default_value.
+* Added valid_render_options which is similar to v4 behavior, but much cleaner.
+* Split into more methods with intuitive naming/behavior.
+* Added a few built-in concerns that are practical for extension that also act as examples for others to extend it.
+* Changed query_for so that it now takes hash of action to proc/lambda.
+* Removed with_query on can_filter_by and replaced with method can_filter_by_query.
 
 ## restful_json 4.5.1 ##
 

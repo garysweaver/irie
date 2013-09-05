@@ -27,7 +27,7 @@ class FoobarsController < ApplicationController
   include RestfulJson::Controller
   respond_to :json, :html
 
-  query_for :index, is: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
+  query_for index: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
   can_filter_by :name
   can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt]
   can_filter_by :some_attribute, through: [:assoc_name, :sub_assoc_name, :some_attribute]
@@ -51,10 +51,10 @@ https://example.org/foobars?skip=30&take=15 # Foobar.all.skip(30).take(15)
 https://example.org/foobars?order=foo_color,-foo_date # Foobar.all.order(:foo_color).order(foo_date: :desc)
 ```
 
-And some methods like `query_for` and `can_filter_by` can take lambdas if you want a concise way to define queries, e.g.:
+And some methods like `query_for` and `can_filter_by` can take procs/lambdas if you want a concise way to define queries, e.g.:
 
 ```ruby
-query_for :index, is: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
+query_for index: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
 ```
 
 and:
@@ -197,7 +197,7 @@ You may specify a `:with_query` to provide a lambda:
 can_filter_by :a_request_param_name, with_query: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
 ```
 
-The third argument sent to the lambda is the request parameter value converted by the `convert_request_param_value_for_filtering(attr_sym, value)` method which may be customized. See elsewhere in this document for more information about the behavior of this method; it doesn't convert everything to a Ruby value by default, so unless you override that method, the value is going to be a string or nil.
+The third argument sent to the lambda is the request parameter value converted by the `convert_request_param_value_for_filtering(attr_sym, value)` method which may be customized. See elsewhere in this document for more information about the behavior of this method.
 
 And `can_filter_by` can specify a `:through` to provide an easy way to inner join through a bunch of models using ActiveRecord relations, by specifying 0-to-many association names to go "through" to the final argument, which is the attribute name on the last model. The following is equivalent to the last query:
 
@@ -237,13 +237,13 @@ http://localhost:3000/magical_valleys?magical_unicorn_friend_name=Oscar
 
 ##### Customizing Request Parameter Value Conversion
 
-The `convert_request_param_value_for_filtering(attr_sym, value)` method by default just converts strings that look null ('NULL', 'null', and 'nil') to nil:
+In your controller or shared module using the following will convert request parameter values that are 'NULL', 'null', and 'nil' to nil:
 
 ```ruby
-def convert_request_param_value_for_filtering(attr_sym, value)
-  value && NILS.include?(value) ? nil : value
-end
+include RestfulJson::Controller::NilParamValues
 ```
+
+If you want different request parameter conversion behavior, either implement the `convert_request_param_value_for_filtering(attr_sym, value)` in your controller or an included module.
 
 #### Default Filters
 
@@ -375,18 +375,11 @@ default_order {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
 
 #### Custom Index Queries
 
-To filter the list where the status_code attribute is 'green':
+To filter the list where the status_code attribute is 'green' (note lack of whitespace between stab and parenthesis):
 
 ```ruby
 # t is self.model_class.arel_table and q is self.model_class.scoped
-query_for :index, is: lambda {|t,q| q.where(:status_code => 'green')}
-```
-
-or use the `->` Ruby 1.9 lambda stab operator (note lack of whitespace between stab and parenthesis):
-
-```ruby
-# t is self.model_class.arel_table and q is self.model_class.scoped
-query_for :index, is: ->(t,q) {q.where(:status_code => 'green')}
+query_for index: ->(t,q) { q.where(:status_code => 'green') }
 ```
 
 You can also filter out items that have associations that don't have a certain attribute value (or anything else you can think up with [ARel][arel]/[ActiveRecord relations][ar]), e.g. to filter the list where the object's apples and pears associations are green:
@@ -394,7 +387,7 @@ You can also filter out items that have associations that don't have a certain a
 ```ruby
 # t is self.model_class.arel_table and q is self.model_class.scoped
 # note: must be no space between -> and parenthesis
-query_for :index, is: ->(t,q) {
+query_for index: ->(t,q) {
   q.joins(:apples, :pears)
   .where(apples: {color: 'green'})
   .where(pears: {color: 'green'})
@@ -412,13 +405,7 @@ However `query_for` will create new action methods, so you can easily create cus
 ```ruby
 # t is self.model_class.arel_table and q is self.model_class.scoped
 # note: must be no space between -> and parenthesis in lambda syntax!
-query_for :some_action, is: ->(t,q) {q.where(:status_code => 'green')}
-```
-
-Note that it is a proc so you can really do whatever you want with it and will have access to other things in the environment or can call another method, etc.
-
-```ruby
-query_for :some_action, is: ->(t,q) do
+query_for some_action: ->(t,q) do
     if @current_user.admin?
       Rails.logger.debug("Notice: unfiltered results provided to admin #{@current_user.name}")
       # just make sure the relation is returned!
@@ -442,7 +429,7 @@ end
 #### Avoid n+1 Queries
 
 ```ruby
-# load all the posts and the associated category and comments for each post (note: have to define .includes(...) in query_for query)
+# load all the posts and the associated category and comments for each post
 including :category, :comments
 ```
 
@@ -484,29 +471,19 @@ end
 
 #### Customizing Rendering
 
-Similarly, all action methods defined by `RestfulJson::Controller` have a corresponding `render_*` method.
-
-If you'd like to override create and update with a custom status and location while using Rails implicit rendering for (unraised) validation errors, you might do something like:
+If you only need to change the options when rendering a valid response, just use `valid_render_options`, e.g. if you wanted to specify the serializer option in the render:
 
 ```ruby
-def render_create(value)
-  value.respond_to?(:errors) && value.errors.size > 0 ? render_validation_errors(value) : respond_with(value, status: :ok, location: @value)
-end
-
-def render_update(value)
-  value.respond_to?(:errors) && value.errors.size > 0 ? render_validation_errors(value) : render(status: :ok)
-end
+valid_render_options :index, serializer: FoobarSerializer
 ```
 
-#### Customizing Validation Error Rendering
+Each action in `RestfulJson::Controller` has a corresponding `render_*` method and a few other methods, `render_index_invalid`, `render_index_valid`, and `render_index_success_options`. See the controller code for their code so you can see how you might override one or more of these methods for any/all relevant actions in a concern or in the controller itself.
 
-The default `render_create(value)` and `render_update(value)` methods in the `RestfulJson::Controller` call the default `render_validation_errors(value)` method that either use implicit rendering for html format or for other formats will render the `errors` object in the specified format using an HTTP 422 status code. This is easier than having to deal with error data in your view, but you could always handle the errors in the view yourself by overriding that:
+There are also a few concerns in `lib/restful_json/controller`, some of which can change the rendering behavior and all of which can be used as examples for how to extend the controller:
 
-```ruby
-def render_validation_errors(value)
-  value
-end
-```
+* `include ::RestfulJson::Controller::NilParamValues` - convert 'NULL', 'null', and 'nil' to nil when passed in as request params.
+* `include ::RestfulJson::Controller::StatusAndLocation` - use [standard](http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.2) RESTful status codes.
+* `include ::RestfulJson::Controller::ValidationErrors` - return the errors object if not empty when object is invalid, otherwise you have to render errors by hand in your view. This is probably more DRY than using an error partial and might evolve with Rails with very low maintenance.
 
 #### Exception Handling
 
@@ -565,7 +542,7 @@ If you get `missing FROM-clause entry for table` errors, it might mean that `inc
 To fix, you may decide to either: (1) change order/definition of includes in `including`/`includes_for`, (2) don't use `including`/`includes_for` for the actions it affects (may cause n+1 queries), (3) implement `apply_includes` to apply `value = value.includes(*current_action_includes)` in an appropriate order (messy), or (4) use custom query (if index/custom list action) to define joins with handcoded SQL, e.g. (thanks to Tommy):
 
 ```ruby
-query_for :index, is: ->(t,q) {
+query_for index: ->(t,q) {
   # Using standard joins performs an INNER JOIN like we want, but doesn't eager load.
   # Using includes does an eager load, but does a LEFT OUTER JOIN, which isn't really what we want, but in this scenario is probably ok.
   # Using standard joins & includes results in bad SQL with table aliases.

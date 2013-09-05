@@ -1,4 +1,7 @@
 require 'restful_json/version'
 require 'restful_json/config'
-require 'restful_json/controller'
 require 'restful_json/authorizing'
+require 'restful_json/controller'
+require 'restful_json/controller/nil_param_values'
+require 'restful_json/controller/status_and_location'
+require 'restful_json/controller/validation_errors'

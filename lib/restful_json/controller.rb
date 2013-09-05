@@ -2,12 +2,11 @@ module RestfulJson
   module Controller
     extend ::ActiveSupport::Concern
 
-    NILS = ['NULL'.freeze, 'null'.freeze, 'nil'.freeze].to_set
-
     included do
       # create class attributes for each controller option
       class_attribute :action_to_query, instance_writer: true
       class_attribute :action_to_query_includes, instance_writer: true
+      class_attribute :action_to_valid_render_options, instance_writer: true
       class_attribute :can_be_ordered_by, instance_writer: true
       class_attribute :default_filtered_by, instance_writer: true
       class_attribute :default_ordered_by, instance_writer: true
@@ -28,6 +27,7 @@ module RestfulJson
       
       self.action_to_query ||= {}
       self.action_to_query_includes ||= {}
+      self.action_to_valid_render_options ||= {}
       self.can_be_ordered_by ||= []
       self.default_filtered_by ||= {}
       self.default_ordered_by ||= []
@@ -46,9 +46,6 @@ module RestfulJson
       #   can_filter_by :attr_name_1, :attr_name_2 # implied using: [eq] if RestfulJson.can_filter_by_default_using = [:eq] 
       #   can_filter_by :attr_name_1, :attr_name_2, using: [:eq, :not_eq]
       #
-      # When :with_query is specified, it will call a supplied lambda. e.g. t is self.model_class.arel_table, q is self.model_class.all, and p is params[:my_param_name]:
-      #   can_filter_by :my_param_name, with_query: ->(t,q,p) {...}
-      #
       # When :through is specified, it will take the array supplied to through as 0 to many model names following by an attribute name. It will follow through
       # each association until it gets to the attribute to filter by that via ARel joins, e.g. if the model Foobar has an association to :foo, and on the Foo model there is an assocation
       # to :bar, and you want to filter by bar.name (foobar.foo.bar.name):
@@ -57,10 +54,12 @@ module RestfulJson
         options = args.extract_options!
 
         raise "with_default is no longer supported. Please use default_filter." if options[:with_default]
+        raise "with_query is no longer supported. Please use can_filter_by_query." if options[:with_query]
 
         # :using is the default action if no options are present
-        if options[:using] || options.size == 0
-          predicates = Array.wrap(options[:using] || self.can_filter_by_default_using)
+        opt_using = options.delete(:using)
+        if opt_using || options.size == 0
+          predicates = Array.wrap(opt_using || self.can_filter_by_default_using)
           predicates.each do |predicate|
             predicate_sym = predicate.to_sym
             args.each do |attr|
@@ -71,16 +70,28 @@ module RestfulJson
           end
         end
 
-        if options[:with_query]
-          args.each do |with_query_key|
-            self.param_to_query[with_query_key.to_sym] = options[:with_query]
+        opt_through = options.delete(:through)
+        if opt_through
+          args.each do |through_key|
+            self.param_to_through[through_key.to_sym] = opt_through
           end
         end
 
-        if options[:through]
-          args.each do |through_key|
-            self.param_to_through[through_key.to_sym] = options[:through]
-          end
+        raise "options #{opt_through.inspect} not supported by can_filter_by" if options.present?
+      end
+
+      # Specify a custom query to filter by if the named request parameter is provided.
+      #
+      # t is self.model_class.arel_table and q is self.model_class.all, e.g.
+      #   can_filter_by_query status: ->(t,q,param_value) { q.where(:status_code => param_value) },
+      #                       color: ->(t,q,param_value) { q.where(:color => param_value) }
+      def can_filter_by_query(*args)
+        options = args.extract_options!
+
+        raise "can_filter_by_query takes hash of param name to proc, e.g. can_filter_by_query status: ->(t,q,param_value) { q.where(:status_code => param_value) }" if args.length > 0
+        
+        options.each do |param_name, proc|
+          self.param_to_query[param_name.to_sym] = proc
         end
       end
 
@@ -99,10 +110,22 @@ module RestfulJson
         end
       end
 
+      # Specify options to merge into a render of a valid object, e.g.
+      #   valid_render_options :index, serializer: FoobarSerializer
+      # For more control, override the `render_(action name)_valid_options` method.
+      def valid_render_options(*args)
+        options = args.extract_options!
+
+        args.each do |action_name|
+          (self.action_to_valid_render_options[action_name.to_sym] ||= {}).merge(options)
+        end
+      end
+
       # Can specify additional functions in the index, e.g.
       #   supports_functions :skip, :uniq, :take, :count
       def supports_functions(*args)
         args.extract_options! # remove hash from array- we're not using it yet
+        self.supported_functions ||= []
         self.supported_functions += args
       end
 
@@ -111,7 +134,11 @@ module RestfulJson
       # or includes({posts: [{comments: :guest}, :tags]}):
       #   including posts: [{comments: :guest}, :tags]
       def including(*args)
-        self.query_includes = args
+        options = args.extract_options!
+        self.query_includes ||= []
+        options.merge!(self.query_includes.extract_options!)
+        self.query_includes += args
+        self.query_includes << options
       end
 
       # Calls .includes(...) only on specified action queries. Take a hash of action as symbol to the includes, e.g.:
@@ -121,7 +148,7 @@ module RestfulJson
         options = args.extract_options!
         args.each do |an_action|
           if options[:are]
-            self.action_to_query_includes.merge!({an_action.to_sym => options[:are]})
+            (self.action_to_query_includes ||= {}).merge!({an_action.to_sym => options[:are]})
           else
             raise "#{self.class.name} must supply an :are option with includes_for #{an_action.inspect}"
           end
@@ -131,18 +158,18 @@ module RestfulJson
       # Specify a custom query. If action specified does not have a method, it will alias_method index to create a new action method with that query.
       #
       # t is self.model_class.arel_table and q is self.model_class.all, e.g.
-      #   query_for :index, is: -> {|t,q| q.where(:status_code => 'green')}
+      #   query_for index: ->(t,q) { q.where(:status_code => 'green') },
+      #             at_risk: ->(t,q) { q.where(:status_code => 'yellow') }
       def query_for(*args)
         options = args.extract_options!
-        # TODO: support custom actions to be automaticaly defined
-        args.each do |an_action|
-          if options[:is]
-            self.action_to_query[an_action.to_sym] = options[:is]
-          else
-            raise "#{self.class.name} must supply an :is option with query_for #{an_action.inspect}"
-          end
-          unless an_action.to_sym == :index
-            alias_method an_action.to_sym, :index
+
+        raise "query_for takes hash of action to proc, e.g. query_for index: ->(t,q) { q.where(:status_code => 'green') }" if args.length > 0
+        
+        options.each do |action_name, proc|
+          self.action_to_query[action_name.to_sym] = proc
+          
+          unless action_name.to_sym == :index
+            alias_method action_name.to_sym, :index
           end
         end
       end
@@ -218,11 +245,8 @@ module RestfulJson
       class_eval "def #{@model_singular_name}_url(record);#{singularized_underscored_modules_and_underscored_plural_model_name}_url(record);end" unless @model_singular_name == singularized_underscored_modules_and_underscored_plural_model_name
     end
 
-    # By default this converts request parameter filter values 'NULL', 'null', 'nil' to nil.
-    # This is what converts passed in filter values, so could override to parse other date
-    # format, etc.
     def convert_request_param_value_for_filtering(attr_sym, value)
-      value && NILS.include?(value) ? nil : value
+      value
     end
 
     def find_model_instance_with(aparams, first_sym)
@@ -449,9 +473,6 @@ module RestfulJson
       end
 
       render_index instance_variable_set(@model_at_plural_name_sym, value.to_a)
-    rescue => e
-      puts "WTF req params: #{params.inspect}"
-      raise e
     end
 
     def params_for_index
@@ -459,7 +480,19 @@ module RestfulJson
     end
 
     def render_index(value)
-      value
+      value.respond_to?(:errors) && value.errors.size > 0 ? render_index_invalid(value) : render_index_valid(value)
+    end
+
+    def render_index_invalid(value)
+      render_index_valid(value)
+    end
+
+    def render_index_valid(value)
+      respond_with value, (render_index_valid_options(value) || {}).merge(self.action_to_valid_render_options[:index] || {})
+    end
+
+    def render_index_valid_options(value)
+      {}
     end
 
     # The controller's show (get) method to return a resource.
@@ -474,7 +507,19 @@ module RestfulJson
     end
 
     def render_show(value)
-      value
+      value.respond_to?(:errors) && value.errors.size > 0 ? render_show_invalid(value) : render_show_valid(value)
+    end
+
+    def render_show_invalid(value)
+      render_show_valid(value)
+    end
+
+    def render_show_valid(value)
+      respond_with value, (render_show_valid_options(value) || {}).merge(self.action_to_valid_render_options[:show] || {})
+    end
+
+    def render_show_valid_options(value)
+      {}
     end
 
     # The controller's new method (e.g. used for new record in html format).
@@ -483,7 +528,19 @@ module RestfulJson
     end
 
     def render_new(value)
-      value
+      value.respond_to?(:errors) && value.errors.size > 0 ? render_new_invalid(value) : render_new_valid(value)
+    end
+
+    def render_new_invalid(value)
+      render_new_valid(value)
+    end
+
+    def render_new_valid(value)
+      respond_with value, (render_new_valid_options(value) || {}).merge(self.action_to_valid_render_options[:new] || {})
+    end
+
+    def render_new_valid_options(value)
+      {}
     end
 
     # The controller's edit method (e.g. used for edit record in html format).
@@ -498,7 +555,19 @@ module RestfulJson
     end
 
     def render_edit(value)
-      value
+      value.respond_to?(:errors) && value.errors.size > 0 ? render_edit_invalid(value) : render_edit_valid(value)
+    end
+
+    def render_edit_invalid(value)
+      render_edit_valid(value)
+    end
+
+    def render_edit_valid(value)
+      respond_with value, (render_edit_valid_options(value) || {}).merge(self.action_to_valid_render_options[:edit] || {})
+    end
+
+    def render_edit_valid_options(value)
+      {}
     end
 
     # The controller's create (post) method to create a resource.
@@ -514,7 +583,19 @@ module RestfulJson
     end
 
     def render_create(value)
-      value.respond_to?(:errors) && value.errors.size > 0 ? render_validation_errors(value) : respond_with(value, status: :created, location: @value)
+      value.respond_to?(:errors) && value.errors.size > 0 ? render_create_invalid(value) : render_create_valid(value)
+    end
+
+    def render_create_invalid(value)
+      render_create_valid(value)
+    end
+
+    def render_create_valid(value)
+      respond_with value, (render_create_valid_options(value) || {}).merge(self.action_to_valid_render_options[:create] || {})
+    end
+
+    def render_create_valid_options(value)
+      {}
     end
 
     # The controller's update (put) method to update a resource.
@@ -530,7 +611,19 @@ module RestfulJson
     end
 
     def render_update(value)
-      value.respond_to?(:errors) && value.errors.size > 0 ? render_validation_errors(value) : render(status: :no_content)
+      value.respond_to?(:errors) && value.errors.size > 0 ? render_update_invalid(value) : render_update_valid(value)
+    end
+
+    def render_update_invalid(value)
+      render_update_valid(value)
+    end
+
+    def render_update_valid(value)
+      respond_with value, (render_update_valid_options(value) || {}).merge(self.action_to_valid_render_options[:update] || {})
+    end
+
+    def render_update_valid_options(value)
+      {}
     end
 
     # The controller's destroy (delete) method to destroy a resource.
@@ -547,19 +640,19 @@ module RestfulJson
     end
 
     def render_destroy(value)
-      value
+      value.respond_to?(:errors) && value.errors.size > 0 ? render_destroy_invalid(value) : render_destroy_valid(value)
     end
 
-    def render_validation_errors(value)
-      #TODO: bad test request format?
-      content_type = request.formats.first.to_s.reverse.split('/')[0].split('-')[0].reverse
-      # use implicit rendering for html if html or we don't know
-      return value if request.format.html?
-      # Rails 4.0.0 still punts in validation error handling. :(
-      # This probably won't work.
-      respond_to do |format|
-        format.any { render content_type.to_sym => { errors: value.errors }, status: 422 }
-      end
+    def render_destroy_invalid(value)
+      render_destroy_valid(value)
+    end
+
+    def render_destroy_valid(value)
+      respond_with value, (render_destroy_valid_options(value) || {}).merge(self.action_to_valid_render_options[:destroy] || {})
+    end
+
+    def render_destroy_valid_options(value)
+      {}
     end
   end
 end

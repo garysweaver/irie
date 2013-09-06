@@ -27,7 +27,7 @@ class FoobarsController < ApplicationController
   include RestfulJson::Controller
   respond_to :json, :html
 
-  query_for index: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
+  query_for index: ->(q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
   can_filter_by :name
   can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt]
   can_filter_by :some_attribute, through: [:assoc_name, :sub_assoc_name, :some_attribute]
@@ -54,13 +54,13 @@ https://example.org/foobars?order=foo_color,-foo_date # Foobar.all.order(:foo_co
 And some methods like `query_for` and `can_filter_by` can take procs/lambdas if you want a concise way to define queries, e.g.:
 
 ```ruby
-query_for index: ->(t,q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
+query_for index: ->(q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
 ```
 
 and:
 
 ```ruby
-can_filter_by_query a_request_param_name: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
+can_filter_by_query a_request_param_name: ->(q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
 ```
 
 It can also easily integrate with commonly used gems for authorization via `include RestfulJson::Authorizing` and most authentication solutions (using `before_action` or similar).
@@ -105,9 +105,9 @@ RestfulJson.configure do
   self.filter_split = ','
 
   # Use one or more alternate request parameter names for functions,
-  # e.g. use z_uniq instead of uniq, and allow translations of take:
-  #   self.function_param_names = {uniq: :z_uniq, take: [:take, :nehmen, :prendre]}
-  # Supported_functions in the controller will still expect the original name, e.g. uniq.
+  # e.g. use very_distinct instead of distinct, and either limit or limita for limit
+  #   self.function_param_names = {distinct: :very_distinct, limit: [:limit, :limita]}
+  # Supported_functions in the controller will still expect the original name, e.g. distinct.
   self.function_param_names = {}
   
   # Delimiter for ARel predicate in the request parameter name.
@@ -137,9 +137,9 @@ All of the app-level configuration parameters are configurable in the controller
   self.filter_split = ','
 
   # Use one or more alternate request parameter names for functions,
-  # e.g. use z_uniq instead of uniq, and allow translations of take:
-  #   self.function_param_names = {uniq: :z_uniq, take: [:take, :nehmen, :prendre]}
-  # Supported_functions in the controller will still expect the original name, e.g. uniq.
+  # e.g. use very_distinct instead of distinct, and either limit or limita for limit
+  #   self.function_param_names = {distinct: :very_distinct, limit: [:limit, :limita]}
+  # Supported_functions in the controller will still expect the original name, e.g. distinct.
   self.function_param_names = {}
   
   # Delimiter for ARel predicate in the request parameter name.
@@ -200,7 +200,7 @@ can_filter_by :a_request_param_name, through: [:some_assoc, :some_attr]
 Let's say you are in MagicalValleyController, and the MagicalValley model `has many :magical_unicorns`. The MagicalUnicorn model has an attribute called `name`. You want to return MagicalValleys that are associated with all of the MagicalUnicorns named 'Rainbow'. You could do either:
 
 ```ruby
-can_filter_by_query magical_unicorn_name: ->(t,q,param_value) {q.joins(:magical_unicorns).where(:magical_unicorns=>{name: param_value})}
+can_filter_by_query magical_unicorn_name: ->(q, param_value) { q.joins(:magical_unicorns).where(magical_unicorns: {name: param_value}) }
 ```
 
 or:
@@ -230,7 +230,7 @@ http://localhost:3000/magical_valleys?magical_unicorn_friend_name=Oscar
 Use `can_filter_by_query` to provide a lambda:
 
 ```ruby
-can_filter_by_query a_request_param_name: ->(t,q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
+can_filter_by_query a_request_param_name: ->(q, param_value) { q.joins(:some_assoc).where(some_assocs_table_name: {some_attr: param_value}) }
 ```
 
 The third argument sent to the lambda is the request parameter value converted by the `convert_request_param_value_for_filtering(attr_sym, value)` method which may be customized. See elsewhere in this document for more information about the behavior of this method.
@@ -292,6 +292,8 @@ Now this works:
 http://localhost:3000/foobars?count=
 ```
 
+Note: to avoid having to have non-html views for count, use `include ::RestfulJson::Controller::Counts`.
+
 ##### Paging
 
 First, declare in the controller:
@@ -306,7 +308,9 @@ Now you can get the page count:
 http://localhost:3000/foobars?page_count=
 ```
 
-And access each page of results:
+Note: to avoid having to have non-html views for count, use `include ::RestfulJson::Controller::Counts`.
+
+To access each page of results:
 
 ```
 http://localhost:3000/foobars?page=1
@@ -375,19 +379,16 @@ default_order {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
 
 #### Custom Index Queries
 
-To filter the list where the status_code attribute is 'green' (note lack of whitespace between stab and parenthesis):
+To filter the list where the status_code attribute is 'green':
 
 ```ruby
-# t is self.model_class.arel_table and q is self.model_class.scoped
-query_for index: ->(t,q) { q.where(:status_code => 'green') }
+query_for index: ->(q) { q.where(:status_code => 'green') }
 ```
 
 You can also filter out items that have associations that don't have a certain attribute value (or anything else you can think up with [ARel][arel]/[ActiveRecord relations][ar]), e.g. to filter the list where the object's apples and pears associations are green:
 
 ```ruby
-# t is self.model_class.arel_table and q is self.model_class.scoped
-# note: must be no space between -> and parenthesis
-query_for index: ->(t,q) {
+query_for index: ->(q) {
   q.joins(:apples, :pears)
   .where(apples: {color: 'green'})
   .where(pears: {color: 'green'})
@@ -400,12 +401,10 @@ To avoid n+1 queries, use `.includes(...)` in your query to eager load any assoc
 
 You are still working with regular controllers here, so add or override methods if you want more!
 
-However `query_for` will create new action methods, so you can easily create custom non-RESTful action methods:
+However `query_for` can create new action methods, e.g.:
 
 ```ruby
-# t is self.model_class.arel_table and q is self.model_class.scoped
-# note: must be no space between -> and parenthesis in lambda syntax!
-query_for some_action: ->(t,q) do
+query_for some_action: ->(q) do
     if @current_user.admin?
       Rails.logger.debug("Notice: unfiltered results provided to admin #{@current_user.name}")
       # just make sure the relation is returned!
@@ -416,7 +415,9 @@ query_for some_action: ->(t,q) do
 end
 ```
 
-Be sure to add a route for that action, e.g. in `config/routes.rb`, e.g. for the Barfoo model:
+will create an action named 'some_action'. You'll need to add views and routes, but the controller part is done.
+
+In addition to creating the related view(s), be sure to add a route in `config/routes.rb` like:
 
 ```ruby
 MyAppName::Application.routes.draw do
@@ -481,9 +482,10 @@ Each action in `RestfulJson::Controller` has a corresponding `render_*` method a
 
 There are also a few concerns in `lib/restful_json/controller`, some of which can change the rendering behavior and all of which can be used as examples for how to extend the controller:
 
+* `include ::RestfulJson::Controller::Counts` - renders filtered count/page count for non-html formats (in html use `@count` instead).
 * `include ::RestfulJson::Controller::NilParamValues` - convert 'NULL', 'null', and 'nil' to nil when passed in as request params.
 * `include ::RestfulJson::Controller::StatusAndLocation` - use [standard](http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.2) RESTful status codes.
-* `include ::RestfulJson::Controller::ValidationErrors` - return the errors object if not empty when object is invalid, otherwise you have to render errors by hand in your view. This is probably more DRY than using an error partial and might evolve with Rails with very low maintenance.
+* `include ::RestfulJson::Controller::ValidationErrors` - renders the validation errors for non-html formats (in html use `@my_model.errors` instead).
 
 #### Exception Handling
 
@@ -542,7 +544,7 @@ If you get `missing FROM-clause entry for table` errors, it might mean that `inc
 To fix, you may decide to either: (1) change order/definition of includes in `including`/`includes_for`, (2) don't use `including`/`includes_for` for the actions it affects (may cause n+1 queries), (3) implement `apply_includes` to apply `value = value.includes(*current_action_includes)` in an appropriate order (messy), or (4) use custom query (if index/custom list action) to define joins with handcoded SQL, e.g. (thanks to Tommy):
 
 ```ruby
-query_for index: ->(t,q) {
+query_for index: ->(q) {
   # Using standard joins performs an INNER JOIN like we want, but doesn't eager load.
   # Using includes does an eager load, but does a LEFT OUTER JOIN, which isn't really what we want, but in this scenario is probably ok.
   # Using standard joins & includes results in bad SQL with table aliases.

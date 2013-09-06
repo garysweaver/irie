@@ -6,7 +6,7 @@ class SpecialBarfoosController < ApplicationController
   # make it use Barfoo class under the hood
   self.model_class = Barfoo
 
-  query_for some_action: ->(t,q) {q.where(:status => 2)}
+  query_for some_action: ->(q) {q.where(:status => 2)}
 
 private
 

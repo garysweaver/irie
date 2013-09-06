@@ -149,7 +149,6 @@ describe FoobarsController do
       Foobar.delete_all
       # won't wrap in test without this per https://github.com/rails/rails/issues/6633
       @request.env['CONTENT_TYPE'] = 'application/json'
-      foo_id = SecureRandom.urlsafe_base64
       begin
         put :create, foo: Foo.where(id: 1).first, format: :json
         fail "cancan should not allow put" if response.status < 400

@@ -16,6 +16,9 @@
 * Added a few built-in concerns that are practical for extension that also act as examples for others to extend it.
 * Changed query_for so that it now takes hash of action to proc/lambda.
 * Removed with_query on can_filter_by and replaced with method can_filter_by_query.
+* No longer send @model_class.arel_table (t) into query lambdas.
+* Can rename or alias the request parameter names used for functions, so less chance of conflicts now.
+* Renamed functions to be relational: uniq -> distinct, skip -> offset, take -> limit.
 
 ## restful_json 4.5.1 ##
 

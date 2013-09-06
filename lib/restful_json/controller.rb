@@ -62,10 +62,10 @@ module RestfulJson
           predicates = Array.wrap(opt_using || self.can_filter_by_default_using)
           predicates.each do |predicate|
             predicate_sym = predicate.to_sym
-            args.each do |attr|
-              attr_sym = attr.to_sym
-              self.param_to_attr_and_arel_predicate[attr_sym] = [attr_sym, :eq, options] if predicate_sym == :eq
-              self.param_to_attr_and_arel_predicate["#{attr}#{self.predicate_prefix}#{predicate}".to_sym] = [attr_sym, predicate_sym, options]
+            args.each do |attr_name|
+              attr_sym = attr_name.to_sym
+              self.param_to_attr_and_arel_predicate[attr_sym] = [attr_sym, :eq] if predicate_sym == :eq
+              self.param_to_attr_and_arel_predicate["#{attr_name}#{self.predicate_prefix}#{predicate}".to_sym] = [attr_sym, predicate_sym]
             end
           end
         end
@@ -169,7 +169,7 @@ module RestfulJson
           self.action_to_query[action_name.to_sym] = proc
           
           unless action_name.to_sym == :index
-            alias_method action_name.to_sym, :index
+            list_action action_name
           end
         end
       end
@@ -208,6 +208,15 @@ module RestfulJson
       #   default_order {:foo_date => :asc}, :foo_color, 'foo_name', {:bar_date => :desc}
       def default_order(args)
         self.default_ordered_by = (Array.wrap(self.default_ordered_by) + Array.wrap(args)).flatten.compact.collect {|item|item.is_a?(Hash) ? item : {item.to_sym => :asc}}
+      end
+
+      def list_action(action_name)
+        alias_method action_name.to_sym, :index
+        alias_method "params_for_#{action_name}".to_sym, :params_for_index
+        alias_method "render_#{action_name}".to_sym, :render_index
+        alias_method "render_#{action_name}_options".to_sym, :render_index_options
+        alias_method "render_#{action_name}_count".to_sym, :render_index_count
+        alias_method "render_#{action_name}_page_count".to_sym, :render_index_page_count
       end
     end
 
@@ -282,32 +291,32 @@ module RestfulJson
       self.action_to_query_includes[params[:action].to_sym] || self.query_includes
     end
 
-    def apply_includes(value)
+    def apply_includes(relation)
       this_includes = current_action_includes
       if this_includes && this_includes.size > 0
-        value = value.includes(*this_includes)
+        relation.includes!(*this_includes)
       end
-      value
+      relation
     end
 
     # The controller's index (list) method to list resources.
+    # Note: query_for with non-index action or list_action will alias_method this and all other index-related methods.
     def index
-      aparams = params_for_index
-      t = @model_class.arel_table
-      value = @model_class.all
+      aparams = __send__("params_for_#{params[:action]}".to_sym)
+      relation = @model_class.all
       custom_query = self.action_to_query[params[:action].to_sym]
       if custom_query
-        value = custom_query.call(t, value)
+        relation = custom_query.call(relation)
       end
-
-      value = apply_includes(value)
 
       self.param_to_query.each do |param_name, param_query|
         unless aparams[param_name].nil?
           # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-          value = param_query.call(t, value, convert_request_param_value_for_filtering(param_name, aparams[param_name].to_s))
+          relation = param_query.call(relation, convert_request_param_value_for_filtering(param_name, aparams[param_name].to_s))
         end
       end
+
+      apply_includes(relation)
 
       self.param_to_through.each do |param_name, through_array|
         unless aparams[param_name].nil?
@@ -319,7 +328,7 @@ module RestfulJson
             if association_or_attribute == through_array.last
               # must convert param value to string before possibly using with ARel because of CVE-2013-1854, fixed in: 3.2.13 and 3.1.12 
               # https://groups.google.com/forum/?fromgroups=#!msg/rubyonrails-security/jgJ4cjjS8FE/BGbHRxnDRTIJ
-              value = value.joins(joins).where(last_model_class.table_name.to_sym => {association_or_attribute => aparams[param_name].to_s})
+              relation.joins!(joins).where!(last_model_class.table_name.to_sym => {association_or_attribute => aparams[param_name].to_s})
             else
               found_classes = last_model_class.reflections.collect {|association_name, reflection| reflection.class_name.constantize if association_name.to_sym == association_or_attribute}.compact
               if found_classes.size > 0
@@ -344,11 +353,13 @@ module RestfulJson
         if param_to_attr_and_arel_predicate[param_name]
           attr_sym = param_to_attr_and_arel_predicate[param_name][0]
           predicate_sym = param_to_attr_and_arel_predicate[param_name][1]
-          options = param_to_attr_and_arel_predicate[param_name][2]
           unless aparams[param_name].nil?
             # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
             one_or_more_param = aparams[param_name].to_s.split(self.filter_split).collect{|v|convert_request_param_value_for_filtering(attr_sym, v)}
-            value = value.where(t[attr_sym].try(predicate_sym, one_or_more_param))
+            relation.where!(
+              relation.arel_table[attr_sym].
+              try(predicate_sym, 
+                one_or_more_param))
             filtered_by_param_names << attr_sym
           end
         end
@@ -357,168 +368,139 @@ module RestfulJson
       self.default_filtered_by.each do |attr_sym, predicates_to_default_values|
         unless filtered_by_param_names.include?(attr_sym) || predicates_to_default_values.blank?
           predicates_to_default_values.each do |predicate_sym, one_or_more_default_value|
-            value = value.where(t[attr_sym].try(predicate_sym, Array.wrap(one_or_more_default_value)))
+            relation.where!(t[attr_sym].try(predicate_sym, Array.wrap(one_or_more_default_value)))
           end
         end
       end
 
-      if self.supported_functions.include?(:page)
-        page_param_names = Array.wrap(self.function_param_names[:page] || :page)
-        page_param_names.each do |page_param_name|
-          page_param = aparams[page_param_name]
-          if page_param
-            page = page_param.to_i
-            page = 1 if page < 1 # to avoid people using this as a way to get all records unpaged, as that probably isn't the intent?
-            #TODO: to_s is hack to avoid it becoming an Arel::SelectManager for some reason which not sure what to do with
-            value = value.skip((self.number_of_records_in_a_page * (page - 1)).to_s)
-            value = value.take((self.number_of_records_in_a_page).to_s)
-          end
-        end
+      when_supported_function(:page, relation, aparams) do |rel, param_val|
+        page = param_val.to_i
+        page = 1 if page < 1 # to avoid people using this as a way to get all records unpaged, as that probably isn't the intent?
+        #TODO: to_s is hack to avoid it becoming an Arel::SelectManager for some reason which not sure what to do with
+        rel.offset!((self.number_of_records_in_a_page * (page - 1)).to_s)
+        rel.limit!(self.number_of_records_in_a_page.to_s)
       end
 
-      if self.supported_functions.include?(:skip)
-        skip_param_names = Array.wrap(self.function_param_names[:skip] || :skip)
-        skip_param_names.each do |skip_param_name|
-          skip_param = aparams[skip_param_name]
-          if skip_param
-            # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-            value = value.skip(skip_param.to_s)
-          end
-        end
+      when_supported_function(:offset, relation, aparams) do |rel, param_val|
+        rel.offset!(param_val.to_s)
       end
 
-      if self.supported_functions.include?(:take)
-        take_param_names = Array.wrap(self.function_param_names[:take] || :take)
-        take_param_names.each do |take_param_name|
-          take_param = aparams[take_param_name]
-          if take_param
-            # to_s as safety measure for vulnerabilities similar to CVE-2013-1854
-            value = value.take(take_param.to_s)
-          end
-        end
+      when_supported_function(:limit, relation, aparams) do |rel, param_val|
+        rel.limit!(param_val.to_s)
+      end
+
+      when_supported_function(:distinct, relation, aparams) do |rel, param_val|
+        rel.distinct!
+      end
+
+      result = when_supported_function(:count, relation, aparams) do |rel, param_val|
+        rel.count.to_i
+      end
+
+      return __send__("render_#{params[:action]}_count".to_sym, result) if result
+
+      result = when_supported_function(:page_count, relation, aparams) do |rel, param_val|
+        count_value = rel.count.to_i # this executes the query so nothing else can be done in AREL
+        (count_value / self.number_of_records_in_a_page) + (count_value % self.number_of_records_in_a_page ? 1 : 0)
       end
       
-      if self.supported_functions.include?(:uniq)
-        uniq_param_names = Array.wrap(self.function_param_names[:uniq] || :uniq)
-        uniq_param_names.each do |uniq_param_name|
-          uniq_param = aparams[uniq_param_name]
-          if uniq_param
-            value = value.uniq
-          end
-        end
-      end
+      return __send__("render_#{params[:action]}_page_count".to_sym, result) if result
 
-      # these must happen at the end and are independent
-      stop_building_query = false
-
-      # assuming this is first so we won't worry about checking stop_building_query
-      if self.supported_functions.include?(:count)
-        count_param_names = Array.wrap(self.function_param_names[:count] || :count)
-        count_param_names.each do |count_param_name|
-          count_param = aparams[count_param_name]
-          if count_param
-            value = value.count.to_i
-            stop_building_query = true
-          end
-        end
-      end
-
-      if !stop_building_query && self.supported_functions.include?(:page_count)
-        page_count_param_names = Array.wrap(self.function_param_names[:page_count] || :page_count)
-        page_count_param_names.each do |page_count_param_name|
-          page_count_param = aparams[page_count_param_name]
-          if page_count_param
-            count_value = value.count.to_i # this executes the query so nothing else can be done in AREL
-            value = (count_value / self.number_of_records_in_a_page) + (count_value % self.number_of_records_in_a_page ? 1 : 0)
-            stop_building_query = true
-          end
-        end
-      end
-
-      if !stop_building_query
-        already_ordered_by = []
-        # assuming this is last so we won't worry about setting stop_building_query again.
-        order_param_names = Array.wrap(self.function_param_names[:order] || :order)
-        order_param_names.each do |order_param_name|
-          orig_order_param = aparams[order_param_name]
-          if orig_order_param
-            order_params = orig_order_param.split(self.filter_split)
-            order_params.each do |individual_order_param|
-              # remove optional preceding - or + to act as directional
-              direction = :asc
-              if individual_order_param[0] == '-'
-                direction = :desc
-                individual_order_param = individual_order_param.reverse.chomp('-').reverse
-              elsif individual_order_param[0] == '+'
-                individual_order_param = individual_order_param.reverse.chomp('+').reverse
-              end
-              # order of logic here is important:
-              # do not to_sym the partial param value until passes whitelist to avoid symbol attack
-              if self.can_be_ordered_by.include?(individual_order_param) && !already_ordered_by.include?(individual_order_param.to_sym)                
-                value = value.order(individual_order_param.to_sym => direction)
-                already_ordered_by << individual_order_param.to_sym
-              end
+      already_ordered_by = []
+      # assuming this is last so we won't worry about setting stop_building_query again.
+      order_param_names = Array.wrap(self.function_param_names[:order] || :order)
+      order_param_names.each do |order_param_name|
+        orig_order_param = aparams[order_param_name]
+        if orig_order_param
+          order_params = orig_order_param.split(self.filter_split)
+          order_params.each do |individual_order_param|
+            # remove optional preceding - or + to act as directional
+            direction = :asc
+            if individual_order_param[0] == '-'
+              direction = :desc
+              individual_order_param = individual_order_param.reverse.chomp('-').reverse
+            elsif individual_order_param[0] == '+'
+              individual_order_param = individual_order_param.reverse.chomp('+').reverse
+            end
+            # order of logic here is important:
+            # do not to_sym the partial param value until passes whitelist to avoid symbol attack
+            if self.can_be_ordered_by.include?(individual_order_param) && !already_ordered_by.include?(individual_order_param.to_sym)                
+              relation.order!(individual_order_param.to_sym => direction)
+              already_ordered_by << individual_order_param.to_sym
             end
           end
         end
+      end
 
-        self.default_ordered_by.each do |attr_to_direction|
-          attr_key = attr_to_direction.keys[0].to_sym
-          direction = attr_to_direction.values[0].to_sym
-          if !already_ordered_by.include?(attr_key)
-            value = value.order(attr_key => direction)
-            already_ordered_by << attr_key
-          end
+      self.default_ordered_by.each do |attr_to_direction|
+        attr_key = attr_to_direction.keys[0].to_sym
+        direction = attr_to_direction.values[0].to_sym
+        if !already_ordered_by.include?(attr_key)
+          relation.order!(attr_key => direction)
+          already_ordered_by << attr_key
         end
       end
 
-      render_index instance_variable_set(@model_at_plural_name_sym, value.to_a)
+      __send__("render_#{params[:action]}".to_sym, instance_variable_set(@model_at_plural_name_sym, relation.to_a))
     end
 
+    def when_supported_function(function_sym, relation, aparams)
+      if self.supported_functions.include?(function_sym)
+        param_names = Array.wrap(self.function_param_names[function_sym] || function_sym)
+        param_names.each do |param_name|
+          if aparams[param_name]
+            # need to return yield value for counts
+            return yield(relation, aparams[param_name])
+          end
+        end
+      end
+      # return nil to have some idea that a block wasn't executed
+      return nil
+    end
+
+    # Note: query_for with non-index action or list_action will alias_method this and all other index-related methods.
     def params_for_index
       params
     end
 
-    def render_index(value)
-      value.respond_to?(:errors) && value.errors.size > 0 ? render_index_invalid(value) : render_index_valid(value)
+    # Note: query_for with non-index action or list_action will alias_method this and all other index-related methods.
+    def render_index(records)
+      respond_with records, (__send__("render_#{params[:action]}_options".to_sym, records) || {}).merge(self.action_to_valid_render_options[params[:action].to_sym] || {})
     end
 
-    def render_index_invalid(value)
-      render_index_valid(value)
-    end
-
-    def render_index_valid(value)
-      respond_with value, (render_index_valid_options(value) || {}).merge(self.action_to_valid_render_options[:index] || {})
-    end
-
-    def render_index_valid_options(value)
+    # Note: query_for with non-index action or list_action will alias_method this and all other index-related methods.
+    def render_index_options(records)
       {}
+    end
+
+    # Note: query_for with non-index action or list_action will alias_method this and all other index-related methods.
+    def render_index_count(count)
+      @count = count
+      render "#{params[:action]}_count"
+    end
+
+    # Note: query_for with non-index action or list_action will alias_method this and all other index-related methods.
+    def render_index_page_count(count)
+      @count = count
+      render "#{params[:action]}_page_count"
     end
 
     # The controller's show (get) method to return a resource.
     def show
       aparams = params_for_show
-      value = find_model_instance!(aparams)
-      render_show instance_variable_set(@model_at_singular_name_sym, value)
+      record = find_model_instance!(aparams)
+      render_show instance_variable_set(@model_at_singular_name_sym, record)
     end
 
     def params_for_show
       params
     end
 
-    def render_show(value)
-      value.respond_to?(:errors) && value.errors.size > 0 ? render_show_invalid(value) : render_show_valid(value)
+    def render_show(record)
+      respond_with record, (render_show_options(record) || {}).merge(self.action_to_valid_render_options[:show] || {})
     end
 
-    def render_show_invalid(value)
-      render_show_valid(value)
-    end
-
-    def render_show_valid(value)
-      respond_with value, (render_show_valid_options(value) || {}).merge(self.action_to_valid_render_options[:show] || {})
-    end
-
-    def render_show_valid_options(value)
+    def render_show_options(record)
       {}
     end
 
@@ -527,102 +509,86 @@ module RestfulJson
       render_new instance_variable_set(@model_at_singular_name_sym, @model_class.new)
     end
 
-    def render_new(value)
-      value.respond_to?(:errors) && value.errors.size > 0 ? render_new_invalid(value) : render_new_valid(value)
+    def render_new(record)
+      respond_with record, (render_new_valid_options(record) || {}).merge(self.action_to_valid_render_options[:new] || {})
     end
 
-    def render_new_invalid(value)
-      render_new_valid(value)
-    end
-
-    def render_new_valid(value)
-      respond_with value, (render_new_valid_options(value) || {}).merge(self.action_to_valid_render_options[:new] || {})
-    end
-
-    def render_new_valid_options(value)
+    def render_new_valid_options(record)
       {}
     end
 
     # The controller's edit method (e.g. used for edit record in html format).
     def edit
       aparams = params_for_edit
-      value = find_model_instance!(aparams)
-      render_edit instance_variable_set(@model_at_singular_name_sym, value)
+      record = find_model_instance!(aparams)
+      render_edit instance_variable_set(@model_at_singular_name_sym, record)
     end
 
     def params_for_edit
       params
     end
 
-    def render_edit(value)
-      value.respond_to?(:errors) && value.errors.size > 0 ? render_edit_invalid(value) : render_edit_valid(value)
+    def render_edit(record)
+      respond_with record, (render_edit_options(record) || {}).merge(self.action_to_valid_render_options[:edit] || {})
     end
 
-    def render_edit_invalid(value)
-      render_edit_valid(value)
-    end
-
-    def render_edit_valid(value)
-      respond_with value, (render_edit_valid_options(value) || {}).merge(self.action_to_valid_render_options[:edit] || {})
-    end
-
-    def render_edit_valid_options(value)
+    def render_edit_options(record)
       {}
     end
 
     # The controller's create (post) method to create a resource.
     def create
       aparams = params_for_create
-      value = @model_class.new(aparams)
-      value.save
-      render_create instance_variable_set(@model_at_singular_name_sym, value)
+      record = @model_class.new(aparams)
+      record.save
+      render_create instance_variable_set(@model_at_singular_name_sym, record)
     end
 
     def params_for_create
       __send__(@model_singular_name_params_sym)
     end
 
-    def render_create(value)
-      value.respond_to?(:errors) && value.errors.size > 0 ? render_create_invalid(value) : render_create_valid(value)
+    def render_create(record)
+      record.respond_to?(:errors) && record.errors.size > 0 ? render_create_invalid(record) : render_create_valid(record)
     end
 
-    def render_create_invalid(value)
-      render_create_valid(value)
+    def render_create_invalid(record)
+      render_create_valid(record)
     end
 
-    def render_create_valid(value)
-      respond_with value, (render_create_valid_options(value) || {}).merge(self.action_to_valid_render_options[:create] || {})
+    def render_create_valid(record)
+      respond_with record, (render_create_valid_options(record) || {}).merge(self.action_to_valid_render_options[:create] || {})
     end
 
-    def render_create_valid_options(value)
+    def render_create_valid_options(record)
       {}
     end
 
     # The controller's update (put) method to update a resource.
     def update
       aparams = params_for_update
-      value = find_model_instance!(aparams)
-      value.update_attributes(aparams) unless value.nil?
-      render_update instance_variable_set(@model_at_singular_name_sym, value)
+      record = find_model_instance!(aparams)
+      record.update_attributes(aparams) unless record.nil?
+      render_update instance_variable_set(@model_at_singular_name_sym, record)
     end
 
     def params_for_update
       __send__(@model_singular_name_params_sym)
     end
 
-    def render_update(value)
-      value.respond_to?(:errors) && value.errors.size > 0 ? render_update_invalid(value) : render_update_valid(value)
+    def render_update(record)
+      record.respond_to?(:errors) && record.errors.size > 0 ? render_update_invalid(record) : render_update_valid(record)
     end
 
-    def render_update_invalid(value)
-      render_update_valid(value)
+    def render_update_invalid(record)
+      render_update_valid(record)
     end
 
-    def render_update_valid(value)
-      respond_with value, (render_update_valid_options(value) || {}).merge(self.action_to_valid_render_options[:update] || {})
+    def render_update_valid(record)
+      respond_with record, (render_update_valid_options(record) || {}).merge(self.action_to_valid_render_options[:update] || {})
     end
 
-    def render_update_valid_options(value)
+    def render_update_valid_options(record)
       {}
     end
 
@@ -630,28 +596,20 @@ module RestfulJson
     # RESTful delete is idempotent, i.e. does not fail if the record does not exist.
     def destroy
       aparams = params_for_destroy
-      value = find_model_instance(aparams)
-      value.destroy if value
-      render_destroy instance_variable_set(@model_at_singular_name_sym, value)
+      record = find_model_instance(aparams)
+      record.destroy if record
+      render_destroy instance_variable_set(@model_at_singular_name_sym, record)
     end
 
     def params_for_destroy
       params
     end
 
-    def render_destroy(value)
-      value.respond_to?(:errors) && value.errors.size > 0 ? render_destroy_invalid(value) : render_destroy_valid(value)
+    def render_destroy(record)
+      respond_with record, (render_destroy_options(record) || {}).merge(self.action_to_valid_render_options[:destroy] || {})
     end
 
-    def render_destroy_invalid(value)
-      render_destroy_valid(value)
-    end
-
-    def render_destroy_valid(value)
-      respond_with value, (render_destroy_valid_options(value) || {}).merge(self.action_to_valid_render_options[:destroy] || {})
-    end
-
-    def render_destroy_valid_options(value)
+    def render_destroy_options(record)
       {}
     end
   end

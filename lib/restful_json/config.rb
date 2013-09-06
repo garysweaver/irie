@@ -24,9 +24,9 @@ RestfulJson.configure do
   self.filter_split = ','
 
   # Use one or more alternate request parameter names for functions,
-  # e.g. use z_uniq instead of uniq, and allow translations of take:
-  #   self.function_param_names = {uniq: :z_uniq, take: [:take, :nehmen, :prendre]}
-  # Supported_functions in the controller will still expect the original name, e.g. uniq.
+  # e.g. use very_distinct instead of distinct, and either limit or limita for limit
+  #   self.function_param_names = {distinct: :very_distinct, limit: [:limit, :limita]}
+  # Supported_functions in the controller will still expect the original name, e.g. distinct.
   self.function_param_names = {}
   
   # Delimiter for ARel predicate in the request parameter name.

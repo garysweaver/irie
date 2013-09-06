@@ -1,5 +1,4 @@
-# Before every controller action, calls authorize! with the action and model class
-# for easy integration with authorizers like CanCan, etc.
+# Sets standard status and location properly in create and update in rendering options.
 module RestfulJson
   module Controller
     module StatusAndLocation

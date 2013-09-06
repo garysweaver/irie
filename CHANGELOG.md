@@ -19,6 +19,7 @@
 * No longer send @model_class.arel_table (t) into query lambdas.
 * Can rename or alias the request parameter names used for functions, so less chance of conflicts now.
 * Renamed functions to be relational: uniq -> distinct, skip -> offset, take -> limit.
+* Predicate prefix is '.' instead of '!'.
 
 ## restful_json 4.5.1 ##
 

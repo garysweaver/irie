@@ -9,11 +9,11 @@ class FoobarsController < ApplicationController
   # add standard Rails action methods
   include RestfulJson::Controller
 
-  # standard Rails 4 respond_to: http://api.rubyonrails.org/classes/ActionController/Responder.html
+  # standard Rails 4 respond_to
   respond_to :json, :html
 
 private
-  # standard Rails 4 request params permittance: https://github.com/rails/strong_parameters
+  # standard Rails 4 request params permittance
   def foobar_params
     params.require(:foobar).permit(:name)
   end
@@ -38,39 +38,76 @@ class FoobarsController < ApplicationController
 end
 ```
 
-Then, after implementing your json views, you could call these:
+Now assuming you set up routes and views, you could gets a Foobar with the name 'apple':
 
 ```
-https://example.org/foobars?name=apple # gets Foobar with name 'apple'
-https://example.org/foobars?bar_date.gt=2012-08-08 # gets Foobars with bar_date > 2012-08-08
-https://example.org/foobars?bar_date.gt=2012-08-08&count= # count of Foos with bar_date > 2012-08-08
-https://example.org/foobars?some_attribute=123&distinct= # joins to filter by assoc_name.sub_assoc_name.some_attribute
-https://example.org/foobars?page_count= # Foobar.all.count / RestfulJson.number_of_records_in_a_page
-https://example.org/foobars?page=1 # Foobar.all.limit(15)
-https://example.org/foobars?offset=30&limit=15 # Foobar.all.offset(30).limit(15)
-https://example.org/foobars?order=foo_color,-foo_date # Foobar.all.order(:foo_color).order(foo_date: :desc)
+https://example.org/foobars?name=apple
 ```
 
-And some methods like `query_for` and `can_filter_by` can take procs/lambdas if you want a concise way to define queries, e.g.:
+Get records with bar_date > 2012-08-08:
+
+```
+https://example.org/foobars?bar_date.gt=2012-08-08
+```
+
+Count records with bar_date > 2012-08-08:
+
+```
+https://example.org/foobars?bar_date.gt=2012-08-08&count=
+```
+
+Filter by assoc_name.sub_assoc_name.some_attribute:
+
+```
+https://example.org/foobars?some_attribute=123&distinct=
+```
+
+Find out how many pages of results there are:
+
+```
+https://example.org/foobars?page_count=
+```
+
+Get the first page:
+
+```
+https://example.org/foobars?page=1
+```
+
+Get a custom page:
+
+```
+https://example.org/foobars?offset=30&limit=15
+```
+
+Change the sort to ascending by foo_color (asc) and foo_date (desc):
+
+```
+https://example.org/foobars?order=foo_color,-foo_date
+```
+
+Define an action with a lambda:
 
 ```ruby
 query_for index: ->(q) { q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'}) }
 ```
 
-and:
+or filter by a request param with a lambda:
 
 ```ruby
-can_filter_by_query a_request_param_name: ->(q,param_value) { q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value}) }
+can_filter_by_query a_request_param_name: ->(q, param_value) { q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value}) }
 ```
 
-It can also easily integrate with commonly used gems for authorization via `include RestfulJson::Authorizing` and most authentication solutions (using `before_action` or similar).
+Easily integrate with commonly used gems for authorization via `include RestfulJson::Authorizing`.
+
+Otherwise, it is a regular controller so it will work will compatible authentication solutions using `before_action` or similar.
 
 ### Installation
 
 In your Rails app's `Gemfile`:
 
 ```ruby
-gem 'restful_json' # and use ~> and set to latest version
+gem 'restful_json' # use ~> and set to latest version
 ```
 
 Then:

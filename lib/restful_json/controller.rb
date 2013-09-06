@@ -122,7 +122,7 @@ module RestfulJson
       end
 
       # Can specify additional functions in the index, e.g.
-      #   supports_functions :skip, :uniq, :take, :count
+      #   supports_functions :count, :distinct, :limit, :offset, :page, :page_count
       def supports_functions(*args)
         args.extract_options! # remove hash from array- we're not using it yet
         self.supported_functions ||= []

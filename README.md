@@ -27,11 +27,11 @@ class FoobarsController < ApplicationController
   include RestfulJson::Controller
   respond_to :json, :html
 
-  query_for index: ->(q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
+  query_for index: ->(q) { q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'}) }
   can_filter_by :name
   can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt]
   can_filter_by :some_attribute, through: [:assoc_name, :sub_assoc_name, :some_attribute]
-  supports_functions :count, :uniq, :take, :skip, :page, :page_count
+  supports_functions :count, :distinct, :limit, :offset, :page, :page_count
   can_order_by :foo_date, :foo_color
   default_value :name, eq: 'anonymous'
   default_order {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
@@ -44,23 +44,23 @@ Then, after implementing your json views, you could call these:
 https://example.org/foobars?name=apple # gets Foobar with name 'apple'
 https://example.org/foobars?bar_date.gt=2012-08-08 # gets Foobars with bar_date > 2012-08-08
 https://example.org/foobars?bar_date.gt=2012-08-08&count= # count of Foos with bar_date > 2012-08-08
-https://example.org/foobars?some_attribute=123&uniq= # joins to filter by assoc_name.sub_assoc_name.some_attribute
+https://example.org/foobars?some_attribute=123&distinct= # joins to filter by assoc_name.sub_assoc_name.some_attribute
 https://example.org/foobars?page_count= # Foobar.all.count / RestfulJson.number_of_records_in_a_page
-https://example.org/foobars?page=1 # Foobar.all.take(15)
-https://example.org/foobars?skip=30&take=15 # Foobar.all.skip(30).take(15)
+https://example.org/foobars?page=1 # Foobar.all.limit(15)
+https://example.org/foobars?offset=30&limit=15 # Foobar.all.offset(30).limit(15)
 https://example.org/foobars?order=foo_color,-foo_date # Foobar.all.order(:foo_color).order(foo_date: :desc)
 ```
 
 And some methods like `query_for` and `can_filter_by` can take procs/lambdas if you want a concise way to define queries, e.g.:
 
 ```ruby
-query_for index: ->(q) {q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'})}
+query_for index: ->(q) { q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'}) }
 ```
 
 and:
 
 ```ruby
-can_filter_by_query a_request_param_name: ->(q,param_value) {q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value})}
+can_filter_by_query a_request_param_name: ->(q,param_value) { q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value}) }
 ```
 
 It can also easily integrate with commonly used gems for authorization via `include RestfulJson::Authorizing` and most authentication solutions (using `before_action` or similar).
@@ -262,31 +262,31 @@ and both attr_name_1 and production_date are supplied by the client, then it wou
 
 ##### Declaring
 
-`supports_functions` lets you allow the [ARel][arel] functions: `:uniq`, `:skip`, `:take`, and/or `:count`.
+`supports_functions` lets you allow the functions: `distinct`, `offset`, `limit`, and `count`.
 
-##### Unique (DISTINCT)
+##### Distinct
 
-First, declare in the controller:
+In the controller:
 
 ```ruby
-supports_functions :uniq
+supports_functions :distinct
 ```
 
-Now this works:
+enables:
 
 ```
-http://localhost:3000/foobars?uniq=
+http://localhost:3000/foobars?distinct=
 ```
 
 ##### Count
 
-First, declare in the controller:
+In the controller:
 
 ```ruby
 supports_functions :count
 ```
 
-Now this works:
+enables:
 
 ```
 http://localhost:3000/foobars?count=
@@ -296,13 +296,13 @@ Note: to avoid having to have non-html views for count, use `include ::RestfulJs
 
 ##### Paging
 
-First, declare in the controller:
+In the controller:
 
 ```ruby
 supports_functions :page, :page_count
 ```
 
-Now you can get the page count:
+enables:
 
 ```
 http://localhost:3000/foobars?page_count=
@@ -329,35 +329,30 @@ To set page size at controller level:
 self.number_of_records_in_a_page = 15
 ```
 
-##### Skip and Take (OFFSET and LIMIT)
+##### Offset and Limit
 
-First, declare in the controller:
+In the controller:
 
 ```ruby
-supports_functions :skip, :take
+supports_functions :offset, :limit
 ```
 
-To skip rows returned, use 'skip'. It is called take, because skip is the [ARel][arel] equivalent of SQL OFFSET:
+enables:
 
 ```
-http://localhost:3000/foobars?skip=5
+http://localhost:3000/foobars?offset=5
+http://localhost:3000/foobars?limit=5
 ```
 
-To limit the number of rows returned, use 'take'. It is called take, because take is the [ARel][arel] equivalent of SQL LIMIT:
+You can combine them to act like page:
 
 ```
-http://localhost:3000/foobars.json?take=5
+http://localhost:3000/foobars?limit=15
+http://localhost:3000/foobars?offset=15&limit=15
+http://localhost:3000/foobars?offset=30&limit=15
 ```
 
-Combine skip and take for manual completely customized paging, e.g.
-
-```
-http://localhost:3000/foobars?take=15
-http://localhost:3000/foobars?skip=15&take=15
-http://localhost:3000/foobars?skip=30&take=15
-```
-
-#### Sorting (ORDER BY)
+#### Order
 
 Allow request specified order:
 
@@ -397,7 +392,7 @@ query_for index: ->(q) {
 
 To avoid n+1 queries, use `.includes(...)` in your query to eager load any associations that you will need in the JSON view.
 
-#### Define Custom Actions with Custom Queries
+#### Create Custom Actions
 
 You are still working with regular controllers here, so add or override methods if you want more!
 

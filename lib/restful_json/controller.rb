@@ -67,7 +67,7 @@ module RestfulJson
           end
         end
 
-        raise "options #{opt_through.inspect} not supported by can_filter_by" if options.present?
+        raise "options #{options.inspect} not supported by can_filter_by" if options.present?
       end
 
       # Specify a custom query to filter by if the named request parameter is provided.

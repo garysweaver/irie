@@ -53,8 +53,11 @@ module RestfulJson
       def can_filter_by(*args)
         options = args.extract_options!
 
-        # :using is the default action if no options are present
         opt_using = options.delete(:using)
+        opt_through = options.delete(:through)
+        raise "options #{options.inspect} not supported by can_filter_by" if options.present?
+
+        # :using is the default action if no options are present
         if opt_using || options.size == 0
           predicates = Array.wrap(opt_using || self.can_filter_by_default_using)
           predicates.each do |predicate|
@@ -67,7 +70,11 @@ module RestfulJson
           end
         end
 
-        raise "options #{options.inspect} not supported by can_filter_by" if options.present?
+        if opt_through
+          args.each do |through_key|
+            self.param_to_through[through_key.to_sym] = opt_through
+          end
+        end
       end
 
       # Specify a custom query to filter by if the named request parameter is provided.
@@ -78,7 +85,7 @@ module RestfulJson
       def can_filter_by_query(*args)
         options = args.extract_options!
 
-        raise "can_filter_by_query takes hash of param name to proc, e.g. can_filter_by_query status: ->(t,q,param_value) { q.where(:status_code => param_value) }" if args.length > 0
+        raise "arguments #{args.inspect} are not supported by can_filter_by_query" if args.length > 0
         
         options.each do |param_name, proc|
           self.param_to_query[param_name.to_sym] = proc
@@ -121,7 +128,7 @@ module RestfulJson
 
       # Calls .includes(...) on queries. Take a hash of action as symbol to the includes, e.g. to include(:category, :comments):
       #   including :category, :comments
-      # or includes({posts: [{comments: :guest}, :tags]}):
+      # or .includes({posts: [{comments: :guest}, :tags]}):
       #   including posts: [{comments: :guest}, :tags]
       def including(*args)
         options = args.extract_options!
@@ -136,9 +143,13 @@ module RestfulJson
       #   includes_for :index, :a_custom_action, are: [posts: [{comments: :guest}, :tags]]
       def includes_for(*args)
         options = args.extract_options!
+        
+        opt_are = options.delete(:are)
+        raise "options #{options.inspect} not supported by can_filter_by" if options.present?
+
         args.each do |an_action|
-          if options[:are]
-            (self.action_to_query_includes ||= {}).merge!({an_action.to_sym => options[:are]})
+          if opt_are
+            (self.action_to_query_includes ||= {}).merge!({an_action.to_sym => opt_are})
           else
             raise "#{self.class.name} must supply an :are option with includes_for #{an_action.inspect}"
           end
@@ -153,7 +164,7 @@ module RestfulJson
       def query_for(*args)
         options = args.extract_options!
 
-        raise "query_for takes hash of action to proc, e.g. query_for index: ->(t,q) { q.where(:status_code => 'green') }" if args.length > 0
+        raise "arguments #{args.inspect} are not supported by query_for" if args.length > 0
         
         options.each do |action_name, proc|
           self.action_to_query[action_name.to_sym] = proc
@@ -178,15 +189,18 @@ module RestfulJson
       def can_order_by(*args)
         options = args.extract_options!
 
+        opt_through = options.delete(:through)
+        raise "options #{options.inspect} not supported by can_order_by" if options.present?
+
         args.each do |arg|
           # store as strings because we have to do a string comparison later to avoid req param symbol attack
           self.can_be_ordered_by << arg.to_s unless self.can_be_ordered_by.include?(arg.to_s)
         end
 
         # This does the same as the through in can_filter_by: it just sets up joins in the index action.
-        if options[:through]
+        if opt_through
           args.each do |through_key|
-            self.param_to_through[through_key.to_sym] = options[:through]
+            self.param_to_through[through_key.to_sym] = opt_through
           end
         end
       end
@@ -223,8 +237,7 @@ module RestfulJson
       qualified_controller_name = self.class.name.chomp('Controller')
       @model_class = self.model_class || qualified_controller_name.split('::').last.singularize.constantize
 
-      raise "#{self.class.name} failed to initialize. self.model_class was nil in #{self} which shouldn't happen!" if @model_class.nil?
-      raise "#{self.class.name} assumes that #{self.model_class} extends ActiveRecord::Base, but it didn't. Please fix, or remove this constraint." unless @model_class.ancestors.include?(ActiveRecord::Base)
+      raise "#{self.class.name} failed to initialize. self.model_class cannot be nil in #{self}" if @model_class.nil?
 
       @model_singular_name = self.model_singular_name || self.model_class.name.underscore
       @model_plural_name = self.model_plural_name || @model_singular_name.pluralize
@@ -325,7 +338,7 @@ module RestfulJson
                 last_model_class = found_classes[0]
               else
                 # bad can_filter_by :through found at runtime
-                raise "Association #{association_or_attribute.inspect} not found on #{last_model_class}."
+                raise "#{association_or_attribute.inspect} not found on #{last_model_class}"
               end
 
               if joins.nil?

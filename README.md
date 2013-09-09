@@ -289,8 +289,8 @@ Specify default filters to define attributes, ARel predicates, and values to use
 ```ruby
   can_filter_by :attr_name_1
   can_filter_by :production_date, :creation_date, using: [:gt, :eq, :lteq]
-  default_filter :attr_name_1, eq: 5
-  default_filter :production_date, :creation_date, gt: 1.year.ago, lteq: 1.year.from_now
+  default_filter_by :attr_name_1, eq: 5
+  default_filter_by :production_date, :creation_date, gt: 1.year.ago, lteq: 1.year.from_now
 ```
 
 and both attr_name_1 and production_date are supplied by the client, then it would filter by the client's attr_name_1 and production_date and filter creation_date by both > 1 year ago and <= 1 year from now.

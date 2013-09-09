@@ -9,7 +9,7 @@ class FoobarsController < ApplicationController
   can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt]
   supports_functions :count
   can_order_by :foo_id
-  default_order [{foo_id: :desc}]
+  default_order_by [{foo_id: :desc}]
   includes_for :create, :index, are: [:foo]
   includes_for :update, are: [:bar]
 

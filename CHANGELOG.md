@@ -10,7 +10,7 @@
 * Added action-specific validation error handling methods.
 * Added can_order_by.
 * Renamed order_by -> default_order_by to clarify intent.
-* Removed with_default on can_filter_by and replaced with method default_value.
+* Removed with_default on can_filter_by and replaced with method default_filter_by, because it is unlikely the same default value would be used with multiple predicates.
 * Added valid_render_options which is similar to v4 behavior, but much cleaner.
 * Split into more methods with intuitive naming/behavior.
 * Added a few built-in concerns that are practical for extension that also act as examples for others to extend it.

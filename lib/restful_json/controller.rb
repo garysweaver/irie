@@ -53,9 +53,6 @@ module RestfulJson
       def can_filter_by(*args)
         options = args.extract_options!
 
-        raise "with_default is no longer supported. Please use default_filter." if options[:with_default]
-        raise "with_query is no longer supported. Please use can_filter_by_query." if options[:with_query]
-
         # :using is the default action if no options are present
         opt_using = options.delete(:using)
         if opt_using || options.size == 0
@@ -67,13 +64,6 @@ module RestfulJson
               self.param_to_attr_and_arel_predicate[attr_sym] = [attr_sym, :eq] if predicate_sym == :eq
               self.param_to_attr_and_arel_predicate["#{attr_name}#{self.predicate_prefix}#{predicate}".to_sym] = [attr_sym, predicate_sym]
             end
-          end
-        end
-
-        opt_through = options.delete(:through)
-        if opt_through
-          args.each do |through_key|
-            self.param_to_through[through_key.to_sym] = opt_through
           end
         end
 
@@ -97,12 +87,12 @@ module RestfulJson
 
       # Specify default filters and predicates to use if no filter is provided by the client with
       # the same param name, e.g. if you have:
-      #   default_filter :attr_name_1, eq: 5
-      #   default_filter :production_date, :creation_date, gt: 1.year.ago, lteq: 1.year.from_now
+      #   default_filter_by :attr_name_1, eq: 5
+      #   default_filter_by :production_date, :creation_date, gt: 1.year.ago, lteq: 1.year.from_now
       # and both attr_name_1 and production_date are supplied by the client, then it would filter
       # by the client's attr_name_1 and production_date and filter creation_date by
       # both > 1 year ago and <= 1 year from now.
-      def default_filter(*args)
+      def default_filter_by(*args)
         options = args.extract_options!
         
         args.each do |attr_name|
@@ -203,10 +193,10 @@ module RestfulJson
 
       # Takes an string, symbol, array, hash to indicate order. If not a hash, assumes is ascending. Is cumulative and order defines order of sorting, e.g:
       #   #would order by foo_color attribute ascending
-      #   default_order :foo_color
+      #   default_order_by :foo_color
       # or
-      #   default_order {:foo_date => :asc}, :foo_color, 'foo_name', {:bar_date => :desc}
-      def default_order(args)
+      #   default_order_by {:foo_date => :asc}, :foo_color, 'foo_name', {:bar_date => :desc}
+      def default_order_by(args)
         self.default_ordered_by = (Array.wrap(self.default_ordered_by) + Array.wrap(args)).flatten.compact.collect {|item|item.is_a?(Hash) ? item : {item.to_sym => :asc}}
       end
 

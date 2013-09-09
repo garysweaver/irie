@@ -29,12 +29,12 @@ class FoobarsController < ApplicationController
 
   query_for index: ->(q) { q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'}) }
   can_filter_by :name
+  default_filter_by :name, eq: 'anonymous'
   can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt]
   can_filter_by :some_attribute, through: [:assoc_name, :sub_assoc_name, :some_attribute]
   supports_functions :count, :distinct, :limit, :offset, :page, :page_count
   can_order_by :foo_date, :foo_color
-  default_value :name, eq: 'anonymous'
-  default_order {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
+  default_order_by {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
 end
 ```
 
@@ -403,10 +403,10 @@ Will let the client send the order parameter with those parameters and optional 
 http://localhost:3000/foobars?order=foo_date,-foo_color
 ```
 
-The `default_order` specifies an ordered array of hashes of attributes to sort direction or attributes that should be ascending: 
+The `default_order_by` specifies an ordered array of hashes of attributes to sort direction or attributes that should be ascending: 
 
 ```ruby
-default_order {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
+default_order_by {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
 ```
 
 #### Custom Index Queries

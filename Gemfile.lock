@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    restful_json (5.0.4)
+    restful_json (5.0.5)
       actionpack (>= 4.0.0)
       activerecord (>= 4.0.0)
       activesupport (>= 4.0.0)

@@ -1,7 +1,7 @@
 class FoobarsController < ApplicationController
   include RestfulJson::Controller
-  include RestfulJson::Authorizing
-  include RestfulJson::Controller::StatusAndLocation
+  include RestfulJson::Controller::Authorizing
+  include RestfulJson::Controller::UsingStandardRestRenderOptions
   respond_to :json
   
   can_filter_by_query a_query: ->(q, param_value) { q.where(foo_id: param_value) }

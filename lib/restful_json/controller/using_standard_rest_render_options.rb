@@ -1,7 +1,7 @@
 # Sets standard status and location properly in create and update in rendering options.
 module RestfulJson
   module Controller
-    module StatusAndLocation
+    module UsingStandardRestRenderOptions
       extend ::ActiveSupport::Concern
 
       include ::RestfulJson::Controller

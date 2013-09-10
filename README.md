@@ -98,10 +98,6 @@ or filter by a request param with a lambda:
 can_filter_by_query a_request_param_name: ->(q, param_value) { q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value}) }
 ```
 
-Easily integrate with commonly used gems for authorization via `include RestfulJson::Authorizing`.
-
-Otherwise, it is a regular controller so it will work will compatible authentication solutions using `before_action` or similar.
-
 ### Installation
 
 In your Rails app's `Gemfile`:
@@ -115,10 +111,6 @@ Then:
 ```
 bundle install
 ```
-
-#### Authorization
-
-Putting `include RestfulJson::Authorizing`, your controller will automatically call `authorize!` with the action and the controller's model class, so you can use [CanCan][cancan] or a similar authorizer.
 
 ### Application Configuration
 
@@ -323,7 +315,7 @@ enables:
 http://localhost:3000/foobars?count=
 ```
 
-That will set the `@counts` instance variable that you can use in your view.
+That will set the `@count` instance variable that you can use in your view.
 
 ##### Page Count
 
@@ -339,7 +331,7 @@ enables:
 http://localhost:3000/foobars?page_count=
 ```
 
-That will set the `@counts` instance variable that you can use in your view.
+That will set the `@page_count` instance variable that you can use in your view.
 
 ##### Getting a Page
 
@@ -512,10 +504,11 @@ Can use more than one action and more than one option.
 
 The following concerns included might also be of use in your controller:
 
-* `include ::RestfulJson::Controller::Counts` - renders filtered count/page count for non-html formats without a view template.
-* `include ::RestfulJson::Controller::NilParamValues` - convert 'NULL', 'null', and 'nil' to nil when passed in as request params.
-* `include ::RestfulJson::Controller::StatusAndLocation` - use [RFC2616](http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.2) RESTful status codes/set location for create.
-* `include ::RestfulJson::Controller::ValidationErrors` - renders validation errors (e.g. `@my_model.errors`) for non-html formats without a view template.
+* `include ::RestfulJson::Controller::Authorizing` - on include does `before_action` to automatically call `authorize!` with the action and the controller's model class, so you can use [CanCan][cancan] or a similar authorizer.
+* `include ::RestfulJson::Controller::ConvertingNullParamValuesToNil` - convert 'NULL', 'null', and 'nil' to nil when passed in as request params.
+* `include ::RestfulJson::Controller::RenderingCountsAutomaticallyForNonHtml` - renders count/page count for non-html formats without a view template.
+* `include ::RestfulJson::Controller::RenderingValidationErrorsAutomaticallyForNonHtml` - renders validation errors (e.g. `@my_model.errors`) for non-html formats without a view template.
+* `include ::RestfulJson::Controller::UsingStandardRestRenderOptions` - use [RFC2616](http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.2) RESTful status codes/set location for create.
 
 #### Further Customization
 
@@ -565,7 +558,7 @@ You can also use `rescue_from` or `around_action` in Rails to have more control 
 
 If you want to refactor your restful_json controllers, do it via modules/concerns, not subclassing. `include RestfulJson::Controller` defines various class attributes. These class attributes are shared by all descendants unless they are redefined. Ignoring this can lead to one controller overriding/altering the config of another.
 
-It's helpful to have a single module you maintain that contains all of the other modules to include in your service controllers, e.g. in `config/initializers/my_service.rb`, you might define this to have RestfulJson and its `authorize!` support:
+It's helpful to have a single module you maintain that contains all of the other modules to include in your service controllers, e.g. in `config/initializers/my_service.rb`:
 
 ```ruby
 module My
@@ -573,7 +566,7 @@ module My
     extend ::ActiveSupport::Concern
     included do
       include ::RestfulJson::Controller
-      include ::RestfulJson::Authorizing
+      # ...
     end
 
     module ClassMethods

@@ -2,8 +2,8 @@
 
 * Assumes Rails 4+.
 * Simplification of configuration, usage, and implementation.
-* CanCan/authR support now via `RestfulJson::Authorizing`.
-* Removed direct support for permitters. The controller can define `params_for_*` methods or use `before_action`.
+* CanCan/authR support now via optional `RestfulJson::Controller::Authorizing`.
+* Removed direct support for permitters. The controller can define params methods and/or use `before_action`.
 * Removed direct support for active_model_serializers. The controller can define serializer(s) in `valid_render_options`.
 * Removed exception handlers so can use default Rack exception handling or `rescue_from`.
 * Authorization support handled via separate module using `before_action`.
@@ -16,7 +16,7 @@
 * Added a few built-in concerns that are practical for extension that also act as examples for others to extend it.
 * Changed query_for so that it now takes hash of action to proc/lambda.
 * Removed with_query on can_filter_by and replaced with method can_filter_by_query.
-* No longer send @model_class.arel_table (t) into query lambdas.
+* No longer send (t) into query lambdas which was never used. You can use `@model_class.arel_table` if you need it.
 * Can rename or alias the request parameter names used for functions, so less chance of conflicts now.
 * Renamed functions to be relational: uniq -> distinct, skip -> offset, take -> limit.
 * Predicate prefix is '.' instead of '!'.

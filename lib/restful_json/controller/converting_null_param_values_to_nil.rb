@@ -1,7 +1,7 @@
 # Converts the following filter request param values to nil: 'NULL', 'null', 'nil'
 module RestfulJson
   module Controller
-    module NilParamValues
+    module ConvertingNullParamValuesToNil
       extend ::ActiveSupport::Concern
 
       include ::RestfulJson::Controller

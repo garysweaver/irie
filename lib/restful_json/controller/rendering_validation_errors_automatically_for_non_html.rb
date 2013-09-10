@@ -2,7 +2,7 @@
 # via rendering { errors: record.errors } for all formats except html.
 module RestfulJson
   module Controller
-    module ValidationErrors
+    module RenderingValidationErrorsAutomaticallyForNonHtml
       extend ::ActiveSupport::Concern
 
       include ::RestfulJson::Controller
@@ -16,11 +16,10 @@ module RestfulJson
       end
 
       def render_validation_errors(record)
-        content_type = request.formats.first.to_s.reverse.split('/')[0].split('-')[0].reverse
         # use implicit rendering for html
         return record if request.format.html?
         respond_to do |format|
-          format.any { render content_type.to_sym => { errors: record.errors }, status: 422 }
+          format.any { render request.format.symbol => { errors: record.errors }, status: 422 }
         end
       end
 

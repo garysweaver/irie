@@ -484,7 +484,7 @@ module RestfulJson
 
     # Note: query_for with non-index action or list_action will alias_method this and all other index-related methods.
     def render_index_page_count(count)
-      @count = count
+      @page_count = count
       render "#{params[:action]}_page_count"
     end
 

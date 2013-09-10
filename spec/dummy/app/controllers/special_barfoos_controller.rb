@@ -1,6 +1,6 @@
 class SpecialBarfoosController < ApplicationController
   include RestfulJson::Controller
-  include RestfulJson::Controller::StatusAndLocation
+  include RestfulJson::Controller::UsingStandardRestRenderOptions
   respond_to :json
   
   # make it use Barfoo class under the hood

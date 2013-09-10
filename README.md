@@ -270,17 +270,11 @@ Use `can_filter_by_query` to provide a lambda:
 can_filter_by_query a_request_param_name: ->(q, param_value) { q.joins(:some_assoc).where(some_assocs_table_name: {some_attr: param_value}) }
 ```
 
-The third argument sent to the lambda is the request parameter value converted by the `convert_request_param_value_for_filtering(attr_sym, value)` method which may be customized. See elsewhere in this document for more information about the behavior of this method.
+The second argument sent to the lambda is the request parameter value converted by the `convert_request_param_value_for_filtering(attr_sym, value)` method which may be customized. See elsewhere in this document for more information about the behavior of this method.
 
 ##### Customizing Request Parameter Value Conversion
 
-In your controller or shared module using the following will convert request parameter values that are 'NULL', 'null', and 'nil' to nil:
-
-```ruby
-include RestfulJson::Controller::NilParamValues
-```
-
-If you want different request parameter conversion behavior, either implement the `convert_request_param_value_for_filtering(attr_sym, value)` in your controller or an included module.
+Implement the `convert_request_param_value_for_filtering(attr_sym, value)` in your controller or an included module.
 
 #### Default Filters
 
@@ -329,9 +323,9 @@ enables:
 http://localhost:3000/foobars?count=
 ```
 
-Note: to avoid having to have non-html views for count, use `include ::RestfulJson::Controller::Counts`.
+That will set the `@counts` instance variable that you can use in your view.
 
-##### Paging
+##### Page Count
 
 In the controller:
 
@@ -345,7 +339,9 @@ enables:
 http://localhost:3000/foobars?page_count=
 ```
 
-Note: to avoid having to have non-html views for count, use `include ::RestfulJson::Controller::Counts`.
+That will set the `@counts` instance variable that you can use in your view.
+
+##### Getting a Page
 
 To access each page of results:
 
@@ -502,22 +498,60 @@ def params_for_update
 end
 ```
 
-#### Customizing Rendering
+#### Specifying Rendering Options
 
-If you only need to change the options when rendering a valid response, just use `valid_render_options`, e.g. if you wanted to specify the serializer option in the render:
+If you need to change the options to use when rendering a valid response, use `valid_render_options`, e.g. if you wanted to specify the serializer option in the index render:
 
 ```ruby
 valid_render_options :index, serializer: FoobarSerializer
 ```
 
-Each action in `RestfulJson::Controller` has a corresponding `render_*` method and a few other methods, `render_index_invalid`, `render_index_valid`, and `render_index_success_options`. See the controller code for their code so you can see how you might override one or more of these methods for any/all relevant actions in a concern or in the controller itself.
+Can use more than one action and more than one option.
 
-There are also a few concerns in `lib/restful_json/controller`, some of which can change the rendering behavior and all of which can be used as examples for how to extend the controller:
+#### Extend Your Controller with Included Concerns
 
-* `include ::RestfulJson::Controller::Counts` - renders filtered count/page count for non-html formats (in html use `@count` instead).
+The following concerns included might also be of use in your controller:
+
+* `include ::RestfulJson::Controller::Counts` - renders filtered count/page count for non-html formats without a view template.
 * `include ::RestfulJson::Controller::NilParamValues` - convert 'NULL', 'null', and 'nil' to nil when passed in as request params.
-* `include ::RestfulJson::Controller::StatusAndLocation` - use [standard](http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.2) RESTful status codes.
-* `include ::RestfulJson::Controller::ValidationErrors` - renders the validation errors for non-html formats (in html use `@my_model.errors` instead).
+* `include ::RestfulJson::Controller::StatusAndLocation` - use [RFC2616](http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.2) RESTful status codes/set location for create.
+* `include ::RestfulJson::Controller::ValidationErrors` - renders validation errors (e.g. `@my_model.errors`) for non-html formats without a view template.
+
+#### Further Customization
+
+Methods you can override for more control in your controller directly or in a concern/module, similar to the above:
+
+* index
+* params_for_index
+* render_index(records)
+* render_index_options(records)
+* render_index_count(count)
+* render_index_page_count(count)
+* any of the above index methods for a custom action created by query_for (just replace index in the method name with your custom method name)
+* show
+* params_for_show
+* render_show(record)
+* render_show_options(record)
+* edit
+* params_for_edit
+* render_edit(record)
+* render_edit_options(record)
+* create
+* params_for_create
+* render_create(record)
+* render_create_invalid(record)
+* render_create_valid(record)
+* render_create_valid_options(record)
+* update
+* params_for_update
+* render_update(record)
+* render_update_invalid(record)
+* render_update_valid(record)
+* render_update_valid_options(record)
+* destroy
+* params_for_destroy
+* render_destroy(record)
+* render_destroy_options(record)
 
 #### Exception Handling
 

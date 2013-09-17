@@ -1,6 +1,10 @@
-## restful_json 5.0.0 ##
+## actionize 1.0.0 ##
 
-* Assumes Rails 4+.
+* Renamed restful_json to actionize. It isn't only about json.
+
+Changes since restful_json v4.5.1:
+
+* Now assumes Rails 4+.
 * Simplification of configuration, usage, and implementation.
 * CanCan/authR support now via optional `RestfulJson::Controller::Authorizing`.
 * Removed direct support for permitters. The controller can define params methods and/or use `before_action`.
@@ -20,6 +24,7 @@
 * Can rename or alias the request parameter names used for functions, so less chance of conflicts now.
 * Renamed functions to be relational: uniq -> distinct, skip -> offset, take -> limit.
 * Predicate prefix is '.' instead of '!'.
+* Must intentionally implement action methods via includes.
 
 ## restful_json 4.5.1 ##
 

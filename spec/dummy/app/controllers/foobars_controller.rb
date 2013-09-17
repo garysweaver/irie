@@ -1,17 +1,20 @@
 class FoobarsController < ApplicationController
-  include RestfulJson::Controller
-  include RestfulJson::Controller::Authorizing
-  include RestfulJson::Controller::UsingStandardRestRenderOptions
+  
+  include Actionize::Controller
+  
   respond_to :json
+
+  include_actions :all
+  include_functions :all
+  include_extensions :all
   
   can_filter_by_query a_query: ->(q, param_value) { q.where(foo_id: param_value) }
   can_filter_by :foo_id
   can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt]
-  supports_functions :count
   can_order_by :foo_id
   default_order_by [{foo_id: :desc}]
-  includes_for :create, :index, are: [:foo]
-  includes_for :update, are: [:bar]
+  query_includes_for :create, :index, are: [:foo]
+  query_includes_for :update, are: [:bar]
 
 private
 

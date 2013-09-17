@@ -1,8 +1,13 @@
 class BarfoosController < ApplicationController
-  include RestfulJson::Controller
-  include RestfulJson::Controller::UsingStandardRestRenderOptions
+
+  include Actionize::Controller
+
   respond_to :json
+
+  include_actions :all
+  include_functions :all
+  include_extensions :all
   
   query_for some_action: ->(q) {q.where(:status => 2)}
-  including :foo
+  query_includes :foo
 end

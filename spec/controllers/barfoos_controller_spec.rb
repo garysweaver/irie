@@ -5,10 +5,19 @@ describe BarfoosController do
   render_views
   
   before(:each) do
-    BarfoosController.test_role = 'guest'
+    BarfoosController.test_role = 'admin'
   end
 
   describe "GET index" do
+    it 'fails authorization' do
+      BarfoosController.test_role = 'guest'
+      begin
+        get :some_action, format: :json
+        fail 'Expected CanCan::AccessDenied'
+      rescue CanCan::AccessDenied
+      end
+    end
+
     it 'returns barfoos with correct fields' do
       begin
         Barfoo.delete_all

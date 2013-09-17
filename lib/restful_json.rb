@@ -1,8 +1,0 @@
-require 'restful_json/version'
-require 'restful_json/config'
-require 'restful_json/controller'
-require 'restful_json/controller/authorizing'
-require 'restful_json/controller/converting_null_param_values_to_nil'
-require 'restful_json/controller/rendering_counts_automatically_for_non_html'
-require 'restful_json/controller/rendering_validation_errors_automatically_for_non_html'
-require 'restful_json/controller/using_standard_rest_render_options'

@@ -1,101 +1,106 @@
-[![Build Status](https://secure.travis-ci.org/rubyservices/restful_json.png?branch=master)][travis] [![Gem Version](https://badge.fury.io/rb/restful_json.png)][badgefury]
+[![Build Status](https://secure.travis-ci.org/FineLinePrototyping/actionize.png?branch=master)][travis] [![Gem Version](https://badge.fury.io/rb/actionize.png)][badgefury]
 
-# restful_json
+# actionize
 
-In Rails 4, using `include RestfulJson::Controller` implements standard Rails actions in a conventional way to reduce the code you have to write, e.g. the following implements index, show, create, update, and destroy actions, so that you only have to write the views:
+Implement Rails 4 controller actions easily with a clear and concise mix of declarative and imperative code, like models.
+
+Your controller could `include Actionize::All` to implement index, show, new, edit, create, update, and destroy methods:
 
 ```ruby
-class FoobarsController < ApplicationController
-  # add standard Rails action methods
-  include RestfulJson::Controller
+class PostsController < ApplicationController
+  
+  include Actionize::All
 
-  # standard Rails 4 respond_to
   respond_to :json, :html
 
 private
-  # standard Rails 4 request params permittance
-  def foobar_params
-    params.require(:foobar).permit(:name)
+  
+  def post_params
+    params.require(:post).permit(:title, :body)
   end
+
 end
 ```
 
-Often the index action contains code to filter, order, etc. to reduce the amount of data retrieved for the client. Server-side pagination or chunking may be required for larger datasets. So, we support most things you would need to do. It should not allow an ability unless you specifically declare it:
+or you could `include Actionize::Index` to only implement index, then specify request parameter driven filtering, sorting, pagination with defaults and support for anything else you would do in your Rails controller:
 
 ```ruby
-class FoobarsController < ApplicationController
-  include RestfulJson::Controller
+class PostsController < ApplicationController
+
+  include Actionize::Index
+
   respond_to :json, :html
 
-  query_for index: ->(q) { q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'}) }
-  can_filter_by :name
-  default_filter_by :name, eq: 'anonymous'
-  can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt]
-  can_filter_by :some_attribute, through: [:assoc_name, :sub_assoc_name, :some_attribute]
-  supports_functions :count, :distinct, :limit, :offset, :page, :page_count
-  can_order_by :foo_date, :foo_color
-  default_order_by {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
+  can_filter_by :author, through: [:author, :name]
+  default_filter_by :author, eq: 'anonymous'
+  can_filter_by :posted_on, using: [:lt, :eq, :gt]
+  default_filter_by :posted_on, gt: 1.year.ago
+  can_filter_by :company, through: [:author, :company, :name]
+  includes_functions :count, :distinct, :limit, :offset, :page, :page_count
+  can_order_by :posted_on, :author, :id
+  default_order_by {:posted_on => :desc}, :id
+
 end
 ```
 
-Now assuming you set up routes and views, you could gets a Foobar with the name 'apple':
+Then, assuming you set up routes and views, you could gets posts by an author:
 
 ```
-https://example.org/foobars?name=apple
+https://example.org/posts?author=John
 ```
 
-Get records with bar_date > 2012-08-08:
+Get posted after 2012-08-08:
 
 ```
-https://example.org/foobars?bar_date.gt=2012-08-08
+https://example.org/posts?posted_on.gt=2012-08-08
 ```
 
-Count records with bar_date > 2012-08-08:
+Count posts after 2012-08-08:
 
 ```
-https://example.org/foobars?bar_date.gt=2012-08-08&count=
+https://example.org/posts?posted_on.gt=2012-08-08&count=
 ```
 
-Filter by assoc_name.sub_assoc_name.some_attribute:
+Get posts by the author's company name:
 
 ```
-https://example.org/foobars?some_attribute=123&distinct=
+https://example.org/posts?company=Lipton
 ```
 
 Find out how many pages of results there are:
 
 ```
-https://example.org/foobars?page_count=
+https://example.org/posts?page_count=
 ```
 
 Get the first page:
 
 ```
-https://example.org/foobars?page=1
+https://example.org/posts?page=1
 ```
 
 Get a custom page:
 
 ```
-https://example.org/foobars?offset=30&limit=15
+https://example.org/posts?offset=30&limit=15
 ```
 
-Change the sort to ascending by foo_color (asc) and foo_date (desc):
+Change the sort to ascending by author and descending by id:
 
 ```
-https://example.org/foobars?order=foo_color,-foo_date
+https://example.org/posts?order=author,-id
 ```
 
-Define an action with a lambda:
+You could also define the query with a lambda so that it only lists posts about American History books:
 
 ```ruby
-query_for index: ->(q) { q.joins(:apples, :pears).where(apples: {color: 'green'}).where(pears: {color: 'green'}) }
+query_for index: ->(q) { q.joins(:books).where(books: {category: 'American History'}) }
 ```
 
 or filter by a request param with a lambda:
 
 ```ruby
-can_filter_by_query a_request_param_name: ->(q, param_value) { q.joins(:some_assoc).where(:some_assocs_table_name=>{some_attr: param_value}) }
+can_filter_by_query book_length: ->(q, param_value) { q.joins(:books).where(:books=>{total_pages: param_value}) }
 ```
 
 ### Installation
@@ -103,7 +108,7 @@ can_filter_by_query a_request_param_name: ->(q, param_value) { q.joins(:some_ass
 In your Rails app's `Gemfile`:
 
 ```ruby
-gem 'restful_json' # use ~> and set to latest version
+gem 'actionize'
 ```
 
 Then:
@@ -114,18 +119,16 @@ bundle install
 
 ### Application Configuration
 
-The default config may be fine, but you can customize it.
-
 Each application-level configuration option can be configured one line at a time:
 
 ```ruby
-RestfulJson.number_of_records_in_a_page = 30
+Actionize.number_of_records_in_a_page = 30
 ```
 
 or in bulk, like:
 
 ```ruby
-RestfulJson.configure do
+Actionize.configure do
   
   # Default for :using in can_filter_by.
   self.can_filter_by_default_using = [:eq]
@@ -144,11 +147,15 @@ RestfulJson.configure do
   
   # Default number of records to return if using the page request function.
   self.number_of_records_in_a_page = 15
+
+  # In most cases the request param 'id' means primary key.
+  # You'd set this to false if id is used for something else other than primary key.
+  self.id_is_primary_key_param = true
   
 end
 ```
 
-You may want to put any configuration in an initializer like `config/initializers/restful_json.rb`.
+You may want to put any configuration in an initializer like `config/initializers/actionize.rb`.
 
 ### Controller Configuration
 
@@ -176,6 +183,10 @@ All of the app-level configuration parameters are configurable in the controller
   
   # Default number of records to return if using the page request function.
   self.number_of_records_in_a_page = 15
+
+  # In most cases the request param 'id' means primary key.
+  # You'd set this to false if id is used for something else other than primary key.
+  self.id_is_primary_key_param = true
 ```
 
 Controller-only config options:
@@ -262,11 +273,11 @@ Use `can_filter_by_query` to provide a lambda:
 can_filter_by_query a_request_param_name: ->(q, param_value) { q.joins(:some_assoc).where(some_assocs_table_name: {some_attr: param_value}) }
 ```
 
-The second argument sent to the lambda is the request parameter value converted by the `convert_request_param_value_for_filtering(attr_sym, value)` method which may be customized. See elsewhere in this document for more information about the behavior of this method.
+The second argument sent to the lambda is the request parameter value converted by the `convert_param_value(param_name, param_value)` method which may be customized. See elsewhere in this document for more information about the behavior of this method.
 
 ##### Customizing Request Parameter Value Conversion
 
-Implement the `convert_request_param_value_for_filtering(attr_sym, value)` in your controller or an included module.
+Implement the `convert_param_value(param_name, param_value)` in your controller or an included module.
 
 #### Default Filters
 
@@ -292,7 +303,7 @@ and both attr_name_1 and production_date are supplied by the client, then it wou
 In the controller:
 
 ```ruby
-supports_functions :distinct
+includes_functions :distinct
 ```
 
 enables:
@@ -306,7 +317,7 @@ http://localhost:3000/foobars?distinct=
 In the controller:
 
 ```ruby
-supports_functions :count
+includes_functions :count
 ```
 
 enables:
@@ -322,7 +333,7 @@ That will set the `@count` instance variable that you can use in your view.
 In the controller:
 
 ```ruby
-supports_functions :page, :page_count
+includes_functions :page, :page_count
 ```
 
 enables:
@@ -359,7 +370,7 @@ self.number_of_records_in_a_page = 15
 In the controller:
 
 ```ruby
-supports_functions :offset, :limit
+includes_functions :offset, :limit
 ```
 
 enables:
@@ -451,21 +462,21 @@ end
 
 ```ruby
 # load all the posts and the associated category and comments for each post
-including :category, :comments
+query_includes :category, :comments
 ```
 
 or
 
 ```ruby
 # load all of the associated posts, the associated posts’ tags and comments, and every comment’s guest association
-including posts: [{comments: :guest}, :tags]
+query_includes posts: [{comments: :guest}, :tags]
 ```
 
 and action-specific:
 
 ```ruby
-includes_for :create, are: [:category, :comments]
-includes_for :index, :something_alias_methoded_from_index, are: [posts: [{comments: :guest}, :tags]]
+query_includes_for :create, are: [:category, :comments]
+query_includes_for :index, :something_alias_methoded_from_index, are: [posts: [{comments: :guest}, :tags]]
 ```
 
 #### Customizing Parameter Permittance
@@ -490,6 +501,10 @@ def params_for_update
 end
 ```
 
+#### Primary Keys
+
+Supports composite primary keys. If `@model_class.primary_key.is_a?(Array)`, show/edit/update/destroy will use your two or more request params for the ids that make up the composite.
+
 #### Specifying Rendering Options
 
 If you need to change the options to use when rendering a valid response, use `valid_render_options`, e.g. if you wanted to specify the serializer option in the index render:
@@ -508,7 +523,7 @@ The following concerns included might also be of use in your controller:
 * `include ::RestfulJson::Controller::ConvertingNullParamValuesToNil` - convert 'NULL', 'null', and 'nil' to nil when passed in as request params.
 * `include ::RestfulJson::Controller::RenderingCountsAutomaticallyForNonHtml` - renders count/page count for non-html formats without a view template.
 * `include ::RestfulJson::Controller::RenderingValidationErrorsAutomaticallyForNonHtml` - renders validation errors (e.g. `@my_model.errors`) for non-html formats without a view template.
-* `include ::RestfulJson::Controller::UsingStandardRestRenderOptions` - use [RFC2616](http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.2) RESTful status codes/set location for create.
+* `include ::RestfulJson::Controller::UsingStandardRestRenderOptions` - use [RFC2616](http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.2) RESTful status codes for create and update.
 
 #### Further Customization
 
@@ -554,48 +569,6 @@ If you want to customize Rails 4's Rack exception handling, search the web for c
 
 You can also use `rescue_from` or `around_action` in Rails to have more control over error rendering.
 
-### Refactoring
-
-If you want to refactor your restful_json controllers, do it via modules/concerns, not subclassing. `include RestfulJson::Controller` defines various class attributes. These class attributes are shared by all descendants unless they are redefined. Ignoring this can lead to one controller overriding/altering the config of another.
-
-It's helpful to have a single module you maintain that contains all of the other modules to include in your service controllers, e.g. in `config/initializers/my_service.rb`:
-
-```ruby
-module My
-  module Service
-    extend ::ActiveSupport::Concern
-    included do
-      include ::RestfulJson::Controller
-      # ...
-    end
-
-    module ClassMethods
-      def some_class_method
-        # ...
-      end
-    end
-
-    def some_instance_method
-      # ...
-    end
-  end
-end
-```
-
-And in `app/controllers/foobars_controller.rb`, you just need:
-
-```ruby
-class FoobarsController
-  include My::Service
-
-  # ...
-end
-```
-
-### Release Notes
-
-See the [changelog][changelog] for basically what happened when, and git log for everything else.
-
 ### Troubleshooting
 
 If you get `missing FROM-clause entry for table` errors, it might mean that `including`/`includes_for` you are using are overlapping with joins that are being done in the query. This is the nasty head of AR relational includes, unfortunately.
@@ -616,11 +589,15 @@ query_for index: ->(q) {
 }
 
 # set includes for all actions except index
-including :owner, :customer, :bartender, :waitress
+query_includes :owner, :customer, :bartender, :waitress
 
 # includes specified in query_for function above
-includes_for :index, are: []
+query_includes_for :index, are: []
 ```
+
+### Release Notes
+
+See the [changelog][changelog] for basically what happened when, and git log for everything else.
 
 ### Contributing
 
@@ -629,15 +606,15 @@ Please fork, make changes in a separate branch, and do a pull request for your b
 ### Authors
 
 This app was written by [FineLine Prototyping, Inc.](http://www.finelineprototyping.com) by the following contributors:
-* Gary Weaver (https://github.com/garysweaver)
-* Tommy Odom (https://github.com/tpodom)
+* [Gary Weaver](https://github.com/garysweaver)
+* [Tommy Odom](https://github.com/tpodom)
 
 ### License
 
 Copyright (c) 2013 FineLine Prototyping, Inc., released under the [MIT license][lic].
 
-[travis]: http://travis-ci.org/rubyservices/restful_json
-[badgefury]: http://badge.fury.io/rb/restful_json
+[travis]: http://travis-ci.org/FineLinePrototyping/actionize
+[badgefury]: http://badge.fury.io/rb/actionize
 [employee-training-tracker]: https://github.com/FineLinePrototyping/employee-training-tracker
 [built_with_angularjs]: http://builtwith.angularjs.org/
 [cancan]: https://github.com/ryanb/cancan
@@ -645,5 +622,5 @@ Copyright (c) 2013 FineLine Prototyping, Inc., released under the [MIT license][
 [ar]: http://api.rubyonrails.org/classes/ActiveRecord/Relation.html
 [public_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/public_exceptions.rb
 [show_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/show_exceptions.rb
-[changelog]: https://github.com/rubyservices/restful_json/blob/master/CHANGELOG.md
-[lic]: http://github.com/rubyservices/restful_json/blob/master/LICENSE
+[changelog]: https://github.com/FineLinePrototyping/actionize/blob/master/CHANGELOG.md
+[lic]: http://github.com/FineLinePrototyping/actionize/blob/master/LICENSE

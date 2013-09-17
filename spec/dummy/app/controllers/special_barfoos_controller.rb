@@ -1,7 +1,12 @@
 class SpecialBarfoosController < ApplicationController
-  include RestfulJson::Controller
-  include RestfulJson::Controller::UsingStandardRestRenderOptions
+
+  include Actionize::Controller
+  
   respond_to :json
+
+  include_actions :all
+  include_functions :all
+  include_extensions :all
   
   # make it use Barfoo class under the hood
   self.model_class = Barfoo

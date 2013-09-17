@@ -1,11 +1,9 @@
 # Instead of having to handle @my_model_name.errors in the view, this returns validation errors
 # via rendering { errors: record.errors } for all formats except html.
-module RestfulJson
-  module Controller
+module Actionize
+  module Extensions
     module RenderingValidationErrorsAutomaticallyForNonHtml
       extend ::ActiveSupport::Concern
-
-      include ::RestfulJson::Controller
 
       def render_create_invalid(record)
         render_validation_errors(record)
@@ -22,7 +20,7 @@ module RestfulJson
           format.any { render request.format.symbol => { errors: record.errors }, status: 422 }
         end
       end
-
+      
     end
   end
 end

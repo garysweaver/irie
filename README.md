@@ -2,6 +2,8 @@
 
 # actionize
 
+*UNDER CONSTRUCTION: See [this tag](https://github.com/FineLinePrototyping/restful_json/tree/v4.5.1) for latest restful_json release. We are developing a new version, so please be patient during the transition. Some of the following documentation may be inaccurate, and things may not be working as expected...*
+
 Implement Rails 4 controller actions easily with a clear and concise mix of declarative and imperative code, like models.
 
 Your controller could `include Actionize::All` to implement index, show, new, edit, create, update, and destroy methods:

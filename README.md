@@ -43,7 +43,6 @@ class PostsController < ApplicationController
   can_filter_by :posted_on, using: [:lt, :eq, :gt]
   default_filter_by :posted_on, gt: 1.year.ago
   can_filter_by :company, through: [:author, :company, :name]
-  includes_functions :count, :distinct, :limit, :offset, :page, :page_count
   can_order_by :posted_on, :author, :id
   default_order_by {:posted_on => :desc}, :id
 
@@ -310,7 +309,7 @@ and both attr_name_1 and production_date are supplied by the client, then it wou
 In the controller:
 
 ```ruby
-includes_functions :distinct
+includes_extension :distinct
 ```
 
 enables:
@@ -324,7 +323,7 @@ http://localhost:3000/foobars?distinct=
 In the controller:
 
 ```ruby
-includes_functions :count
+include_extension :count
 ```
 
 enables:
@@ -340,7 +339,7 @@ That will set the `@count` instance variable that you can use in your view.
 In the controller:
 
 ```ruby
-includes_functions :page, :page_count
+include_extensions :page, :page_count
 ```
 
 enables:
@@ -377,7 +376,7 @@ self.number_of_records_in_a_page = 15
 In the controller:
 
 ```ruby
-includes_functions :offset, :limit
+include_extensions :offset, :limit
 ```
 
 enables:
@@ -397,7 +396,12 @@ http://localhost:3000/foobars?offset=30&limit=15
 
 #### Order
 
-Allow request specified order:
+With:
+```ruby
+include_extension :order
+```
+
+You can allow request specified order:
 
 ```ruby
 can_order_by :foo_date, :foo_color
@@ -417,6 +421,11 @@ default_order_by {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
 
 #### Custom Index Queries
 
+With:
+```ruby
+include_extension :query_filter
+```
+
 To filter the list where the status_code attribute is 'green':
 
 ```ruby
@@ -435,11 +444,9 @@ query_for index: ->(q) {
 
 To avoid n+1 queries, use `.includes(...)` in your query to eager load any associations that you will need in the JSON view.
 
-#### Create Custom Actions
+##### Create Custom Actions
 
-You are still working with regular controllers here, so add or override methods if you want more!
-
-However `query_for` can create new action methods, e.g.:
+You are still working with regular controllers here, so you can add action methods if you want them. However, if you want another action that lists, but with a custom query, and maybe its own query includes, etc., just specify the required action name in query_for, and it will do all the `alias_method`-ing needed of `index`/`*index*` methods to `your_action`/`*your_method*` and the Actionizer implementation supports calling the method(s) appropriate for your actions. Let's say you want an action that checks `@current_user.admin?`, then:
 
 ```ruby
 query_for some_action: ->(q) do
@@ -453,17 +460,28 @@ query_for some_action: ->(q) do
 end
 ```
 
-will create an action named 'some_action'. You'll need to add views and routes, but the controller part is done.
+will create an action named 'some_action'. You also have `render_some_action_options` and similar methods you can override to change just the behavior you want to change with things like `query_includes_for :some_action, are: [:category, :comments]` or overriding the following methods:
+
+* some_action
+* params_for_some_action
+* perform_some_action(your_params)
+* query_for_some_action
+* some_action_filters
+* after_some_action_filters
+* render_some_action_options(records)
+* render_some_action(records)  
 
 In addition to creating the related view(s), be sure to add a route in `config/routes.rb` like:
 
 ```ruby
 MyAppName::Application.routes.draw do
-  resources :barfoos do
+  resources :your_models do
     get 'some_action', :on => :collection
   end
 end
 ```
+
+Then add the views and you're done.
 
 #### Avoid n+1 Queries
 

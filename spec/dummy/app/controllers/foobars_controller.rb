@@ -1,12 +1,11 @@
 class FoobarsController < ApplicationController
   
-  include Actionize::Controller
+  include ::Actionizer::Controller
   
   respond_to :json
 
   include_actions :all
-  include_functions :all
-  include_extensions :all
+  include_extensions(*Actionizer.available_extensions.keys)
   
   can_filter_by_query a_query: ->(q, param_value) { q.where(foo_id: param_value) }
   can_filter_by :foo_id

@@ -1,12 +1,11 @@
 class SpecialBarfoosController < ApplicationController
 
-  include Actionize::Controller
+  include ::Actionizer::Controller
   
   respond_to :json
 
   include_actions :all
-  include_functions :all
-  include_extensions :all
+  include_extensions(*Actionizer.available_extensions.keys)
   
   # make it use Barfoo class under the hood
   self.model_class = Barfoo

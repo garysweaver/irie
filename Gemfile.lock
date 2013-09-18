@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    actionize (1.0.0)
+    actionizer (1.0.0)
       actionpack (>= 4.0.0)
       activerecord (>= 4.0.0)
       activesupport (>= 4.0.0)
@@ -83,7 +83,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  actionize!
+  actionizer!
   appraisal (~> 0.5.2)
   bundler (>= 1.2.2)
   cancan (~> 1.6.10)

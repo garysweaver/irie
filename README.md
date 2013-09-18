@@ -1,17 +1,17 @@
-[![Build Status](https://secure.travis-ci.org/FineLinePrototyping/actionize.png?branch=master)][travis] [![Gem Version](https://badge.fury.io/rb/actionize.png)][badgefury]
+[![Build Status](https://secure.travis-ci.org/FineLinePrototyping/actionizer.png?branch=master)][travis] [![Gem Version](https://badge.fury.io/rb/actionizer.png)][badgefury]
 
-# actionize
+# actionizer
 
 *UNDER CONSTRUCTION: See [this tag](https://github.com/FineLinePrototyping/restful_json/tree/v4.5.1) for latest restful_json release. We are developing a new version, so please be patient during the transition. Some of the following documentation may be inaccurate, and things may not be working as expected...*
 
 Implement Rails 4 controller actions easily with a clear and concise mix of declarative and imperative code, like models.
 
-Your controller could `include Actionize::All` to implement index, show, new, edit, create, update, and destroy methods:
+Your controller could `include Actionizer::All` to implement index, show, new, edit, create, update, and destroy methods:
 
 ```ruby
 class PostsController < ApplicationController
   
-  include Actionize::All
+  include_actions :all
 
   respond_to :json, :html
 
@@ -24,12 +24,17 @@ private
 end
 ```
 
-or you could `include Actionize::Index` to only implement index, then specify request parameter driven filtering, sorting, pagination with defaults and support for anything else you would do in your Rails controller:
+or you could `include Actionizer::Index` to only implement index, then specify request parameter driven filtering, sorting, pagination with defaults and support for anything else you would do in your Rails controller:
 
 ```ruby
 class PostsController < ApplicationController
 
-  include Actionize::Index
+  # These includes are just human-readable shortcuts to include modules that implement
+  # the behavior. This could be refactored into one or more modules so you can include
+  # common combinations.
+
+  include_action :index
+  include_extensions :param_filters, :count, :distinct, :limit, :offset, :paging, :order
 
   respond_to :json, :html
 
@@ -110,7 +115,7 @@ can_filter_by_query book_length: ->(q, param_value) { q.joins(:books).where(:boo
 In your Rails app's `Gemfile`:
 
 ```ruby
-gem 'actionize'
+gem 'actionizer'
 ```
 
 Then:
@@ -124,13 +129,13 @@ bundle install
 Each application-level configuration option can be configured one line at a time:
 
 ```ruby
-Actionize.number_of_records_in_a_page = 30
+Actionizer.number_of_records_in_a_page = 30
 ```
 
 or in bulk, like:
 
 ```ruby
-Actionize.configure do
+Actionizer.configure do
   
   # Default for :using in can_filter_by.
   self.can_filter_by_default_using = [:eq]
@@ -157,7 +162,7 @@ Actionize.configure do
 end
 ```
 
-You may want to put any configuration in an initializer like `config/initializers/actionize.rb`.
+You may want to put any configuration in an initializer like `config/initializers/actionizer.rb`.
 
 ### Controller Configuration
 
@@ -294,7 +299,7 @@ Specify default filters to define attributes, ARel predicates, and values to use
 
 and both attr_name_1 and production_date are supplied by the client, then it would filter by the client's attr_name_1 and production_date and filter creation_date by both > 1 year ago and <= 1 year from now.
 
-#### Supported Functions
+#### Extensions
 
 ##### Declaring
 
@@ -529,39 +534,9 @@ The following concerns included might also be of use in your controller:
 
 #### Further Customization
 
-Methods you can override for more control in your controller directly or in a concern/module, similar to the above:
+Extensions are just modules. The only different thing is that you can `@action_result = ...; throw(:action_break)` in any method that is called by an Actionizer action and it will break the execution of the action and return `@action_result`. This allows the ease of control that you'd have typically in a single long action method, but lets you use modules to easily share action method functionality. To those unfamiliar, `throw` in Ruby is a normal flow control mechanism, unlike `raise` which is for exceptions.
 
-* index
-* params_for_index
-* render_index(records)
-* render_index_options(records)
-* render_index_count(count)
-* render_index_page_count(count)
-* any of the above index methods for a custom action created by query_for (just replace index in the method name with your custom method name)
-* show
-* params_for_show
-* render_show(record)
-* render_show_options(record)
-* edit
-* params_for_edit
-* render_edit(record)
-* render_edit_options(record)
-* create
-* params_for_create
-* render_create(record)
-* render_create_invalid(record)
-* render_create_valid(record)
-* render_create_valid_options(record)
-* update
-* params_for_update
-* render_update(record)
-* render_update_invalid(record)
-* render_update_valid(record)
-* render_update_valid_options(record)
-* destroy
-* params_for_destroy
-* render_destroy(record)
-* render_destroy_options(record)
+Some hopefully good examples of how to extend modules are in lib/actionizer/extensions/* and the actions themselves are in lib/actionizer/actions/*. Get familiar with the code even if you don't plan on customizing, if for no other reason than to have another set of eyes on the code.
 
 #### Exception Handling
 
@@ -615,8 +590,8 @@ This app was written by [FineLine Prototyping, Inc.](http://www.finelineprototyp
 
 Copyright (c) 2013 FineLine Prototyping, Inc., released under the [MIT license][lic].
 
-[travis]: http://travis-ci.org/FineLinePrototyping/actionize
-[badgefury]: http://badge.fury.io/rb/actionize
+[travis]: http://travis-ci.org/FineLinePrototyping/actionizer
+[badgefury]: http://badge.fury.io/rb/actionizer
 [employee-training-tracker]: https://github.com/FineLinePrototyping/employee-training-tracker
 [built_with_angularjs]: http://builtwith.angularjs.org/
 [cancan]: https://github.com/ryanb/cancan
@@ -624,5 +599,5 @@ Copyright (c) 2013 FineLine Prototyping, Inc., released under the [MIT license][
 [ar]: http://api.rubyonrails.org/classes/ActiveRecord/Relation.html
 [public_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/public_exceptions.rb
 [show_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/show_exceptions.rb
-[changelog]: https://github.com/FineLinePrototyping/actionize/blob/master/CHANGELOG.md
-[lic]: http://github.com/FineLinePrototyping/actionize/blob/master/LICENSE
+[changelog]: https://github.com/FineLinePrototyping/actionizer/blob/master/CHANGELOG.md
+[lic]: http://github.com/FineLinePrototyping/actionizer/blob/master/LICENSE

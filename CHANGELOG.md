@@ -1,6 +1,6 @@
-## actionize 1.0.0 ##
+## actionizer 1.0.0 ##
 
-* Renamed restful_json to actionize. It isn't only about json.
+* Renamed restful_json to actionizer. It isn't only about json.
 
 Changes since restful_json v4.5.1:
 

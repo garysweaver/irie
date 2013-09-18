@@ -15,6 +15,8 @@ puts "Testing Rails v#{Rails.version}"
 app_path = File.expand_path("../dummy",  __FILE__)
 $LOAD_PATH.unshift(app_path) unless $LOAD_PATH.include?(app_path)
 
+require 'actionizer'
+
 # if require rails, get uninitialized constant ActionView::Template::Handlers::ERB::ENCODING_FLAG (NameError)
 require 'rails/all'
 require 'config/environment'
@@ -22,7 +24,6 @@ require 'db/schema'
 require 'rails/test_help'
 require 'rspec/rails'
 require 'json_spec'
-require 'actionize'
 
 Rails.backtrace_cleaner.remove_silencers!
 
@@ -34,5 +35,4 @@ RSpec.configure do |config|
   config.mock_with :rspec
   config.order = :random
   config.include JsonSpec::Helpers
-  config.formatter = :documentation
 end

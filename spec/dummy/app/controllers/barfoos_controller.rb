@@ -1,12 +1,11 @@
 class BarfoosController < ApplicationController
 
-  include Actionize::Controller
+  include ::Actionizer::Controller
 
   respond_to :json
 
   include_actions :all
-  include_functions :all
-  include_extensions :all
+  include_extensions(*Actionizer.available_extensions.keys)
   
   query_for some_action: ->(q) {q.where(:status => 2)}
   query_includes :foo

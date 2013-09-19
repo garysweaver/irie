@@ -10,7 +10,7 @@ class SpecialBarfoosController < ApplicationController
   # make it use Barfoo class under the hood
   self.model_class = Barfoo
 
-  query_for some_action: ->(q) {q.where(:status => 2)}
+  index_query ->(q) {q.where(:status => 2)}
 
 private
 

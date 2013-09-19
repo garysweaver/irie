@@ -20,7 +20,7 @@ module Actionizer
 
       def perform_create(aparams)
         record = @model_class.new(@aparams)
-        @save_result = record.save
+        record.save
         instance_variable_set(@model_at_singular_name_sym, record)
       end
 

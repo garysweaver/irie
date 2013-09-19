@@ -21,7 +21,7 @@ module Actionizer
 
       def perform_update(aparams)
         record = find_model_instance!(aparams)
-        @update_result = record.update_attributes(@aparams)
+        record.update_attributes(@aparams)
         instance_variable_set(@model_at_singular_name_sym, record)
       end
 

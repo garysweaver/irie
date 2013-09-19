@@ -1,1 +1,0 @@
-json.check "barfoos-some_action: size=#{@barfoos.length}, ids=#{@barfoos.collect(&:favorite_food).join(',')}"

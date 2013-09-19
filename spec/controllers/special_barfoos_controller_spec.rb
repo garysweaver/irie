@@ -15,7 +15,7 @@ describe SpecialBarfoosController do
       10.times do |c|
         expected << Barfoo.create(status: (c % 3), favorite_food: "borscht #{c}", favorite_drink: "vodka #{c}")
       end
-      get :some_action, format: :json
+      get :index, format: :json
       @response.body.should eq("{\"check\":\"special_barfoos-index: size=3, ids=borscht 2,borscht 5,borscht 8\"}")
     end
   end

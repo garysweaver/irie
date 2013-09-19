@@ -7,8 +7,8 @@ module Actionizer
         include ::Actionizer::FunctionParamAliasing
         include ::Actionizer::Extensions::Common::ParamToThrough
 
-        class_attribute :can_be_ordered_by, instance_writer: true
-        class_attribute :default_ordered_by, instance_writer: true
+        class_attribute(:can_be_ordered_by, instance_writer: true) unless self.respond_to? :can_be_ordered_by
+        class_attribute(:default_ordered_by, instance_writer: true) unless self.respond_to? :default_ordered_by
         
         self.can_be_ordered_by ||= []
         self.default_ordered_by ||= {}

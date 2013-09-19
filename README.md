@@ -102,8 +102,7 @@ https://example.org/posts?order=author,-id
 define a query to allow only admins to see private posts:
 
 ```ruby
-query_for index: ->(q) { @current_user.admin? ? q : q.where(:access => 'public')
-end
+index_query ->(q) { @current_user.admin? ? q : q.where(:access => 'public')
 ```
 
 change the query depending on a supplied param:
@@ -113,7 +112,18 @@ can_filter_by_query status: ->(q, status) { status == 'all' ? q : q.where(:statu
                     color: ->(q, color) { color == 'red' ? q.where("color = 'red' or color = 'ruby'") : q.where(:color => color) }
 ```
 
-and more! Actionizer also provides a framework that you can use to extend controller actions with modules and share with others.
+and more!
+
+### Alternatives
+
+Actionizer is an alternative to [Inherited Resources](https://github.com/josevalim/inherited_resources). Here's a comparison:
+
+* Actionizer was developed to solve the problem of needing a flexible JSON service controller for JavaScript applications intended to be used with JavaScript frameworks such as AngularJS and Ember, but evolved into what is intended to be a general-purpose controller.
+* Inherited Resources was primarily developed for handling HTML forms in Rails, but supports other formats as well.
+* Actionizer supports flexible request param based filtering and ordering, both with defaults, quick to write lambda queries and filters, and a relational param syntax.
+* Inherited Resources has some finder options by request param value, and relies more heavily on fat models to handle behavior.
+
+Review both, and any other solutions you can find, and decide what fits best for you.
 
 ### Installation
 
@@ -214,16 +224,28 @@ self.model_plural_name = 'your_models'
 First, declare in the controller:
 
 ```ruby
-can_filter_by :foo_id # allows http://localhost:3000/foobars?foo_id=1
+include_extension :param_filters
 ```
 
-If `Actionizer.can_filter_by_default_using = [:eq]` as it is by default, then you can now get Foobars with a foo_id of '1':
+`can_filter_by` with the request parameter name as a symbol will filter the results by the value of that request parameter, e.g.:
+
+
+```ruby
+can_filter_by :posts
+```
+
+allows you to filter by posts:
 
 ```
-http://localhost:3000/foobars?foo_id=1
+http://localhost:3000/posts?foo_id=1
 ```
 
-`can_filter_by` without an option means you can send in that request param (via routing or directly), and it will use that in the ARel query (safe from SQL injection and only letting you do what you tell it).
+
+If you do `Arel::Predications.public_instance_methods.sort` in Rails console, you can see a list of the available predicates:
+
+```ruby
+:does_not_match, :does_not_match_all, :does_not_match_any, :eq, :eq_all, :eq_any, :gt, :gt_all, :gt_any, :gteq, :gteq_all, :gteq_any, :in, :in_all, :in_any, :lt, :lt_all, :lt_any, :lteq, :lteq_all, :lteq_any, :matches, :matches_all, :matches_any, :not_eq, :not_eq_all, :not_eq_any, :not_in, :not_in_all, :not_in_any
+```
 
 `:using` means you can use those [ARel][arel] predicates for filtering:
 
@@ -235,12 +257,6 @@ By appending the predicate prefix (`.` by default) to the request parameter name
 
 ```
 http://localhost:3000/foobars?seen_on.gteq=2012-08-08
-```
-
-If you do `Arel::Predications.public_instance_methods.sort` in Rails console, you can see a list of the available predicates. So, you could get crazy with:
-
-```ruby
-can_filter_by :does_not_match, :does_not_match_all, :does_not_match_any, :eq, :eq_all, :eq_any, :gt, :gt_all, :gt_any, :gteq, :gteq_all, :gteq_any, :in, :in_all, :in_any, :lt, :lt_all, :lt_any, :lteq, :lteq_all, :lteq_any, :matches, :matches_all, :matches_any, :not_eq, :not_eq_all, :not_eq_any, :not_in, :not_in_all, :not_in_any
 ```
 
 And `can_filter_by` can specify a `:through` to provide an easy way to inner join through a bunch of models using ActiveRecord relations, by specifying 0-to-many association names to go "through" to the final argument, which is the attribute name on the last model. The following is equivalent to the last query:
@@ -435,13 +451,13 @@ include_extension :query_filter
 To filter the list where the status_code attribute is 'green':
 
 ```ruby
-query_for index: ->(q) { q.where(:status_code => 'green') }
+index_query ->(q) { q.where(:status_code => 'green') }
 ```
 
 You can also filter out items that have associations that don't have a certain attribute value (or anything else you can think up with [ARel][arel]/[ActiveRecord relations][ar]), e.g. to filter the list where the object's apples and pears associations are green:
 
 ```ruby
-query_for index: ->(q) {
+index_query ->(q) {
   q.joins(:apples, :pears)
   .where(apples: {color: 'green'})
   .where(pears: {color: 'green'})
@@ -449,45 +465,6 @@ query_for index: ->(q) {
 ```
 
 To avoid n+1 queries, use `.includes(...)` in your query to eager load any associations that you will need in the JSON view.
-
-##### Create Custom Actions
-
-You are still working with regular controllers here, so you can add action methods if you want them. However, if you want another action that lists, but with a custom query, and maybe its own query includes, etc., just specify the required action name in query_for, and it will do all the `alias_method`-ing needed of `index`/`*index*` methods to `your_action`/`*your_method*` and the Actionizer implementation supports calling the method(s) appropriate for your actions. Let's say you want an action that checks `@current_user.admin?`, then:
-
-```ruby
-query_for some_action: ->(q) do
-    if @current_user.admin?
-      Rails.logger.debug("Notice: unfiltered results provided to admin #{@current_user.name}")
-      # just make sure the relation is returned!
-      q
-    else
-      q.where(:access => 'public')
-    end        
-end
-```
-
-will create an action named 'some_action'. You also have `render_some_action_options` and similar methods you can override to change just the behavior you want to change with things like `query_includes_for :some_action, are: [:category, :comments]` or overriding the following methods:
-
-* some_action
-* params_for_some_action
-* perform_some_action(your_params)
-* query_for_some_action
-* some_action_filters
-* after_some_action_filters
-* render_some_action_options(records)
-* render_some_action(records)  
-
-In addition to creating the related view(s), be sure to add a route in `config/routes.rb` like:
-
-```ruby
-MyAppName::Application.routes.draw do
-  resources :your_models do
-    get 'some_action', :on => :collection
-  end
-end
-```
-
-Then add the views and you're done.
 
 #### Avoid n+1 Queries
 
@@ -578,7 +555,7 @@ If you get `missing FROM-clause entry for table` errors, it might mean that `inc
 To fix, you may decide to either: (1) change order/definition of includes in `including`/`includes_for`, (2) don't use `including`/`includes_for` for the actions it affects (may cause n+1 queries), (3) implement `apply_includes` to apply `value = value.includes(*current_action_includes)` in an appropriate order (messy), or (4) use custom query (if index/custom list action) to define joins with handcoded SQL, e.g. (thanks to Tommy):
 
 ```ruby
-query_for index: ->(q) {
+index_query ->(q) {
   # Using standard joins performs an INNER JOIN like we want, but doesn't eager load.
   # Using includes does an eager load, but does a LEFT OUTER JOIN, which isn't really what we want, but in this scenario is probably ok.
   # Using standard joins & includes results in bad SQL with table aliases.
@@ -593,13 +570,13 @@ query_for index: ->(q) {
 # set includes for all actions except index
 query_includes :owner, :customer, :bartender, :waitress
 
-# includes specified in query_for function above
+# includes specified in index query
 query_includes_for :index, are: []
 ```
 
 ### Release Notes
 
-See the [changelog][changelog] for basically what happened when, and git log for everything else.
+See [changelog][changelog] and git log.
 
 ### Contributing
 

@@ -11,7 +11,7 @@ module Actionizer
         if aliased_param(:count)
           # explicit return to return from calling method of the proc
           count = @relation.count.to_i
-          @action_result = __send__("render_#{params[:action]}_count".to_sym, count)
+          @action_result = render_index_count(count)
           throw :action_break
         end
 
@@ -20,7 +20,7 @@ module Actionizer
 
       def render_index_count(count)
         @count = count
-        render "#{params[:action]}_count"
+        render index_count
       end
 
     end

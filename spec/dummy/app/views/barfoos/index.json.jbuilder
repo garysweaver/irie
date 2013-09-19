@@ -1,1 +1,1 @@
-json.check "barfoos-index: size=#{@barfoos.length}, ids=#{@barfoos.collect(&:id).join(',')}"
+json.check "barfoos-index: size=#{@barfoos.length}, statuses=#{@barfoos.collect(&:favorite_food).join(',')}"

@@ -18,7 +18,7 @@ module Actionizer
       # The controller's index (list) method to list resources.
       def index
         return catch(:action_break) do
-          __send__("render_#{params[:action]}".to_sym, __send__("perform_#{params[:action]}".to_sym, __send__("params_for_#{params[:action]}".to_sym)))
+          render_index perform_index(params_for_index)
         end || @action_result
       end
 
@@ -31,14 +31,14 @@ module Actionizer
       end
 
       def perform_index(aparams)
-        @relation = __send__("query_for_#{params[:action]}".to_sym)
+        @relation = query_for_index
         index_filters
         after_index_filters
         instance_variable_set(@model_at_plural_name_sym, @relation.to_a)
       end
 
       def render_index(records)
-        respond_with records, (__send__("render_#{params[:action]}_options".to_sym, records) || {}).merge(self.action_to_valid_render_options[params[:action].to_sym] || {})
+        respond_with records, (render_index_options(records) || {}).merge(self.action_to_valid_render_options[:index] || {})
       end
 
       def render_index_options(records)

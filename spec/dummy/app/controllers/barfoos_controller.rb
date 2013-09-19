@@ -7,6 +7,12 @@ class BarfoosController < ApplicationController
   include_actions :all
   include_extensions(*Actionizer.available_extensions.keys)
   
-  query_for some_action: ->(q) {q.where(:status => 2)}
+  index_query ->(q) {q.where(:status => 2)}
   query_includes :foo
+
+private
+
+  def barfoo_params
+    params.permit(:id)
+  end
 end

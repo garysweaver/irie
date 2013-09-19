@@ -8,7 +8,7 @@ module Actionizer
       included do
         include ::Actionizer::FunctionParamAliasing
 
-        class_attribute :param_to_query, instance_writer: true
+        class_attribute(:param_to_query, instance_writer: true) unless self.respond_to? :param_to_query
         
         self.param_to_query ||= {}
       end
@@ -23,10 +23,10 @@ module Actionizer
           raise "arguments #{args.inspect} are not supported by can_filter_by_query" if args.length > 0
 
           # Shallow clone to help avoid subclass inheritance related sharing issues.
-          self.params_to_query = self.param_to_query.clone
+          self.param_to_query = self.param_to_query.clone
           
           options.each do |param_name, proc|
-            self.params_to_query[param_name.to_sym] = proc
+            self.param_to_query[param_name.to_sym] = proc
           end
         end
       end

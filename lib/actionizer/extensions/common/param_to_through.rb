@@ -7,7 +7,7 @@ module Actionizer
         extend ::ActiveSupport::Concern
 
         included do
-          class_attribute :param_to_through, instance_writer: true
+          class_attribute(:param_to_through, instance_writer: true) unless self.respond_to? :param_to_through
           
           self.param_to_through ||= {}
         end

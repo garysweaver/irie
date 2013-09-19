@@ -9,8 +9,8 @@ module Actionizer
         include ::Actionizer::FunctionParamAliasing
         include ::Actionizer::Extensions::Common::ParamToThrough
 
-        class_attribute :default_filtered_by, instance_writer: true
-        class_attribute :param_to_attr_and_arel_predicate, instance_writer: true
+        class_attribute(:default_filtered_by, instance_writer: true) unless self.respond_to? :default_filtered_by
+        class_attribute(:param_to_attr_and_arel_predicate, instance_writer: true) unless self.respond_to? :param_to_attr_and_arel_predicate
 
         self.default_filtered_by ||= {}
         self.param_to_attr_and_arel_predicate ||= {}

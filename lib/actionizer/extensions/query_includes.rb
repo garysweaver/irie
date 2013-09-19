@@ -6,8 +6,8 @@ module Actionizer
       included do
         include ::Actionizer::FunctionParamAliasing
 
-        class_attribute :action_to_query_includes, instance_writer: true
-        class_attribute :all_action_query_includes, instance_writer: true
+        class_attribute(:action_to_query_includes, instance_writer: true) unless self.respond_to? :action_to_query_includes
+        class_attribute(:all_action_query_includes, instance_writer: true) unless self.respond_to? :all_action_query_includes
 
         self.action_to_query_includes ||= {}
         self.all_action_query_includes ||= []

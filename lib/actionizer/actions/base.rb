@@ -12,12 +12,12 @@ module Actionizer
         end
 
         # create class attributes for each controller option
-        class_attribute :action_to_query, instance_writer: true
-        class_attribute :action_to_query_includes, instance_writer: true
-        class_attribute :action_to_valid_render_options, instance_writer: true
-        class_attribute :model_class, instance_writer: true
-        class_attribute :model_singular_name, instance_writer: true
-        class_attribute :model_plural_name, instance_writer: true
+        class_attribute(:action_to_query, instance_writer: true) unless self.respond_to? :action_to_query
+        class_attribute(:action_to_query_includes, instance_writer: true) unless self.respond_to? :action_to_query_includes
+        class_attribute(:action_to_valid_render_options, instance_writer: true) unless self.respond_to? :action_to_valid_render_options
+        class_attribute(:model_class, instance_writer: true) unless self.respond_to? :model_class
+        class_attribute(:model_singular_name, instance_writer: true) unless self.respond_to? :model_singular_name
+        class_attribute(:model_plural_name, instance_writer: true) unless self.respond_to? :model_plural_name
         
         self.action_to_query ||= {}
         self.action_to_query_includes ||= {}

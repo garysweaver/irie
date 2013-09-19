@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
   s.email       = ['garysweaver@gmail.com']
   s.homepage    = 'https://github.com/FineLinePrototyping/actionizer'
   s.summary     = %q{Easy, flexible, modular Rails controller actions.}
-  s.description = %q{Write controllers with a conventional URL-based query syntax, where you control what can be done the way you'd write an ActiveRecord model, with a mix of declarative and imperative code. HTML, JSON, etc. supported.}
+  s.description = %q{Implement Rails 4 controller actions easily with a clear and concise mix of declarative and imperative code, like models.}
   s.files = Dir['lib/**/*'] + ['Rakefile', 'README.md']
   s.license = 'MIT'
   s.add_runtime_dependency 'actionpack', '>= 4.0.0'

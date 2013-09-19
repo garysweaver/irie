@@ -2,7 +2,7 @@
 
 # actionizer
 
-*Looking for restful_json?: Actionizer is the latest version. For the last release of restful_json, see [v4.5.1](https://github.com/FineLinePrototyping/restful_json/tree/v4.5.1).*
+*Looking for restful_json? Actionizer is the latest version. For the last release of restful_json, see [v4.5.1](https://github.com/FineLinePrototyping/restful_json/tree/v4.5.1).*
 
 Implement Rails 4 controller actions easily with a clear and concise mix of declarative and imperative code, like models.
 
@@ -49,66 +49,70 @@ class PostsController < ApplicationController
 end
 ```
 
-Then set up routes and views, and you can get posts by author:
+Then set up your routes and views.
+
+Now you can get posts by author:
 
 ```
 https://example.org/posts?author=John
 ```
 
-Get posts after 2012-08-08:
+get posts after 2012-08-08:
 
 ```
 https://example.org/posts?posted_on.gt=2012-08-08
 ```
 
-Count those posts:
+count those posts:
 
 ```
 https://example.org/posts?posted_on.gt=2012-08-08&count=
 ```
 
-Get posts by the author's company name:
+get posts by the author's company name:
 
 ```
 https://example.org/posts?company=Lipton
 ```
 
-Find out how many pages of results there are:
+find out how many pages of results there are:
 
 ```
 https://example.org/posts?page_count=
 ```
 
-Get the first page:
+get the first page:
 
 ```
 https://example.org/posts?page=1
 ```
 
-Get a custom page:
+get a custom page:
 
 ```
 https://example.org/posts?offset=30&limit=15
 ```
 
-Change the sort to ascending by author and descending by id:
+change the sort to ascending by author and descending by id:
 
 ```
 https://example.org/posts?order=author,-id
 ```
 
-Define a query to allow only admins to see private posts:
+define a query to allow only admins to see private posts:
 
 ```ruby
 query_for index: ->(q) { @current_user.admin? ? q : q.where(:access => 'public')
 end
 
-Change the query depending on a supplied param:
+change the query depending on a supplied param:
 
 ```ruby
 can_filter_by_query status: ->(q, status) { status == 'all' ? q : q.where(:status => status) },
                     color: ->(q, color) { color == 'red' ? q.where("color = 'red' or color = 'ruby'") : q.where(:color => color) }
 ```
+
+and more! Actionizer also provides a framework that you can use to extend controller actions with modules and share with others.
 
 ### Installation
 

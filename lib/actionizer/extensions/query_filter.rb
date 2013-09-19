@@ -14,21 +14,19 @@ module Actionizer
       end
 
       module ClassMethods
-        # Specify a custom query to filter by if the named request parameter is provided.
-        #
-        # t is self.model_class.arel_table and q is self.model_class.all, e.g.
-        #   can_filter_by_query status: ->(t,q,param_value) { q.where(:status_code => param_value) },
-        #                       color: ->(t,q,param_value) { q.where(:color => param_value) }
+        # Specify a custom query to filter by if the named request parameter is provided, e.g.
+        #   can_filter_by_query status: ->(q, status) { status == 'all' ? q : q.where(:status => status) },
+        #                       color: ->(q, color) { color == 'red' ? q.where("color = 'red' or color = 'ruby'") : q.where(:color => color) }
         def can_filter_by_query(*args)
           options = args.extract_options!
 
           raise "arguments #{args.inspect} are not supported by can_filter_by_query" if args.length > 0
 
           # Shallow clone to help avoid subclass inheritance related sharing issues.
-          self.param_to_query = self.param_to_query.clone
+          self.params_to_query = self.param_to_query.clone
           
           options.each do |param_name, proc|
-            self.param_to_query[param_name.to_sym] = proc
+            self.params_to_query[param_name.to_sym] = proc
           end
         end
       end

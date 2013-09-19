@@ -14,11 +14,9 @@ module Actionizer
       end
 
       module ClassMethods
-        # Specify a custom query. If action specified does not have a method, it will alias_method index to create a new action method with that query.
-        #
-        # t is self.model_class.arel_table and q is self.model_class.all, e.g.
-        #   query_for index: ->(t,q) { q.where(:status_code => 'green') },
-        #             at_risk: ->(t,q) { q.where(:status_code => 'yellow') }
+        # Specify a custom query. If action specified does not have a method, it will alias_method index to create a new action method with that query, e.g.
+        #   query_for index: ->(q) { q.where(:status_code => 'green') },
+        #             at_risk: ->(q) { q.where(:status_code => 'yellow') }
         def query_for(*args)
           options = args.extract_options!
 

@@ -6,7 +6,7 @@ Changes since restful_json v4.5.1:
 
 * Now assumes Rails 4+.
 * Simplification of configuration, usage, and implementation.
-* CanCan/authR support now via optional `RestfulJson::Controller::Authorizing`.
+* CanCan/authR support now optional via authorizer module.
 * Removed direct support for permitters. The controller can define params methods and/or use `before_action`.
 * Removed direct support for active_model_serializers. The controller can define serializer(s) in `valid_render_options`.
 * Removed exception handlers so can use default Rack exception handling or `rescue_from`.
@@ -15,16 +15,16 @@ Changes since restful_json v4.5.1:
 * Added can_order_by.
 * Renamed order_by -> default_order_by to clarify intent.
 * Removed with_default on can_filter_by and replaced with method default_filter_by, because it is unlikely the same default value would be used with multiple predicates.
-* Added valid_render_options which is similar to v4 behavior, but much cleaner.
-* Split into more methods with intuitive naming/behavior.
-* Added a few built-in concerns that are practical for extension that also act as examples for others to extend it.
+* `valid_render_options` is now the way to specify render options.
+* Split action behavior into more methods to be easily overrideable.
 * Changed query_for so that it now takes hash of action to proc/lambda.
 * Removed with_query on can_filter_by and replaced with method can_filter_by_query.
-* No longer send (t) into query lambdas which was never used. You can use `@model_class.arel_table` if you need it.
-* Can rename or alias the request parameter names used for functions, so less chance of conflicts now.
-* Renamed functions to be relational: uniq -> distinct, skip -> offset, take -> limit.
-* Predicate prefix is '.' instead of '!'.
-* Must intentionally implement action methods via includes.
+* No longer send (t) into query lambdas. If you need it in the lambda, use `@model_class.arel_table`.
+* Can rename or alias the request parameter names used for functions to avoid conflicts with attributes.
+* Renamed functions to match relational counterpart: uniq -> distinct, skip -> offset, take -> limit.
+* Predicate prefix is now '.' instead of '!'.
+* Must intentionally include action methods, e.g. `include_actions :all`.
+* Must intentionally include extension modules, e.g. `include_extensions :paging, :order`.
 
 ## restful_json 4.5.1 ##
 

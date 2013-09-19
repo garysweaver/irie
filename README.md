@@ -2,16 +2,15 @@
 
 # actionizer
 
-*UNDER CONSTRUCTION: See [this tag](https://github.com/FineLinePrototyping/restful_json/tree/v4.5.1) for latest restful_json release. We are developing a new version, so please be patient during the transition. Some of the following documentation may be inaccurate, and things may not be working as expected...*
+*Looking for restful_json?: Actionizer is the latest version. For the last release of restful_json, see [v4.5.1](https://github.com/FineLinePrototyping/restful_json/tree/v4.5.1).*
 
 Implement Rails 4 controller actions easily with a clear and concise mix of declarative and imperative code, like models.
 
-Your controller could `include Actionizer::All` to implement index, show, new, edit, create, update, and destroy methods:
+For example, to implement index, show, new, edit, create, update, and destroy methods, you can just include `Actionizer::Actions::All`:
 
 ```ruby
 class PostsController < ApplicationController
-  
-  include_actions :all
+  include Actionizer::Actions::All
 
   respond_to :json, :html
 
@@ -24,16 +23,17 @@ private
 end
 ```
 
-or you could `include Actionizer::Index` to only implement index, then specify request parameter driven filtering, sorting, pagination with defaults and support for anything else you would do in your Rails controller:
+or you can include the `Actionizer::Controller` module that gives you the `include_action` and `include_extensions` methods to shorten further includes, e.g. to specify request parameter-driven filtering, sorting, pagination with defaults:
 
 ```ruby
 class PostsController < ApplicationController
+  include Actionizer::Controller
 
   # These includes are just human-readable shortcuts to include modules that implement
   # the behavior. This could be refactored into one or more modules so you can include
   # common combinations.
 
-  include_action :index
+  include_actions :index
   include_extensions :param_filters, :count, :distinct, :limit, :offset, :paging, :order
 
   respond_to :json, :html
@@ -49,19 +49,19 @@ class PostsController < ApplicationController
 end
 ```
 
-Then, assuming you set up routes and views, you could gets posts by an author:
+Then set up routes and views, and you can get posts by author:
 
 ```
 https://example.org/posts?author=John
 ```
 
-Get posted after 2012-08-08:
+Get posts after 2012-08-08:
 
 ```
 https://example.org/posts?posted_on.gt=2012-08-08
 ```
 
-Count posts after 2012-08-08:
+Count those posts:
 
 ```
 https://example.org/posts?posted_on.gt=2012-08-08&count=
@@ -97,16 +97,17 @@ Change the sort to ascending by author and descending by id:
 https://example.org/posts?order=author,-id
 ```
 
-You could also define the query with a lambda so that it only lists posts about American History books:
+Define a query to allow only admins to see private posts:
 
 ```ruby
-query_for index: ->(q) { q.joins(:books).where(books: {category: 'American History'}) }
-```
+query_for index: ->(q) { @current_user.admin? ? q : q.where(:access => 'public')
+end
 
-or filter by a request param with a lambda:
+Change the query depending on a supplied param:
 
 ```ruby
-can_filter_by_query book_length: ->(q, param_value) { q.joins(:books).where(:books=>{total_pages: param_value}) }
+can_filter_by_query status: ->(q, status) { status == 'all' ? q : q.where(:status => status) },
+                    color: ->(q, color) { color == 'red' ? q.where("color = 'red' or color = 'ruby'") : q.where(:color => color) }
 ```
 
 ### Installation
@@ -211,7 +212,7 @@ First, declare in the controller:
 can_filter_by :foo_id # allows http://localhost:3000/foobars?foo_id=1
 ```
 
-If `RestfulJson.can_filter_by_default_using = [:eq]` as it is by default, then you can now get Foobars with a foo_id of '1':
+If `Actionizer.can_filter_by_default_using = [:eq]` as it is by default, then you can now get Foobars with a foo_id of '1':
 
 ```
 http://localhost:3000/foobars?foo_id=1
@@ -362,7 +363,7 @@ http://localhost:3000/foobars?page=2
 To set page size at application level:
 
 ```ruby
-RestfulJson.number_of_records_in_a_page = 15
+Actionizer.number_of_records_in_a_page = 15
 ```
 
 To set page size at controller level:
@@ -506,7 +507,7 @@ query_includes_for :index, :something_alias_methoded_from_index, are: [posts: [{
 
 #### Customizing Parameter Permittance
 
-Each action except `new` defined by `RestfulJson::Controller` calls a corresponding `params_for_*` method. For `create` and `update` this calls `(model_name)_params` method expecting you to have defined that method to call `permit`, e.g.
+Each Actionizer-implemented action method except `new` calls a corresponding `params_for_*` method. For `create` and `update` this calls `(model_name)_params` method expecting you to have defined that method to call `permit`, e.g.
 
 ```ruby
 def foobar_params
@@ -526,6 +527,16 @@ def params_for_update
 end
 ```
 
+#### Other Extensions
+
+The following concerns, which you can include via `include_extension ...` or via including the corresponding module, might also be of use in your controller:
+
+* `:authorizing` - on include does `before_action` to automatically call `authorize!` with the action and the controller's model class, so you can use [CanCan][cancan] or a similar authorizer.
+* `:converting_null_param_values_to_nil` - convert 'NULL', 'null', and 'nil' to nil when passed in as request params.
+* `:rendering_counts_automatically_for_non_html` - renders count/page count for non-html formats without a view template.
+* `:rendering_validation_errors_automatically_for_non_html` - renders validation errors (e.g. `@my_model.errors`) for non-html formats without a view template.
+* `:using_standard_rest_render_options` - use [RFC2616](http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.2) RESTful status codes for create and update.
+
 #### Primary Keys
 
 Supports composite primary keys. If `@model_class.primary_key.is_a?(Array)`, show/edit/update/destroy will use your two or more request params for the ids that make up the composite.
@@ -540,15 +551,6 @@ valid_render_options :index, serializer: FoobarSerializer
 
 Can use more than one action and more than one option.
 
-#### Extend Your Controller with Included Concerns
-
-The following concerns included might also be of use in your controller:
-
-* `include ::RestfulJson::Controller::Authorizing` - on include does `before_action` to automatically call `authorize!` with the action and the controller's model class, so you can use [CanCan][cancan] or a similar authorizer.
-* `include ::RestfulJson::Controller::ConvertingNullParamValuesToNil` - convert 'NULL', 'null', and 'nil' to nil when passed in as request params.
-* `include ::RestfulJson::Controller::RenderingCountsAutomaticallyForNonHtml` - renders count/page count for non-html formats without a view template.
-* `include ::RestfulJson::Controller::RenderingValidationErrorsAutomaticallyForNonHtml` - renders validation errors (e.g. `@my_model.errors`) for non-html formats without a view template.
-* `include ::RestfulJson::Controller::UsingStandardRestRenderOptions` - use [RFC2616](http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.2) RESTful status codes for create and update.
 
 #### Further Customization
 

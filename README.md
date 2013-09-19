@@ -104,6 +104,7 @@ define a query to allow only admins to see private posts:
 ```ruby
 query_for index: ->(q) { @current_user.admin? ? q : q.where(:access => 'public')
 end
+```
 
 change the query depending on a supplied param:
 

@@ -33,7 +33,7 @@ module Actionizer
 
       def index_filters
         self.param_to_query.each do |param_name, param_query|
-          param_value = @aparams[param_name]
+          param_value = params_for_index[param_name]
           unless param_value.nil?
             @relation = param_query.call(@relation, convert_param_value(param_name.to_s, param_value))
           end

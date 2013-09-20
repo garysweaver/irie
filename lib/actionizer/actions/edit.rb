@@ -16,11 +16,11 @@ module Actionizer
       end
 
       def params_for_edit
-        @aparams = params
+        params
       end
 
-      def perform_edit(aparams)
-        record = find_model_instance!(aparams)
+      def perform_edit(the_params)
+        record = find_model_instance!(the_params)
         instance_variable_set(@model_at_singular_name_sym, record)
       end
 

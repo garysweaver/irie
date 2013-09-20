@@ -14,11 +14,11 @@ module Actionizer
       end
 
       module ClassMethods
-        # Calls .includes(...) on all action queries, e.g.:
+        # Calls .includes(*args) on all action queries with args provided to query_includes, e.g.:
         #   query_includes :category, :comments
-        # or .includes({posts: [{comments: :guest}, :tags]}):
+        # or:
         #   query_includes posts: [{comments: :guest}, :tags]
-        # if query_includes_for overrides includes specified by query_includes per action.
+        # Note that query_includes_for overrides includes specified by query_includes.
         def query_includes(*args)
           options = args.extract_options!
 
@@ -31,8 +31,8 @@ module Actionizer
         end
 
         # Calls .includes(...) only on specified action queries, e.g.:
-        #   query_includes_for :create, are: [:category, :comments]
-        #   query_includes_for :index, :a_custom_action, are: [posts: [{comments: :guest}, :tags]]
+        #   query_includes_for :create, :update, are: [:category, :comments]
+        #   query_includes_for :index, are: [posts: [{comments: :guest}, :tags]]
         def query_includes_for(*args)
           options = args.extract_options!
 

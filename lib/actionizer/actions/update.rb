@@ -16,12 +16,12 @@ module Actionizer
       end
 
       def params_for_update
-        @aparams = __send__(@model_singular_name_params_sym)
+        __send__(@model_singular_name_params_sym)
       end
 
-      def perform_update(aparams)
-        record = find_model_instance!(aparams)
-        record.update_attributes(@aparams)
+      def perform_update(the_params)
+        record = find_model_instance!(the_params)
+        record.update_attributes(the_params)
         instance_variable_set(@model_at_singular_name_sym, record)
       end
 

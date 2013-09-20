@@ -15,11 +15,11 @@ module Actionizer
       end
 
       def params_for_create
-        @aparams = __send__(@model_singular_name_params_sym)
+        __send__(@model_singular_name_params_sym)
       end
 
-      def perform_create(aparams)
-        record = @model_class.new(@aparams)
+      def perform_create(the_params)
+        record = @model_class.new(the_params)
         record.save
         instance_variable_set(@model_at_singular_name_sym, record)
       end

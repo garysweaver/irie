@@ -27,10 +27,10 @@ module Actionizer
       end
 
       def params_for_index
-        @aparams = params
+        params
       end
 
-      def perform_index(aparams)
+      def perform_index(the_params)
         @relation = query_for_index
         index_filters
         after_index_filters

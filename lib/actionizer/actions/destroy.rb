@@ -17,11 +17,11 @@ module Actionizer
       end
 
       def params_for_destroy
-        @aparams = params
+        params
       end
 
-      def perform_destroy(aparams)
-        record = find_model_instance(aparams)
+      def perform_destroy(the_params)
+        record = find_model_instance(the_params)
         @destroy_result = record.destroy if record
         instance_variable_set(@model_at_singular_name_sym, record)
       end

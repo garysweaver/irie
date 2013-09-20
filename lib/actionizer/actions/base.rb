@@ -82,6 +82,11 @@ module Actionizer
       def convert_param_value(param_name, param_value)
         param_value
       end
+
+      def aparams
+        method_sym = "params_for_#{params[:action]}".to_sym
+        respond_to?(method_sym, true) ? (__send__(method_sym) || params) : params
+      end
     end
   end
 end

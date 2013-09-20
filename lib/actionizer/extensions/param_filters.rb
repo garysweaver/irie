@@ -91,8 +91,8 @@ module Actionizer
           if param_to_attr_and_arel_predicate[param_name]
             attr_sym = param_to_attr_and_arel_predicate[param_name][0]
             predicate_sym = param_to_attr_and_arel_predicate[param_name][1]
-            if @aparams.key?(param_name)
-              one_or_more_param = @aparams[param_name].to_s.split(self.filter_split).collect{|v| convert_param_value(attr_sym.to_s, v)}
+            if params_for_index.key?(param_name)
+              one_or_more_param = params_for_index[param_name].to_s.split(self.filter_split).collect{|v| convert_param_value(attr_sym.to_s, v)}
               @relation.where!(
                 @relation.arel_table[attr_sym].
                 try(predicate_sym, 

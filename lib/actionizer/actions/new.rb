@@ -15,10 +15,10 @@ module Actionizer
       end
 
       def params_for_new
-        @aparams = params
+        params
       end
 
-      def perform_new(aparams)
+      def perform_new(the_params)
         instance_variable_set(@model_at_singular_name_sym, @model_class.new)
       end
 

@@ -51,11 +51,12 @@ describe SpecialBarfoosController do
       @request.env['CONTENT_TYPE'] = 'application/json'
       b = Barfoo.create(status: 1, favorite_food: "borscht", favorite_drink: "vodka")
       favorite_drink = SecureRandom.urlsafe_base64
-      put :update, Barfoo.primary_key => b.id, favorite_drink: favorite_drink, format: :json
-      # this really should be 204. :( not our problem
-      response.status.should eq(204), "update failed (got #{response.status}): #{response.body}"
-      assert_match '', @response.body
-      Barfoo.where(favorite_drink: favorite_drink).should be_empty, "should not have updated with non-whitelisted param"
+      begin
+        put :update, Barfoo.primary_key => b.id, favorite_drink: favorite_drink, format: :json
+        fail "should have raised error when attempted to put resource with unpermitted attribute value"
+      rescue
+        Barfoo.where(favorite_drink: favorite_drink).should be_empty, "should not have updated with non-whitelisted param"
+      end
     end
   end
 end

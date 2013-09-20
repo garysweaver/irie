@@ -20,7 +20,7 @@ private
   def foobar_params
     params.permit(:id, :foo_id)
   rescue => e
-    puts "Problem with params: #{params.inspect}"
+    puts "Problem with foobar_params: #{params.inspect}"
     raise e
   end
 end

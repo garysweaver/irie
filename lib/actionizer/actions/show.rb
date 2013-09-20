@@ -15,13 +15,13 @@ module Actionizer
         end || @action_result
       end
 
-      def perform_show(aparams)
-        record = find_model_instance!(aparams)
+      def perform_show(the_params)
+        record = find_model_instance!(the_params)
         instance_variable_set(@model_at_singular_name_sym, record)
       end
 
       def params_for_show
-        @aparams = params
+        params
       end
 
       def render_show(record)

@@ -17,7 +17,7 @@ private
   def barfoo_params
     params.permit(:id, :favorite_food)
   rescue => e
-    puts "Problem with params: #{params.inspect}\n\n#{e.message}\n#{e.backtrace.join("\n")}"
+    puts "Problem with barfoo_params: #{params.inspect}\n\n#{e.message}\n#{e.backtrace.join("\n")}"
     raise e
   end
 end

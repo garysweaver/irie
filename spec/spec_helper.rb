@@ -36,3 +36,4 @@ RSpec.configure do |config|
   config.order = :random
   config.include JsonSpec::Helpers
 end
+

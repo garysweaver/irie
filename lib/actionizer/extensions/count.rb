@@ -10,20 +10,18 @@ module Actionizer
       def after_index_filters
         if aliased_param(:count)
           # explicit return to return from calling method of the proc
-          count = @relation.count.to_i
-          @action_result = render_index_count(count)
+          @count = @relation.count.to_i
+          @action_result = render_index_count
           throw :action_break
         end
 
         super if defined?(super)
       end
 
-      def render_index_count(count)
-        @count = count
-        render index_count
+      def render_index_count
+        render 'index_count'
       end
 
     end
   end
 end
-

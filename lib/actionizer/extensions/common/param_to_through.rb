@@ -14,7 +14,7 @@ module Actionizer
 
         def index_filters
           self.param_to_through.each do |param_name, through_array|
-            param_value = aparams[param_name]
+            param_value = params_for_index[param_name]
             unless param_value.nil?
               # build query
               # e.g. SomeModel.all.joins({:assoc_name => {:sub_assoc => {:sub_sub_assoc => :sub_sub_sub_assoc}}).where(sub_sub_sub_assoc_model_table_name: {column_name: value})

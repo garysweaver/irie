@@ -519,6 +519,42 @@ The following concerns, which you can include via `include_extension ...` or via
 * `:rendering_validation_errors_automatically_for_non_html` - renders validation errors (e.g. `@my_model.errors`) for non-html formats without a view template.
 * `:using_standard_rest_render_options` - use [RFC2616](http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.2) RESTful status codes for create and update.
 
+#### Writing Your Own Extensions
+
+Extensions are just modules. The only different thing is that you can `@action_result = ...; throw(:action_break)` in any method that is called by an Actionizer action and it will break the execution of the action and return `@action_result`. This allows the ease of control that you'd have typically in a single long action method, but lets you use modules to easily share action method functionality. To those unfamiliar, `throw` in Ruby is a normal flow control mechanism, unlike `raise` which is for exceptions.
+
+Some hopefully good examples of how to extend modules are in lib/actionizer/extensions/* and the actions themselves are in lib/actionizer/actions/*. Get familiar with the code even if you don't plan on customizing, if for no other reason than to have another set of eyes on the code.
+
+Here's another example:
+
+```ruby
+# Converts all 'true' and 'false' param values to true and false
+module ConvertingTrueAndFalseParamValues
+  extend ::ActiveSupport::Concern
+
+  def convert_request_param_value_for_filtering(param_name, param_value)
+    case param_value
+    when 'true'
+      true
+    when 'false'
+      false
+    else
+      super if defined?(super)
+    end
+  end
+
+end
+
+# 
+Actionizer.available_extensions[:boolean_params] = '::ConvertingTrueAndFalseParamValues'
+```
+
+Now you could use this in your controller:
+
+```ruby
+include_extension :boolean_params
+```
+
 #### Primary Keys
 
 Supports composite primary keys. If `@model_class.primary_key.is_a?(Array)`, show/edit/update/destroy will use your two or more request params for the ids that make up the composite.
@@ -532,13 +568,6 @@ valid_render_options :index, serializer: FoobarSerializer
 ```
 
 Can use more than one action and more than one option.
-
-
-#### Further Customization
-
-Extensions are just modules. The only different thing is that you can `@action_result = ...; throw(:action_break)` in any method that is called by an Actionizer action and it will break the execution of the action and return `@action_result`. This allows the ease of control that you'd have typically in a single long action method, but lets you use modules to easily share action method functionality. To those unfamiliar, `throw` in Ruby is a normal flow control mechanism, unlike `raise` which is for exceptions.
-
-Some hopefully good examples of how to extend modules are in lib/actionizer/extensions/* and the actions themselves are in lib/actionizer/actions/*. Get familiar with the code even if you don't plan on customizing, if for no other reason than to have another set of eyes on the code.
 
 #### Exception Handling
 

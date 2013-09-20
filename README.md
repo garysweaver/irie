@@ -532,7 +532,7 @@ Here's another example:
 module ConvertingTrueAndFalseParamValues
   extend ::ActiveSupport::Concern
 
-  def convert_request_param_value_for_filtering(param_name, param_value)
+  def convert_param_value(param_name, param_value)
     case param_value
     when 'true'
       true

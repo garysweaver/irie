@@ -545,7 +545,6 @@ module ConvertingTrueAndFalseParamValues
 
 end
 
-# 
 Actionizer.available_extensions[:boolean_params] = '::ConvertingTrueAndFalseParamValues'
 ```
 

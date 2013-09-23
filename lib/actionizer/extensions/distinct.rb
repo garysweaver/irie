@@ -2,9 +2,10 @@ module Actionizer
   module Extensions
     module Distinct
       extend ::ActiveSupport::Concern
+      Actionizer.available_extensions[:distinct] = '::' + Distinct.name
 
       included do
-        include ::Actionizer::FunctionParamAliasing
+        include ::Actionizer::ParamAliases
       end
 
       def index_filters

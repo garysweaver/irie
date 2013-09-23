@@ -6,6 +6,7 @@ module Actionizer
   module Extensions
     module Authorizing
       extend ::ActiveSupport::Concern
+      Actionizer.available_extensions[:authorizing] = '::' + Authorizing.name
 
       # Scope query by @model_class.accessible_by(...).
       #

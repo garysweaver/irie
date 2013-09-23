@@ -4,9 +4,10 @@ module Actionizer
   module Extensions
     module QueryFilter
       extend ::ActiveSupport::Concern
+      Actionizer.available_extensions[:query_filter] = '::' + QueryFilter.name
 
       included do
-        include ::Actionizer::FunctionParamAliasing
+        include ::Actionizer::ParamAliases
 
         class_attribute(:param_to_query, instance_writer: true) unless self.respond_to? :param_to_query
         

@@ -2,9 +2,10 @@ module Actionizer
   module Extensions
     module QueryIncludes
       extend ::ActiveSupport::Concern
+      Actionizer.available_extensions[:query_includes] = '::' + QueryIncludes.name
 
       included do
-        include ::Actionizer::FunctionParamAliasing
+        include ::Actionizer::ParamAliases
 
         class_attribute(:action_to_query_includes, instance_writer: true) unless self.respond_to? :action_to_query_includes
         class_attribute(:all_action_query_includes, instance_writer: true) unless self.respond_to? :all_action_query_includes

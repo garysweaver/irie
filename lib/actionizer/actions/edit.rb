@@ -2,6 +2,7 @@ module Actionizer
   module Actions
     module Edit
       extend ::ActiveSupport::Concern
+      Actionizer.available_actions[:edit] = '::' + Edit.name
 
       included do
         include ::Actionizer::Actions::Base

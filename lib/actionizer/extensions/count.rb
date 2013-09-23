@@ -2,9 +2,10 @@ module Actionizer
   module Extensions
     module Count
       extend ::ActiveSupport::Concern
+      Actionizer.available_extensions[:count] = '::' + Count.name
 
       included do
-        include ::Actionizer::FunctionParamAliasing
+        include ::Actionizer::ParamAliases
       end
 
       def after_index_filters

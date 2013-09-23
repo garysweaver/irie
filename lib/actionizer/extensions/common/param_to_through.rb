@@ -5,6 +5,7 @@ module Actionizer
     module Common
       module ParamToThrough
         extend ::ActiveSupport::Concern
+        Actionizer.available_extensions[:param_to_through] = '::' + ParamToThrough.name
 
         included do
           class_attribute(:param_to_through, instance_writer: true) unless self.respond_to? :param_to_through

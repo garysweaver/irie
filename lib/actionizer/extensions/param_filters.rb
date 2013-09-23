@@ -4,9 +4,10 @@ module Actionizer
   module Extensions
     module ParamFilters
       extend ::ActiveSupport::Concern
+      Actionizer.available_extensions[:param_filters] = '::' + ParamFilters.name
 
       included do
-        include ::Actionizer::FunctionParamAliasing
+        include ::Actionizer::ParamAliases
         include ::Actionizer::Extensions::Common::ParamToThrough
 
         class_attribute(:default_filtered_by, instance_writer: true) unless self.respond_to? :default_filtered_by

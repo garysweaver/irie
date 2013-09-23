@@ -2,11 +2,12 @@
 # for easy integration with authorizers like CanCan, etc.
 module Actionizer
   module Extensions
-    module CustomQuery
+    module IndexQuery
       extend ::ActiveSupport::Concern
+      Actionizer.available_extensions[:index_query] = '::' + IndexQuery.name
 
       included do
-        include ::Actionizer::FunctionParamAliasing
+        include ::Actionizer::ParamAliases
 
         class_attribute(:custom_index_query, instance_writer: true) unless self.respond_to? :custom_index_query
 

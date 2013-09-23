@@ -49,36 +49,13 @@ Actionizer.configure do
   self.number_of_records_in_a_page = 15
 
   # Actions you can implement in the controller, e.g. `include_actions :index, :show`
-  self.available_actions = {
-    all: '::Actionizer::Actions::All',
-    index: '::Actionizer::Actions::Index',
-    show: '::Actionizer::Actions::Show',
-    new: '::Actionizer::Actions::New',
-    edit: '::Actionizer::Actions::Edit',
-    create: '::Actionizer::Actions::Create',
-    update: '::Actionizer::Actions::Update',
-    destroy: '::Actionizer::Actions::Destroy'
-  }
+  # These are added as each is required.
+  self.available_actions = {}
 
   # Extensions to actions that you can implement in the controller, e.g. `include_extensions :authorizing, :count, :custom_query`
-  self.available_extensions = {
-    authorizing: '::Actionizer::Extensions::Authorizing',
-    converting_null_param_values_to_nil: '::Actionizer::Extensions::ConvertingNullParamValuesToNil',
-    rendering_counts_automatically_for_non_html: '::Actionizer::Extensions::RenderingCountsAutomaticallyForNonHtml',
-    rendering_validation_errors_automatically_for_non_html: '::Actionizer::Extensions::RenderingValidationErrorsAutomaticallyForNonHtml',
-    using_standard_rest_render_options: '::Actionizer::Extensions::UsingStandardRestRenderOptions',
-    count: '::Actionizer::Extensions::Count',
-    custom_query: '::Actionizer::Extensions::CustomQuery',
-    distinct: '::Actionizer::Extensions::Distinct',
-    query_includes: '::Actionizer::Extensions::QueryIncludes',
-    limit: '::Actionizer::Extensions::Limit',
-    offset: '::Actionizer::Extensions::Offset',
-    order: '::Actionizer::Extensions::Order',
-    paging: '::Actionizer::Extensions::Paging',
-    param_filters: '::Actionizer::Extensions::ParamFilters',
-    query_filter: '::Actionizer::Extensions::QueryFilter'
-  }
-  # not recommended to include all because more may be added adding behavior you don't want,
+  # These are added as each is required.
+  # Not recommended to include all because more may be added adding behavior you don't want,
   # but can do: include_extensions(*Actionizer.available_extensions.keys)
+  self.available_extensions = {}
 
 end

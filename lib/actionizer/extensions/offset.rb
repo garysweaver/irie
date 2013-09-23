@@ -2,9 +2,10 @@ module Actionizer
   module Extensions
     module Offset
       extend ::ActiveSupport::Concern
+      Actionizer.available_extensions[:offset] = '::' + Offset.name
 
       included do
-        include ::Actionizer::FunctionParamAliasing
+        include ::Actionizer::ParamAliases
       end
 
       def index_filters

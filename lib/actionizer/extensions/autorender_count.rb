@@ -2,8 +2,9 @@
 # This only works if include it after either/both include order/paging functions, since it overrides them.
 module Actionizer
   module Extensions
-    module RenderingCountsAutomaticallyForNonHtml
-      extend ::ActiveSupport::Concern 
+    module AutorenderCount
+      extend ::ActiveSupport::Concern
+      Actionizer.available_extensions[:autorender_count] = '::' + AutorenderCount.name
       
       def render_index_count(count)
         @count = count

@@ -2,9 +2,10 @@ module Actionizer
   module Extensions
     module Order
       extend ::ActiveSupport::Concern
+      Actionizer.available_extensions[:order] = '::' + Order.name
 
       included do
-        include ::Actionizer::FunctionParamAliasing
+        include ::Actionizer::ParamAliases
         include ::Actionizer::Extensions::Common::ParamToThrough
 
         class_attribute(:can_be_ordered_by, instance_writer: true) unless self.respond_to? :can_be_ordered_by

@@ -2,6 +2,7 @@ module Actionizer
   module Actions
     module Destroy
       extend ::ActiveSupport::Concern
+      Actionizer.available_actions[:destroy] = '::' + Destroy.name
 
       included do
         include ::Actionizer::Actions::Base

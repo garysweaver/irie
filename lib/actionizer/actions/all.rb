@@ -2,6 +2,7 @@ module Actionizer
   module Actions
     module All
       extend ::ActiveSupport::Concern
+      Actionizer.available_actions[:all] = '::' + All.name
 
       included do
         include ::Actionizer::Actions::Index

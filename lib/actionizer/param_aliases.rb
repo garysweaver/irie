@@ -1,5 +1,5 @@
 module Actionizer
-  module FunctionParamAliasing
+  module ParamAliases
     extend ::ActiveSupport::Concern
 
     # Looks at Actionizer.function_param_names to get the proper request params

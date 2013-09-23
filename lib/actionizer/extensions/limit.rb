@@ -2,9 +2,10 @@ module Actionizer
   module Extensions
     module Limit
       extend ::ActiveSupport::Concern
+      Actionizer.available_extensions[:limit] = '::' + Limit.name
 
       included do
-        include ::Actionizer::FunctionParamAliasing
+        include ::Actionizer::ParamAliases
       end
 
       def index_filters

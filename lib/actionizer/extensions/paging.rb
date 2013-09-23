@@ -1,3 +1,4 @@
+# Allows paging of results.
 module Actionizer
   module Extensions
     module Paging

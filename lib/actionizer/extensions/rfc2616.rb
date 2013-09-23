@@ -1,4 +1,4 @@
-# Sets RFC2616 standard status and location properly in create and update in rendering options.
+# Sets RFC 2616 standard status and location properly in create and update in rendering options.
 module Actionizer
   module Extensions
     module Rfc2616

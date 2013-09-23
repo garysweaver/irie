@@ -2,11 +2,15 @@ module Actionizer
   module Actions
     module Show
       extend ::ActiveSupport::Concern
+      extend ::Actionizer::Actions::Common::Autoincluding
+
       Actionizer.available_actions[:show] = '::' + Show.name
+      autoinclude_extensions_for :show
 
       included do
         include ::Actionizer::Actions::Base
         include ::Actionizer::Actions::Common::Finders
+        extend ::Actionizer::Actions::Common::Autoincluding
       end
 
       # The controller's show (get) method to return a resource.

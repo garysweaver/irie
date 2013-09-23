@@ -1,5 +1,4 @@
-# Before every controller action, calls authorize! with the action and model class
-# for easy integration with authorizers like CanCan, etc.
+# Allows use of a lambda to work with request parameters to filter results.
 module Actionizer
   module Extensions
     module QueryFilter

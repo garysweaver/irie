@@ -1,4 +1,4 @@
-# Standard rendering of index counts in all formats except html so you don't need views for them.
+# Standard rendering of index page count in all formats except html so you don't need views for them.
 # This only works if include it after either/both include order/paging functions, since it overrides them.
 module Actionizer
   module Extensions

@@ -1,3 +1,4 @@
+# Allowing setting `@count` with the count of the records in the index query.
 module Actionizer
   module Extensions
     module Count
@@ -10,7 +11,6 @@ module Actionizer
 
       def after_index_filters
         if aliased_param(:count)
-          # explicit return to return from calling method of the proc
           @count = @relation.count.to_i
           @action_result = render_index_count
           throw :action_break

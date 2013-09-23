@@ -1,4 +1,4 @@
-# Enables CanCan and compatible authR to be used with actionizer.
+# Enables CanCan and compatible authorization to be used with actionizer.
 #
 # What's not supported currently: if you use `load_resource` or 
 # `load_and_authorize_resource`, we don't use the instance(s) it sets.
@@ -20,11 +20,8 @@ module Actionizer
     private
 
       def find_model_instance_with(the_params, first_sym)
-        authorize! params[:action].to_sym, @model_class
         instance = super
-        # CanCan doesn't allow a second auth yet.
-        # Looking into it...
-        #authorize! params[:action].to_sym, instance
+        authorize! params[:action].to_sym, instance
       end
 
     end

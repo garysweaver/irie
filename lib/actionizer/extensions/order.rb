@@ -1,3 +1,4 @@
+# Allows setting of attributes that can be used for ordering, and allows default ordering to be set.
 module Actionizer
   module Extensions
     module Order

@@ -1,3 +1,4 @@
+# Allows the ability to return distinct records in the index query.
 module Actionizer
   module Extensions
     module Distinct

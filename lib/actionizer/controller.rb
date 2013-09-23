@@ -21,7 +21,7 @@ module Actionizer
           begin
             include self.available_actions[arg.to_sym].constantize
           rescue NameError => e
-            raise "Failed to resolve action module. Check Actionizer/self.available_actions[#{arg.to_sym.inspect}].constantize\n#{e.backtrace.join("\n")}"
+            raise "Failed to resolve action module. Check Actionizer/self.available_actions[#{arg.to_sym.inspect}].constantize. Error: \n#{e.message}\n#{e.backtrace.join("\n")}"
           end
         end
       end
@@ -37,7 +37,7 @@ module Actionizer
           begin
             include self.available_extensions[arg.to_sym].constantize
           rescue NameError => e
-            raise "Failed to resolve extension module. Check Actionizer/self.available_extensions[#{arg.to_sym.inspect}].constantize\n#{e.backtrace.join("\n")}"
+            raise "Failed to resolve extension module. Check Actionizer/self.available_extensions[#{arg.to_sym.inspect}].constantize. Error: \n#{e.message}\n#{e.backtrace.join("\n")}"
           end
         end
       end

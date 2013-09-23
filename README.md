@@ -34,7 +34,7 @@ class PostsController < ApplicationController
   # common combinations.
 
   include_actions :index
-  include_extensions :param_filters, :count, :distinct, :limit, :offset, :paging, :order
+  include_extensions :count, :distinct, :limit, :offset, :paging
 
   respond_to :json, :html
 
@@ -173,6 +173,17 @@ Actionizer.configure do
   # In most cases the request param 'id' means primary key.
   # You'd set this to false if id is used for something else other than primary key.
   self.id_is_primary_key_param = true
+
+  # When you include the defined action module, it includes the associated modules.
+  self.autoincludes = {
+    create: :query_includes,
+    destroy: :query_includes,
+    edit: :query_includes,
+    index: [:index_query, :order, :param_filters, :query_includes],
+    new: :query_includes,
+    show: :query_includes,
+    update: :query_includes
+  }
   
 end
 ```
@@ -188,27 +199,14 @@ In the controller, you can set a variety of class attributes with `self.somethin
 All of the app-level configuration parameters are configurable in the controller class body:
 
 ```ruby
-  # Default for :using in can_filter_by.
   self.can_filter_by_default_using = [:eq]
-  
-  # Delimiter for values in request parameter values.
   self.filter_split = ','
-
-  # Use one or more alternate request parameter names for functions,
-  # e.g. use very_distinct instead of distinct, and either limit or limita for limit
-  #   self.function_param_names = {distinct: :very_distinct, limit: [:limit, :limita]}
-  # Supported_functions in the controller will still expect the original name, e.g. distinct.
   self.function_param_names = {}
-  
-  # Delimiter for ARel predicate in the request parameter name.
   self.predicate_prefix = '.'
-  
-  # Default number of records to return if using the page request function.
   self.number_of_records_in_a_page = 15
-
-  # In most cases the request param 'id' means primary key.
-  # You'd set this to false if id is used for something else other than primary key.
   self.id_is_primary_key_param = true
+  # note: if you (re)define this in the controller, you'd need to do it before include_action(s)
+  # self.autoincludes = {...}
 ```
 
 Controller-only config options:
@@ -220,12 +218,6 @@ self.model_plural_name = 'your_models'
 ```
 
 #### Filtering by Attribute(s)
-
-First, declare in the controller:
-
-```ruby
-include_extension :param_filters
-```
 
 `can_filter_by` with the request parameter name as a symbol will filter the results by the value of that request parameter, e.g.:
 
@@ -239,7 +231,6 @@ allows you to filter by posts:
 ```
 http://localhost:3000/posts?foo_id=1
 ```
-
 
 If you do `Arel::Predications.public_instance_methods.sort` in Rails console, you can see a list of the available predicates:
 
@@ -322,10 +313,6 @@ and both attr_name_1 and production_date are supplied by the client, then it wou
 
 #### Extensions
 
-##### Declaring
-
-`supports_functions` lets you allow the functions: `distinct`, `offset`, `limit`, and `count`.
-
 ##### Distinct
 
 In the controller:
@@ -356,12 +343,15 @@ http://localhost:3000/foobars?count=
 
 That will set the `@count` instance variable that you can use in your view.
 
+Use `include_extension :autorender_count` to render count automatically for non-HTML (JSON, etc.) views.
+
+
 ##### Page Count
 
 In the controller:
 
 ```ruby
-include_extensions :page, :page_count
+include_extension :paging
 ```
 
 enables:
@@ -372,7 +362,15 @@ http://localhost:3000/foobars?page_count=
 
 That will set the `@page_count` instance variable that you can use in your view.
 
+Use `include_extension :autorender_page_count` to render count automatically for non-HTML (JSON, etc.) views.
+
 ##### Getting a Page
+
+In the controller:
+
+```ruby
+include_extension :paging
+```
 
 To access each page of results:
 
@@ -418,11 +416,6 @@ http://localhost:3000/foobars?offset=30&limit=15
 
 #### Order
 
-With:
-```ruby
-include_extension :order
-```
-
 You can allow request specified order:
 
 ```ruby
@@ -442,11 +435,6 @@ default_order_by {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
 ```
 
 #### Custom Index Queries
-
-With:
-```ruby
-include_extension :query_filter
-```
 
 To filter the list where the status_code attribute is 'green':
 
@@ -513,11 +501,10 @@ end
 
 The following concerns, which you can include via `include_extension ...` or via including the corresponding module, might also be of use in your controller:
 
-* `:authorizing` - on include does `before_action` to automatically call `authorize!` with the action and the controller's model class, so you can use [CanCan][cancan] or a similar authorizer.
-* `:converting_null_param_values_to_nil` - convert 'NULL', 'null', and 'nil' to nil when passed in as request params.
-* `:rendering_counts_automatically_for_non_html` - renders count/page count for non-html formats without a view template.
-* `:rendering_validation_errors_automatically_for_non_html` - renders validation errors (e.g. `@my_model.errors`) for non-html formats without a view template.
-* `:using_standard_rest_render_options` - use [RFC2616](http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.2) RESTful status codes for create and update.
+* `:authorizing` - integrates with [CanCan][cancan]-compatible authorizer.
+* `:nil_params` - convert 'NULL', 'null', and 'nil' to nil when passed in as request params.
+* `:autorender_errors` - renders validation errors (e.g. `@my_model.errors`) for non-HTML (JSON, etc.) formats without a view template.
+* `:rfc2616` - use [RFC 2616](http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.2) RESTful status codes for create and update.
 
 #### Writing Your Own Extensions
 
@@ -529,7 +516,7 @@ Here's another example:
 
 ```ruby
 # Converts all 'true' and 'false' param values to true and false
-module ConvertingTrueAndFalseParamValues
+module BooleanParams
   extend ::ActiveSupport::Concern
 
   def convert_param_value(param_name, param_value)
@@ -545,7 +532,7 @@ module ConvertingTrueAndFalseParamValues
 
 end
 
-Actionizer.available_extensions[:boolean_params] = '::ConvertingTrueAndFalseParamValues'
+Actionizer.available_extensions[:boolean_params] = '::BooleanParams'
 ```
 
 Now you could use this in your controller:

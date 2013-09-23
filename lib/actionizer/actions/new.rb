@@ -2,7 +2,10 @@ module Actionizer
   module Actions
     module New
       extend ::ActiveSupport::Concern
+      extend ::Actionizer::Actions::Common::Autoincluding
+
       Actionizer.available_actions[:new] = '::' + New.name
+      autoinclude_extensions_for :new
 
       included do
         include ::Actionizer::Actions::Base

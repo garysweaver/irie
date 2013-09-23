@@ -2,7 +2,10 @@ module Actionizer
   module Actions
     module Index
       extend ::ActiveSupport::Concern
+      extend ::Actionizer::Actions::Common::Autoincluding
+      
       Actionizer.available_actions[:index] = '::' + Index.name
+      autoinclude_extensions_for :index
 
       included do
         include ::Actionizer::Actions::Base

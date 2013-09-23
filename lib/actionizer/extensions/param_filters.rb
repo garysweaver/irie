@@ -1,5 +1,4 @@
-# Before every controller action, calls authorize! with the action and model class
-# for easy integration with authorizers like CanCan, etc.
+# Allows filtering of results using ARel predicates.
 module Actionizer
   module Extensions
     module ParamFilters

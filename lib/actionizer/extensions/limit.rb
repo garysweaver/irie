@@ -1,3 +1,4 @@
+# Allows limiting of the number of records returned by the index query.
 module Actionizer
   module Extensions
     module Limit

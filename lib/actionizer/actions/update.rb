@@ -2,7 +2,10 @@ module Actionizer
   module Actions
     module Update
       extend ::ActiveSupport::Concern
+      extend ::Actionizer::Actions::Common::Autoincluding
+
       Actionizer.available_actions[:update] = '::' + Update.name
+      autoinclude_extensions_for :update
 
       included do
         include ::Actionizer::Actions::Base

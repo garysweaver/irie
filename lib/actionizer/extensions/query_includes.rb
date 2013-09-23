@@ -1,3 +1,4 @@
+# Allows ability to do `.includes(...)` on query to avoid n+1 queries.
 module Actionizer
   module Extensions
     module QueryIncludes

@@ -1,5 +1,4 @@
-# Before every controller action, calls authorize! with the action and model class
-# for easy integration with authorizers like CanCan, etc.
+# Allows use of a lambda for the index query.
 module Actionizer
   module Extensions
     module IndexQuery
@@ -11,7 +10,7 @@ module Actionizer
 
         class_attribute(:custom_index_query, instance_writer: true) unless self.respond_to? :custom_index_query
 
-        self.action_to_query ||= {}
+        self.custom_index_query ||= nil
       end
 
       module ClassMethods

@@ -1,9 +1,9 @@
 module Actionizer
 
   CONTROLLER_OPTIONS = [
+    :autoincludes,
     :available_actions,
     :available_extensions,
-    :available_functions,
     :can_filter_by_default_using,
     :filter_split,
     :function_param_names,
@@ -49,7 +49,7 @@ Actionizer.configure do
   self.number_of_records_in_a_page = 15
 
   # Actions you can implement in the controller, e.g. `include_actions :index, :show`
-  # These are added as each is required.
+  # These are added as each file is required.
   self.available_actions = {}
 
   # Extensions to actions that you can implement in the controller, e.g. `include_extensions :authorizing, :count, :custom_query`
@@ -58,4 +58,14 @@ Actionizer.configure do
   # but can do: include_extensions(*Actionizer.available_extensions.keys)
   self.available_extensions = {}
 
+  # When you include the defined action module, it includes the associated modules.
+  self.autoincludes = {
+    create: :query_includes,
+    destroy: :query_includes,
+    edit: :query_includes,
+    index: [:index_query, :order, :param_filters, :query_includes],
+    new: :query_includes,
+    show: :query_includes,
+    update: :query_includes
+  }
 end

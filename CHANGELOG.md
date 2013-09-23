@@ -24,7 +24,7 @@ Changes since restful_json v4.5.1:
 * Renamed functions to match relational counterpart: uniq -> distinct, skip -> offset, take -> limit.
 * Predicate prefix is now `.` instead of `!`.
 * Must intentionally include action methods, e.g. `include_actions :all`.
-* Must intentionally include extension modules, e.g. `include_extensions :paging, :order`.
+* `supports_functions` replaced with intentionally include extension modules, e.g. `include_extensions :paging, :order` like `supports_functions`. However, `autoincludes` allows similar behavior before by automatically including configurable sets of modules for features that don't really do anything unless you call their class methods to configure.
 
 ## restful_json 4.5.1 ##
 

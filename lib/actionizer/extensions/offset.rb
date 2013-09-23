@@ -1,3 +1,4 @@
+# Allowing offsetting (skipping) records that would be returned by the index query.
 module Actionizer
   module Extensions
     module Offset

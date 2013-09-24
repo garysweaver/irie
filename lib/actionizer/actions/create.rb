@@ -2,14 +2,34 @@ module Actionizer
   module Actions
     module Create
       extend ::ActiveSupport::Concern
-      extend ::Actionizer::Actions::Common::Autoincluding
 
       Actionizer.available_actions[:create] = '::' + Create.name
-      autoinclude_extensions_for :create
 
       included do
         include ::Actionizer::Actions::Base
-      end        
+        
+        Array.wrap(self.autoincludes[:create]).reject{|k,v| k.blank? || v.blank?}.each do |obj|
+          case obj
+          when Symbol
+            begin
+              puts "#{self} autoincluding #{Actionizer.available_extensions[obj.to_sym]}"
+              include self.available_extensions[obj.to_sym].constantize
+            rescue NameError => e
+              raise "Could not resolve extension module. Check Actionizer/self.available_extensions[#{obj.to_sym.inspect}].constantize. Error: \n#{e.message}\n#{e.backtrace.join("\n")}"
+            end
+          when String
+            begin
+              puts "#{self} autoincluding #{obj}"
+              include obj.constantize
+            rescue NameError => e
+              raise "Could not resolve extension module: #{obj}. Error: \n#{e.message}\n\n#{e.backtrace.join("\n")}"
+            end
+          else
+            puts "#{self} autoincluding #{obj}"
+            include obj
+          end
+        end
+      end
 
       # The controller's create (post) method to create a resource.
       def create

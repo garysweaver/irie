@@ -2,14 +2,34 @@ module Actionizer
   module Actions
     module Edit
       extend ::ActiveSupport::Concern
-      extend ::Actionizer::Actions::Common::Autoincluding
       
       Actionizer.available_actions[:edit] = '::' + Edit.name
-      autoinclude_extensions_for :edit
 
       included do
         include ::Actionizer::Actions::Base
         include ::Actionizer::Actions::Common::Finders
+        
+        Array.wrap(self.autoincludes[:edit]).reject{|k,v| k.blank? || v.blank?}.each do |obj|
+          case obj
+          when Symbol
+            begin
+              puts "#{self} autoincluding #{Actionizer.available_extensions[obj.to_sym]}"
+              include self.available_extensions[obj.to_sym].constantize
+            rescue NameError => e
+              raise "Could not resolve extension module. Check Actionizer/self.available_extensions[#{obj.to_sym.inspect}].constantize. Error: \n#{e.message}\n#{e.backtrace.join("\n")}"
+            end
+          when String
+            begin
+              puts "#{self} autoincluding #{obj}"
+              include obj.constantize
+            rescue NameError => e
+              raise "Could not resolve extension module: #{obj}. Error: \n#{e.message}\n\n#{e.backtrace.join("\n")}"
+            end
+          else
+            puts "#{self} autoincluding #{obj}"
+            include obj
+          end
+        end
       end
 
       # The controller's edit method (e.g. used for edit record in html format).

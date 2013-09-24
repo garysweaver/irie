@@ -29,7 +29,7 @@ module Actionizer
 
       # Shortcut for including one or more extension modules.
       # e.g.
-      #   include_extensions :using_standard_rest_render_options
+      #   include_extensions :count, :distinct
       # You can define more or override in Actionizer.available_extensions and/or self.available_extensions.
       def include_extensions(*args)
         args.each do |arg|

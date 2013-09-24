@@ -152,9 +152,11 @@ or in bulk, like:
 ```ruby
 Actionizer.configure do
   
+  # Used in param filters function.
   # Default for :using in can_filter_by.
   self.can_filter_by_default_using = [:eq]
   
+  # Used in param filters function.
   # Delimiter for values in request parameter values.
   self.filter_split = ','
 
@@ -164,17 +166,38 @@ Actionizer.configure do
   # Supported_functions in the controller will still expect the original name, e.g. distinct.
   self.function_param_names = {}
   
+  # Used in param filters function.
   # Delimiter for ARel predicate in the request parameter name.
   self.predicate_prefix = '.'
-  
-  # Default number of records to return if using the page request function.
-  self.number_of_records_in_a_page = 15
 
+  # Used in show, edit, update, and destroy actions.
   # In most cases the request param 'id' means primary key.
   # You'd set this to false if id is used for something else other than primary key.
   self.id_is_primary_key_param = true
 
+  # Used in paging function.
+  # Default number of records to return.
+  self.number_of_records_in_a_page = 15
+
+  # Actions that you can implement in the controller via include_actions,
+  # e.g. include_actions :index, :show
+  # Each is added as each file is required when the gem is loaded, so for a full list,
+  # check Actionizer.available_actions in rails c.
+  # You shouldn't have to worry about configuring this typically.
+  self.available_actions = {}
+
+  # Extensions to actions that you can implement in the controller via include_extensions,
+  # e.g. include_extensions :count, :paging
+  # Each is added as each file is required when the gem is loaded, so for a full list,
+  # check Actionizer.available_extensions in rails c.
+  # You shouldn't have to worry about configuring this typically.
+  self.available_extensions = {}
+
   # When you include the defined action module, it includes the associated modules.
+  # If value or value array contains symbol it will look up symbol in self.available_extensions in the controller
+  # (which is defaulted to Actionizer.available_extensions).
+  # If value is String will assume String is the fully-qualified module name to include, e.g. index: '::My::Module'
+  # If constant, it will just include constant (module), e.g. index: ::My::Module
   self.autoincludes = {
     create: :query_includes,
     destroy: :query_includes,
@@ -184,7 +207,6 @@ Actionizer.configure do
     show: :query_includes,
     update: :query_includes
   }
-  
 end
 ```
 
@@ -205,8 +227,8 @@ All of the app-level configuration parameters are configurable in the controller
   self.predicate_prefix = '.'
   self.number_of_records_in_a_page = 15
   self.id_is_primary_key_param = true
-  # note: if you (re)define this in the controller, you'd need to do it before include_action(s)
-  # self.autoincludes = {...}
+  # note: if you (re)define this in the controller, you'd need to do it before include_action(s):
+  self.autoincludes = {...}
 ```
 
 Controller-only config options:

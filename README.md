@@ -29,11 +29,10 @@ or you can include the `Actionizer::Controller` module that gives you the `inclu
 class PostsController < ApplicationController
   include Actionizer::Controller
 
-  # The include_* are just human-readable shortcuts to include modules,
-  # so we don't have to give up module namespacing to use short names.
-  # include_actions also uses configured autoincludes to allow
-  # packages of includes. You can forgo these two and just use include,
-  # but that's typing.
+  # The include_* are just human-readable shortcuts to include modules, so we 
+  # don't have to give up module namespacing to use short names. include_actions
+  # also uses configured autoincludes to allow packages of includes. You can
+  # forgo these two and just use include, if you'd rather.
 
   include_actions :index
   include_extensions :count, :distinct, :limit, :offset, :paging

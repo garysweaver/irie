@@ -71,8 +71,8 @@ Actionizer.configure do
     create: :query_includes,
     destroy: :query_includes,
     edit: :query_includes,
-    index: [:index_query, :order, :param_filters, :query_includes],
-    new: :query_includes,
+    index: [:index_query, :order, :param_filters, :query_filter, :query_includes],
+    new: [],
     show: :query_includes,
     update: :query_includes
   }

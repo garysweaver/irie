@@ -8,13 +8,9 @@ module Actionizer
       extend ::ActiveSupport::Concern
       Actionizer.available_extensions[:authorizing] = '::' + Authorizing.name
 
-      # Scope query by @model_class.accessible_by(...).
-      #
-      # Note!: assumes that module includes will be done in such an order that
-      # this method is executed before all others in the chain except the
-      # one in the index module.
+      # Scope query by .accessible_by(...).
       def query_for_index
-        @model_class.accessible_by(current_ability, params[:action].to_sym)
+        (defined?(super) ? super : @model_class).accessible_by(current_ability, params[:action].to_sym)
       end
 
     private

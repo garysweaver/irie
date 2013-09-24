@@ -9,24 +9,21 @@ module Actionizer
         include ::Actionizer::Actions::Base
         include ::Actionizer::Actions::Common::Finders
 
-        Array.wrap(self.autoincludes[:destroy]).reject{|k,v| k.blank? || v.blank?}.each do |obj|
+        Array.wrap(self.autoincludes[:destroy]).each do |obj|
           case obj
           when Symbol
             begin
-              puts "#{self} autoincluding #{Actionizer.available_extensions[obj.to_sym]}"
               include self.available_extensions[obj.to_sym].constantize
             rescue NameError => e
               raise "Could not resolve extension module. Check Actionizer/self.available_extensions[#{obj.to_sym.inspect}].constantize. Error: \n#{e.message}\n#{e.backtrace.join("\n")}"
             end
           when String
             begin
-              puts "#{self} autoincluding #{obj}"
               include obj.constantize
             rescue NameError => e
               raise "Could not resolve extension module: #{obj}. Error: \n#{e.message}\n\n#{e.backtrace.join("\n")}"
             end
           else
-            puts "#{self} autoincluding #{obj}"
             include obj
           end
         end

@@ -5,6 +5,7 @@ class BarfoosController < ApplicationController
   respond_to :json
 
   include_actions :all
+  # among other things this checks that authorizing called after index_query still works
   include_extensions(*Actionizer.available_extensions.keys)
   
   index_query ->(q) {q.where(:status => 2)}

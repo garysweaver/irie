@@ -5,7 +5,7 @@ class FoobarsController < ApplicationController
   respond_to :json
 
   include_actions :all
-  include_extensions(*Actionizer.available_extensions.keys)
+  include_extensions :rfc2616, :authorizing
   
   can_filter_by_query a_query: ->(q, param_value) { q.where(foo_id: param_value) }
   can_filter_by :foo_id

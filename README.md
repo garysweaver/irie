@@ -119,7 +119,7 @@ and more!
 
 Actionizer is an alternative to [Inherited Resources](https://github.com/josevalim/inherited_resources). Here's a comparison:
 
-* Actionizer was developed to solve the problem of needing a flexible JSON service controller for JavaScript applications intended to be used with JavaScript frameworks such as AngularJS and Ember, but evolved into what is intended to be a general-purpose controller.
+* Actionizer was developed to solve the problem of needing a flexible JSON service controller for JavaScript applications intended to be used with JavaScript frameworks such as AngularJS and Ember, but evolved into a set of concerns you can include to build your controller easily.
 * Inherited Resources was primarily developed for handling HTML forms in Rails, but supports other formats as well.
 * Actionizer supports flexible request param based filtering and ordering, both with defaults, quick to write lambda queries and filters, and a relational param syntax.
 * Inherited Resources has some finder options by request param value, and relies more heavily on fat models to handle behavior.
@@ -180,20 +180,6 @@ Actionizer.configure do
   # Default number of records to return.
   self.number_of_records_in_a_page = 15
 
-  # Actions that you can implement in the controller via include_actions,
-  # e.g. include_actions :index, :show
-  # Each is added as each file is required when the gem is loaded, so for a full list,
-  # check Actionizer.available_actions in rails c.
-  # You shouldn't have to worry about configuring this typically.
-  self.available_actions = {}
-
-  # Extensions to actions that you can implement in the controller via include_extensions,
-  # e.g. include_extensions :count, :paging
-  # Each is added as each file is required when the gem is loaded, so for a full list,
-  # check Actionizer.available_extensions in rails c.
-  # You shouldn't have to worry about configuring this typically.
-  self.available_extensions = {}
-
   # When you include the defined action module, it includes the associated modules.
   # If value or value array contains symbol it will look up symbol in self.available_extensions in the controller
   # (which is defaulted to Actionizer.available_extensions).
@@ -203,15 +189,15 @@ Actionizer.configure do
     create: :query_includes,
     destroy: :query_includes,
     edit: :query_includes,
-    index: [:index_query, :order, :param_filters, :query_includes],
-    new: :query_includes,
+    index: [:index_query, :order, :param_filters, :query_filter, :query_includes],
+    new: [],
     show: :query_includes,
     update: :query_includes
   }
 end
 ```
 
-You may want to put any configuration in an initializer like `config/initializers/actionizer.rb`.
+You may want to put your configuration in an initializer like `config/initializers/actionizer.rb`.
 
 ### Controller Configuration
 

@@ -6,15 +6,15 @@ module Actionizer
       class_attribute :available_actions, instance_writer: true
       class_attribute :available_extensions, instance_writer: true
 
-      self.available_actions = Actionizer.available_actions || {}
-      self.available_extensions = Actionizer.available_extensions || {}
+      self.available_actions = ::Actionizer.available_actions || {}
+      self.available_extensions = ::Actionizer.available_extensions || {}
     end
 
     module ClassMethods
       # Shortcut for including one or more action modules.
       # e.g.
       #   include_actions :index, :show, :new, :edit, :create, :update, :destroy
-      # You can define more or override in Actionizer.available_actions and/or self.available_actions.
+      # You can define more or override in ::Actionizer.available_actions and/or self.available_actions.
       def include_actions(*args)
         args.each do |arg|
           raise "#{arg.inspect} isn't defined in self.available_actions" unless self.available_actions[arg.to_sym]
@@ -30,7 +30,7 @@ module Actionizer
       # Shortcut for including one or more extension modules.
       # e.g.
       #   include_extensions :count, :distinct
-      # You can define more or override in Actionizer.available_extensions and/or self.available_extensions.
+      # You can define more or override in ::Actionizer.available_extensions and/or self.available_extensions.
       def include_extensions(*args)
         args.each do |arg|
           raise "#{arg.inspect} isn't defined in self.available_extensions" unless self.available_extensions[arg.to_sym]

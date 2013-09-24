@@ -4,7 +4,7 @@ module Actionizer
     module Conversion
       module NilParams
         extend ::ActiveSupport::Concern
-        Actionizer.available_extensions[:nil_params] = '::' + NilParams.name
+        ::Actionizer.available_extensions[:nil_params] = '::' + NilParams.name
 
         NILS = ['NULL'.freeze, 'null'.freeze, 'nil'.freeze].to_set
 

@@ -3,14 +3,14 @@ module Actionizer
   module Extensions
     module Paging
       extend ::ActiveSupport::Concern
-      Actionizer.available_extensions[:paging] = '::' + Paging.name
+      ::Actionizer.available_extensions[:paging] = '::' + Paging.name
 
       included do
         include ::Actionizer::ParamAliases
 
         class_attribute(:number_of_records_in_a_page, instance_writer: true) unless self.respond_to? :number_of_records_in_a_page
 
-        self.number_of_records_in_a_page = Actionizer.number_of_records_in_a_page
+        self.number_of_records_in_a_page = ::Actionizer.number_of_records_in_a_page
       end
 
       def index_filters

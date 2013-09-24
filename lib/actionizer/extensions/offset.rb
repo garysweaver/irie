@@ -3,7 +3,7 @@ module Actionizer
   module Extensions
     module Offset
       extend ::ActiveSupport::Concern
-      Actionizer.available_extensions[:offset] = '::' + Offset.name
+      ::Actionizer.available_extensions[:offset] = '::' + Offset.name
 
       included do
         include ::Actionizer::ParamAliases

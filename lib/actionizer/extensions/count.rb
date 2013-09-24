@@ -3,7 +3,7 @@ module Actionizer
   module Extensions
     module Count
       extend ::ActiveSupport::Concern
-      Actionizer.available_extensions[:count] = '::' + Count.name
+      ::Actionizer.available_extensions[:count] = '::' + Count.name
 
       included do
         include ::Actionizer::ParamAliases

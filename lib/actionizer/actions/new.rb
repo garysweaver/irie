@@ -3,7 +3,7 @@ module Actionizer
     module New
       extend ::ActiveSupport::Concern
 
-      Actionizer.available_actions[:new] = '::' + New.name
+      ::Actionizer.available_actions[:new] = '::' + New.name
 
       included do
         include ::Actionizer::Actions::Base

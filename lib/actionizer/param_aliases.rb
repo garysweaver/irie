@@ -2,7 +2,7 @@ module Actionizer
   module ParamAliases
     extend ::ActiveSupport::Concern
 
-    # Looks at Actionizer.function_param_names to get the proper request params
+    # Looks at ::Actionizer.function_param_names to get the proper request params
     # to check for for the provided param name in params, then returns an array of all
     # values for all matching defined request params. Does *not* convert param
     # value with convert_param_value(...).

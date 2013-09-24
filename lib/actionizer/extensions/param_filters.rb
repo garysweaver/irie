@@ -3,7 +3,7 @@ module Actionizer
   module Extensions
     module ParamFilters
       extend ::ActiveSupport::Concern
-      Actionizer.available_extensions[:param_filters] = '::' + ParamFilters.name
+      ::Actionizer.available_extensions[:param_filters] = '::' + ParamFilters.name
 
       included do
         include ::Actionizer::ParamAliases

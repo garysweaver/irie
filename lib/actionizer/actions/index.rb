@@ -3,7 +3,7 @@ module Actionizer
     module Index
       extend ::ActiveSupport::Concern
       
-      Actionizer.available_actions[:index] = '::' + Index.name
+      ::Actionizer.available_actions[:index] = '::' + Index.name
 
       included do
         include ::Actionizer::Actions::Base

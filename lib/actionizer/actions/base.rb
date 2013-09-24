@@ -8,7 +8,7 @@ module Actionizer
         Actionizer::CONTROLLER_OPTIONS.each do |key|
           class_attribute key, instance_writer: true
           self.send("#{key}=".to_sym, 
-            Actionizer.send(key))
+            ::Actionizer.send(key))
         end
 
         # create class attributes for each controller option

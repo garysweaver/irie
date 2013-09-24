@@ -4,7 +4,7 @@ module Actionizer
   module Extensions
     module AutorenderErrors
       extend ::ActiveSupport::Concern
-      Actionizer.available_extensions[:autorender_errors] = '::' + AutorenderErrors.name
+      ::Actionizer.available_extensions[:autorender_errors] = '::' + AutorenderErrors.name
 
       def render_create_invalid(record)
         render_validation_errors(record)

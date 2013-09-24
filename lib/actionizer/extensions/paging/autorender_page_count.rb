@@ -5,7 +5,7 @@ module Actionizer
     module Paging
       module AutorenderPageCount
         extend ::ActiveSupport::Concern
-        Actionizer.available_extensions[:autorender_page_count] = '::' + AutorenderPageCount.name
+        ::Actionizer.available_extensions[:autorender_page_count] = '::' + AutorenderPageCount.name
 
         def render_index_page_count(count)
           @page_count = count

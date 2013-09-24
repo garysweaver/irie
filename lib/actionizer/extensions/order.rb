@@ -3,7 +3,7 @@ module Actionizer
   module Extensions
     module Order
       extend ::ActiveSupport::Concern
-      Actionizer.available_extensions[:order] = '::' + Order.name
+      ::Actionizer.available_extensions[:order] = '::' + Order.name
 
       included do
         include ::Actionizer::ParamAliases

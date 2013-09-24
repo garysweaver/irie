@@ -3,7 +3,7 @@ module Actionizer
   module Extensions
     module QueryFilter
       extend ::ActiveSupport::Concern
-      Actionizer.available_extensions[:query_filter] = '::' + QueryFilter.name
+      ::Actionizer.available_extensions[:query_filter] = '::' + QueryFilter.name
 
       included do
         include ::Actionizer::ParamAliases

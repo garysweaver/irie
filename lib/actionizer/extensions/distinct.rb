@@ -3,7 +3,7 @@ module Actionizer
   module Extensions
     module Distinct
       extend ::ActiveSupport::Concern
-      Actionizer.available_extensions[:distinct] = '::' + Distinct.name
+      ::Actionizer.available_extensions[:distinct] = '::' + Distinct.name
 
       included do
         include ::Actionizer::ParamAliases

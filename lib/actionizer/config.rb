@@ -51,20 +51,20 @@ Actionizer.configure do
   # Actions that you can implement in the controller via include_actions,
   # e.g. include_actions :index, :show
   # Each is added as each file is required when the gem is loaded, so for a full list,
-  # check Actionizer.available_actions in rails c.
+  # check ::Actionizer.available_actions in rails c.
   # You shouldn't have to worry about configuring this typically.
   self.available_actions = {}
 
   # Extensions to actions that you can implement in the controller via include_extensions,
   # e.g. include_extensions :count, :paging
   # Each is added as each file is required when the gem is loaded, so for a full list,
-  # check Actionizer.available_extensions in rails c.
+  # check ::Actionizer.available_extensions in rails c.
   # You shouldn't have to worry about configuring this typically.
   self.available_extensions = {}
 
   # When you include the defined action module, it includes the associated modules.
   # If value or value array contains symbol it will look up symbol in self.available_extensions in the controller
-  # (which is defaulted to Actionizer.available_extensions).
+  # (which is defaulted to ::Actionizer.available_extensions).
   # If value is String will assume String is the fully-qualified module name to include, e.g. index: '::My::Module'
   # If constant, it will just include constant (module), e.g. index: ::My::Module
   self.autoincludes = {

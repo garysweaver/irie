@@ -3,7 +3,7 @@ module Actionizer
   module Extensions
     module IndexQuery
       extend ::ActiveSupport::Concern
-      Actionizer.available_extensions[:index_query] = '::' + IndexQuery.name
+      ::Actionizer.available_extensions[:index_query] = '::' + IndexQuery.name
 
       included do
         include ::Actionizer::ParamAliases

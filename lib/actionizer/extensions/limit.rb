@@ -3,7 +3,7 @@ module Actionizer
   module Extensions
     module Limit
       extend ::ActiveSupport::Concern
-      Actionizer.available_extensions[:limit] = '::' + Limit.name
+      ::Actionizer.available_extensions[:limit] = '::' + Limit.name
 
       included do
         include ::Actionizer::ParamAliases

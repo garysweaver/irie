@@ -3,7 +3,7 @@ module Actionizer
     module Show
       extend ::ActiveSupport::Concern
 
-      Actionizer.available_actions[:show] = '::' + Show.name
+      ::Actionizer.available_actions[:show] = '::' + Show.name
 
       included do
         include ::Actionizer::Actions::Base

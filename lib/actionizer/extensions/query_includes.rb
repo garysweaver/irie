@@ -3,7 +3,7 @@ module Actionizer
   module Extensions
     module QueryIncludes
       extend ::ActiveSupport::Concern
-      Actionizer.available_extensions[:query_includes] = '::' + QueryIncludes.name
+      ::Actionizer.available_extensions[:query_includes] = '::' + QueryIncludes.name
 
       included do
         include ::Actionizer::ParamAliases

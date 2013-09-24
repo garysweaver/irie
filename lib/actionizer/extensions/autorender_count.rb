@@ -4,7 +4,7 @@ module Actionizer
   module Extensions
     module AutorenderCount
       extend ::ActiveSupport::Concern
-      Actionizer.available_extensions[:autorender_count] = '::' + AutorenderCount.name
+      ::Actionizer.available_extensions[:autorender_count] = '::' + AutorenderCount.name
       
       def render_index_count(count)
         @count = count

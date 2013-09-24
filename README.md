@@ -23,15 +23,17 @@ private
 end
 ```
 
-or you can include the `Actionizer::Controller` module that gives you the `include_action` and `include_extensions` methods to shorten further includes, e.g. to specify request parameter-driven filtering, sorting, pagination with defaults:
+or you can include the `Actionizer::Controller` module that gives you the `include_action` and `include_extensions` methods to shorten further includes, e.g. to specify request parameter-driven filtering, sorting, pagination, etc. with defaults:
 
 ```ruby
 class PostsController < ApplicationController
   include Actionizer::Controller
 
-  # These includes are just human-readable shortcuts to include modules that implement
-  # the behavior. This could be refactored into one or more modules so you can include
-  # common combinations.
+  # The include_* are just human-readable shortcuts to include modules,
+  # so we don't have to give up module namespacing to use short names.
+  # include_actions also uses configured autoincludes to allow
+  # packages of includes. You can forgo these two and just use include,
+  # but that's typing.
 
   include_actions :index
   include_extensions :count, :distinct, :limit, :offset, :paging
@@ -123,7 +125,7 @@ Actionizer is an alternative to [Inherited Resources](https://github.com/joseval
 * Actionizer supports flexible request param based filtering and ordering, both with defaults, quick to write lambda queries and filters, and a relational param syntax.
 * Inherited Resources has some finder options by request param value, and relies more heavily on fat models to handle behavior.
 
-Review both, and any other solutions you can find, and decide what fits best for you.
+Review both and any other solutions you can find, and decide what fits best for you.
 
 ### Installation
 

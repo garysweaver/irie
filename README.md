@@ -186,13 +186,13 @@ Actionizer.configure do
   # If value is String will assume String is the fully-qualified module name to include, e.g. index: '::My::Module'
   # If constant, it will just include constant (module), e.g. index: ::My::Module
   self.autoincludes = {
-    create: :query_includes,
-    destroy: :query_includes,
-    edit: :query_includes,
+    create: [:query_includes],
+    destroy: [:query_includes],
+    edit: [:query_includes],
     index: [:index_query, :order, :param_filters, :query_filter, :query_includes],
     new: [],
-    show: :query_includes,
-    update: :query_includes
+    show: [:query_includes],
+    update: [:query_includes]
   }
 end
 ```

@@ -29,3 +29,6 @@ require 'actionizer/extensions/param_filters'
 require 'actionizer/extensions/query_filter'
 require 'actionizer/extensions/query_includes'
 require 'actionizer/extensions/rfc2616'
+
+# Debugging module should not need to be required by default.
+# require 'actionizer/controller_debugging'

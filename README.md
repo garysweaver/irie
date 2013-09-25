@@ -574,9 +574,11 @@ You can also use `rescue_from` or `around_action` in Rails to have more control 
 
 ### Troubleshooting
 
-If you get `missing FROM-clause entry for table` errors, it might mean that `including`/`includes_for` you are using are overlapping with joins that are being done in the query. This is the nasty head of AR relational includes, unfortunately.
+#### Actionizer::Extensions::QueryIncludes
 
-To fix, you may decide to either: (1) change order/definition of includes in `including`/`includes_for`, (2) don't use `including`/`includes_for` for the actions it affects (may cause n+1 queries), (3) implement `apply_includes` to apply `value = value.includes(*current_action_includes)` in an appropriate order (messy), or (4) use custom query (if index/custom list action) to define joins with handcoded SQL, e.g. (thanks to Tommy):
+If you get `missing FROM-clause entry for table` errors, it might mean that `query_includes`/`query_includes_for` you are using are overlapping with joins that are being done in the query. This is the nasty head of AR relational includes, unfortunately.
+
+To fix, you may decide to either: (1) change order/definition of includes in `query_includes`/`query_includes_for`, (2) don't use `query_includes`/`query_includes_for` for the actions it affects (may cause n+1 queries), (3) implement `apply_includes` to do includes in an appropriate order (messy), or (4) use custom query (if index/custom list action) to define joins with handcoded SQL, e.g. (thanks to Tommy):
 
 ```ruby
 index_query ->(q) {
@@ -596,6 +598,81 @@ query_includes :owner, :customer, :bartender, :waitress
 
 # includes specified in index query
 query_includes_for :index, are: []
+```
+
+#### Debugging Includes
+
+If a concern method is not being called that you think should be called or an actionizer method is not there that you assumed should be loaded, you may need to determine what was included and in what order concern methods are being used. You can either just look at controller ancestors after the includes, or use the `debug_actionizer` method that will output some useful info to the console, e.g.:
+
+```
+My::Controller Actionizer config:
+
+self.available_actions:
+
+:create = "::Actionizer::Actions::Create"
+:destroy = "::Actionizer::Actions::Destroy"
+:edit = "::Actionizer::Actions::Edit"
+:index = "::Actionizer::Actions::Index"
+:new = "::Actionizer::Actions::New"
+:show = "::Actionizer::Actions::Show"
+:update = "::Actionizer::Actions::Update"
+:all = "::Actionizer::Actions::All"
+:my_action = "::My::Action"
+
+self.available_extensions:
+
+:authorizing = "::Actionizer::Extensions::Authorizing"
+:autorender_count = "::Actionizer::Extensions::AutorenderCount"
+:autorender_errors = "::Actionizer::Extensions::AutorenderErrors"
+:nil_params = "::Actionizer::Extensions::Conversion::NilParams"
+:count = "::Actionizer::Extensions::Count"
+:distinct = "::Actionizer::Extensions::Distinct"
+:index_query = "::Actionizer::Extensions::IndexQuery"
+:limit = "::Actionizer::Extensions::Limit"
+:offset = "::Actionizer::Extensions::Offset"
+:order = "::Actionizer::Extensions::Order"
+:autorender_page_count = "::Actionizer::Extensions::Paging::AutorenderPageCount"
+:paging = "::Actionizer::Extensions::Paging"
+:param_filters = "::Actionizer::Extensions::ParamFilters"
+:query_filter = "::Actionizer::Extensions::QueryFilter"
+:query_includes = "::Actionizer::Extensions::QueryIncludes"
+:rfc2616 = "::Actionizer::Extensions::Rfc2616"
+:my_extension = "::My::Extension"
+
+ancestors in self.available_actions/self.available_extensions:
+
+My::Extension
+Actionizer::Extensions::Conversion::NilParams
+Actionizer::Extensions::Authorizing
+Actionizer::Extensions::QueryIncludes
+Actionizer::Extensions::QueryFilter
+Actionizer::Extensions::ParamFilters
+Actionizer::Extensions::Order
+Actionizer::Extensions::IndexQuery
+Actionizer::Actions::Index
+
+(The following may help you identify methods that are defined in Actionizer includes. 
+Ensure `super if defined?(super)` is done for methods that should support chaining.)
+
+Instance methods in My::Controller and Actionizer-registered ancestors, excluding methods 
+only defined in My::Controller:
+
+:after_find_where = Actionizer::Extensions::QueryIncludes
+:after_index_filters = Actionizer::Extensions::QueryIncludes, Actionizer::Extensions::Order, Actionizer::Actions::Index
+:apply_includes = Actionizer::Extensions::QueryIncludes
+:convert_param_value = My::Extension, Actionizer::Extensions::Conversion::NilParams
+:destroy = Actionizer::Actions::Destroy
+:index = Actionizer::Actions::Index
+:index_filters = Actionizer::Extensions::QueryFilter, Actionizer::Extensions::ParamFilters, Actionizer::Actions::Index
+:params_for_destroy = Actionizer::Actions::Destroy
+:params_for_index = Actionizer::Actions::Index
+:perform_destroy = Actionizer::Actions::Destroy
+:perform_index = Actionizer::Actions::Index
+:query_for_index = Actionizer::Extensions::Authorizing, Actionizer::Extensions::IndexQuery, Actionizer::Actions::Index
+:render_destroy = Actionizer::Actions::Destroy
+:render_destroy_options = Actionizer::Actions::Destroy
+:render_index = Actionizer::Actions::Index
+:render_index_options = Actionizer::Actions::Index
 ```
 
 ### Release Notes

@@ -10,40 +10,10 @@ module Actionizer
           self.send("#{key}=".to_sym, 
             ::Actionizer.send(key))
         end
-
-        # create class attributes for each controller option
-        class_attribute(:action_to_query, instance_writer: true) unless self.respond_to? :action_to_query
-        class_attribute(:action_to_query_includes, instance_writer: true) unless self.respond_to? :action_to_query_includes
-        class_attribute(:action_to_valid_render_options, instance_writer: true) unless self.respond_to? :action_to_valid_render_options
+     
         class_attribute(:model_class, instance_writer: true) unless self.respond_to? :model_class
         class_attribute(:model_singular_name, instance_writer: true) unless self.respond_to? :model_singular_name
         class_attribute(:model_plural_name, instance_writer: true) unless self.respond_to? :model_plural_name
-        
-        self.action_to_query ||= {}
-        self.action_to_query_includes ||= {}
-        self.action_to_valid_render_options ||= {}
-      end
-
-      module ClassMethods
-
-        # Specify options to merge into a render of a valid object, e.g.
-        #   valid_render_options :index, serializer: FoobarSerializer
-        # For more control, override the `render_(action name)_valid_options` method.
-        def valid_render_options(*args)
-          options = args.extract_options!
-
-          # Shallow clone to help avoid subclass inheritance related sharing issues.
-          self.action_to_valid_render_options = self.action_to_valid_render_options.clone
-
-          args.each do |action_name|
-            if self.action_to_valid_render_options[action_name.to_sym]
-              # Set to new merged hash to help avoid subclass inheritance related sharing issues.
-              self.action_to_valid_render_options[action_name.to_sym] = self.action_to_valid_render_options[action_name.to_sym].merge(options)
-            else
-              self.action_to_valid_render_options[action_name.to_sym] = options
-            end
-          end
-        end
       end
 
       # In initialize we:
@@ -86,6 +56,14 @@ module Actionizer
       def aparams
         method_sym = "params_for_#{params[:action]}".to_sym
         respond_to?(method_sym, true) ? (__send__(method_sym) || params) : params
+      end
+
+      def perform_render(record_or_collection, options = nil)
+        respond_with record_or_collection, (options || options_for_render(record_or_collection))
+      end
+
+      def options_for_render(record_or_collection)
+        {}
       end
     end
   end

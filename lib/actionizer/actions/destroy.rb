@@ -15,7 +15,7 @@ module Actionizer
             begin
               include self.available_extensions[obj.to_sym].constantize
             rescue NameError => e
-              raise "Could not resolve extension module. Check Actionizer/self.available_extensions[#{obj.to_sym.inspect}].constantize. Error: \n#{e.message}\n#{e.backtrace.join("\n")}"
+              raise "Could not resolve extension module '#{self.available_extensions[obj.to_sym]}' for key for #{obj.to_sym.inspect}. Check Actionizer/self.available_extensions[#{obj.to_sym.inspect}].constantize. Error: \n#{e.message}\n#{e.backtrace.join("\n")}"
             end
           when String
             begin
@@ -48,11 +48,7 @@ module Actionizer
       end
 
       def render_destroy(record)
-        respond_with record, (render_destroy_options(record) || {}).merge(self.action_to_valid_render_options[:destroy] || {})
-      end
-
-      def render_destroy_options(record)
-        {}
+        perform_render(record)
       end
     end
   end

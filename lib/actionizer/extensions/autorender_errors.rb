@@ -6,19 +6,13 @@ module Actionizer
       extend ::ActiveSupport::Concern
       ::Actionizer.available_extensions[:autorender_errors] = '::' + AutorenderErrors.name
 
-      def render_create_invalid(record)
-        render_validation_errors(record)
-      end
-
-      def render_update_invalid(record)
-        render_validation_errors(record)
-      end
-
-      def render_validation_errors(record)
-        # use implicit rendering for html
-        return record if request.format.html?
-        respond_to do |format|
-          format.any { render request.format.symbol => { errors: record.errors }, status: 422 }
+      def perform_render(record_or_collection, options = nil)
+        if !request.format.html? && record_or_collection.respond_to?(:errors) && record_or_collection.errors.size > 0
+          respond_to do |format|
+            format.any { render request.format.symbol => { errors: record_or_collection.errors }, status: 422 }
+          end
+        else
+          super if defined?(super)
         end
       end
       

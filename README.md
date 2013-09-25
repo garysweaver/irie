@@ -463,6 +463,20 @@ index_query ->(q) {
 
 To avoid n+1 queries, use `.includes(...)` in your query to eager load any associations that you will need in the JSON view.
 
+#### Specifying Rendering Options
+
+If you wanted to specify the serializer option in the index:
+
+```ruby
+render_options :index, serializer: FoobarSerializer
+```
+
+(You can use more than one action and more than one option.)
+
+Also available are `render_valid_options` and `render_invalid_options` (when record/collection respond to `.errors` and has more than one error) that are merged into any `render_options` you provide. (Please see the Exception Handling section for information about handling exceptions.)
+
+For more control, you can either implement `options_for_render(record_or_collection)`, or both `options_for_collection_render(records)` for index and `options_for_render(record)` for other actions, or implement any action's `render_*(...)` method (where * is the action name).
+
 #### Avoid n+1 Queries
 
 ```ruby
@@ -554,16 +568,6 @@ include_extension :boolean_params
 
 Supports composite primary keys. If `@model_class.primary_key.is_a?(Array)`, show/edit/update/destroy will use your two or more request params for the ids that make up the composite.
 
-#### Specifying Rendering Options
-
-If you need to change the options to use when rendering a valid response, use `valid_render_options`, e.g. if you wanted to specify the serializer option in the index render:
-
-```ruby
-valid_render_options :index, serializer: FoobarSerializer
-```
-
-Can use more than one action and more than one option.
-
 #### Exception Handling
 
 Rails 4 has basic exception handling in the [public_exceptions][public_exceptions] and [show_exceptions][show_exceptions] Rack middleware.
@@ -602,78 +606,28 @@ query_includes_for :index, are: []
 
 #### Debugging Includes
 
-If a concern method is not being called that you think should be called or an actionizer method is not there that you assumed should be loaded, you may need to determine what was included and in what order concern methods are being used. You can either just look at controller ancestors after the includes, or use the `debug_actionizer` method that will output some useful info to the console, e.g.:
+If a concern method is not being called that you think should be called or an actionizer method is not there that you assumed should be loaded, you may need to determine what was included and in what order concern methods are being used.
 
+If there is a problem with class load related to includes:
+
+```ruby
+require 'actionizer/controller_debugging'
+extend ::Actionizer::ControllerDebugging
+# Ensure this comes after all relevant includes.
+output_actionizer_debugging_info
 ```
-My::Controller Actionizer config:
 
-self.available_actions:
+If there is a problem with instance methods/behavior related to includes:
 
-:create = "::Actionizer::Actions::Create"
-:destroy = "::Actionizer::Actions::Destroy"
-:edit = "::Actionizer::Actions::Edit"
-:index = "::Actionizer::Actions::Index"
-:new = "::Actionizer::Actions::New"
-:show = "::Actionizer::Actions::Show"
-:update = "::Actionizer::Actions::Update"
-:all = "::Actionizer::Actions::All"
-:my_action = "::My::Action"
-
-self.available_extensions:
-
-:authorizing = "::Actionizer::Extensions::Authorizing"
-:autorender_count = "::Actionizer::Extensions::AutorenderCount"
-:autorender_errors = "::Actionizer::Extensions::AutorenderErrors"
-:nil_params = "::Actionizer::Extensions::Conversion::NilParams"
-:count = "::Actionizer::Extensions::Count"
-:distinct = "::Actionizer::Extensions::Distinct"
-:index_query = "::Actionizer::Extensions::IndexQuery"
-:limit = "::Actionizer::Extensions::Limit"
-:offset = "::Actionizer::Extensions::Offset"
-:order = "::Actionizer::Extensions::Order"
-:autorender_page_count = "::Actionizer::Extensions::Paging::AutorenderPageCount"
-:paging = "::Actionizer::Extensions::Paging"
-:param_filters = "::Actionizer::Extensions::ParamFilters"
-:query_filter = "::Actionizer::Extensions::QueryFilter"
-:query_includes = "::Actionizer::Extensions::QueryIncludes"
-:rfc2616 = "::Actionizer::Extensions::Rfc2616"
-:my_extension = "::My::Extension"
-
-ancestors in self.available_actions/self.available_extensions:
-
-My::Extension
-Actionizer::Extensions::Conversion::NilParams
-Actionizer::Extensions::Authorizing
-Actionizer::Extensions::QueryIncludes
-Actionizer::Extensions::QueryFilter
-Actionizer::Extensions::ParamFilters
-Actionizer::Extensions::Order
-Actionizer::Extensions::IndexQuery
-Actionizer::Actions::Index
-
-(The following may help you identify methods that are defined in Actionizer includes. 
-Ensure `super if defined?(super)` is done for methods that should support chaining.)
-
-Instance methods in My::Controller and Actionizer-registered ancestors, excluding methods 
-only defined in My::Controller:
-
-:after_find_where = Actionizer::Extensions::QueryIncludes
-:after_index_filters = Actionizer::Extensions::QueryIncludes, Actionizer::Extensions::Order, Actionizer::Actions::Index
-:apply_includes = Actionizer::Extensions::QueryIncludes
-:convert_param_value = My::Extension, Actionizer::Extensions::Conversion::NilParams
-:destroy = Actionizer::Actions::Destroy
-:index = Actionizer::Actions::Index
-:index_filters = Actionizer::Extensions::QueryFilter, Actionizer::Extensions::ParamFilters, Actionizer::Actions::Index
-:params_for_destroy = Actionizer::Actions::Destroy
-:params_for_index = Actionizer::Actions::Index
-:perform_destroy = Actionizer::Actions::Destroy
-:perform_index = Actionizer::Actions::Index
-:query_for_index = Actionizer::Extensions::Authorizing, Actionizer::Extensions::IndexQuery, Actionizer::Actions::Index
-:render_destroy = Actionizer::Actions::Destroy
-:render_destroy_options = Actionizer::Actions::Destroy
-:render_index = Actionizer::Actions::Index
-:render_index_options = Actionizer::Actions::Index
+```ruby
+require 'actionizer/controller_debugging'
+include ::Actionizer::ControllerDebugging
+def initialize(*args)
+  output_actionizer_debugging_info
+end
 ```
+
+That will output all the configuration, the actionizer includes that are loaded, and even the order that instance methods would be processed per included module that is registered.
 
 ### Release Notes
 

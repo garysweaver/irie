@@ -1,6 +1,6 @@
-# Allows ability to do `.includes(...)` on query to avoid n+1 queries.
 module Actionizer
   module Extensions
+    # Allows ability to do `.includes(...)` on query to avoid n+1 queries.
     module QueryIncludes
       extend ::ActiveSupport::Concern
       ::Actionizer.available_extensions[:query_includes] = '::' + QueryIncludes.name

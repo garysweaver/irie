@@ -1,6 +1,6 @@
-# Allows filtering of results using ARel predicates.
 module Actionizer
   module Extensions
+    # Allows filtering of results using ARel predicates.
     module ParamFilters
       extend ::ActiveSupport::Concern
       ::Actionizer.available_extensions[:param_filters] = '::' + ParamFilters.name

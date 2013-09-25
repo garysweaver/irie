@@ -1,9 +1,9 @@
-# Enables CanCan and compatible authorization to be used with actionizer.
-#
-# What's not supported currently: if you use `load_resource` or 
-# `load_and_authorize_resource`, we don't use the instance(s) it sets.
 module Actionizer
   module Extensions
+    # Enables CanCan and compatible authorization to be used with actionizer.
+    #
+    # What's not supported currently: if you use `load_resource` or 
+    # `load_and_authorize_resource`, we don't use the instance(s) it sets.
     module Authorizing
       extend ::ActiveSupport::Concern
       ::Actionizer.available_extensions[:authorizing] = '::' + Authorizing.name

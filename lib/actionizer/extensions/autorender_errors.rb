@@ -1,7 +1,7 @@
-# Instead of having to handle @my_model_name.errors in the view, this returns validation errors
-# via rendering { errors: record.errors } for all formats except html.
 module Actionizer
   module Extensions
+    # Instead of having to handle @my_model_name.errors in the view, this returns validation errors
+    # via rendering { errors: record.errors } for all formats except html.
     module AutorenderErrors
       extend ::ActiveSupport::Concern
       ::Actionizer.available_extensions[:autorender_errors] = '::' + AutorenderErrors.name

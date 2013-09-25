@@ -1,6 +1,6 @@
-# Allowing setting `@count` with the count of the records in the index query.
 module Actionizer
   module Extensions
+    # Allowing setting `@count` with the count of the records in the index query.
     module Count
       extend ::ActiveSupport::Concern
       ::Actionizer.available_extensions[:count] = '::' + Count.name

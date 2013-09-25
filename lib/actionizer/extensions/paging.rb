@@ -1,6 +1,6 @@
-# Allows paging of results.
 module Actionizer
   module Extensions
+    # Allows paging of results.
     module Paging
       extend ::ActiveSupport::Concern
       ::Actionizer.available_extensions[:paging] = '::' + Paging.name

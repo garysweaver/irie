@@ -1,6 +1,6 @@
-# Allows use of a lambda for the index query.
 module Actionizer
   module Extensions
+    # Allows use of a lambda for the index query.
     module IndexQuery
       extend ::ActiveSupport::Concern
       ::Actionizer.available_extensions[:index_query] = '::' + IndexQuery.name

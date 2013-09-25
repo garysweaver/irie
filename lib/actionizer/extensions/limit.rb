@@ -1,6 +1,6 @@
-# Allows limiting of the number of records returned by the index query.
 module Actionizer
   module Extensions
+    # Allows limiting of the number of records returned by the index query.
     module Limit
       extend ::ActiveSupport::Concern
       ::Actionizer.available_extensions[:limit] = '::' + Limit.name

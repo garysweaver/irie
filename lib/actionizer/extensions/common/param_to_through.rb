@@ -1,7 +1,7 @@
-# Depended on by some extensions to handle joins.
 module Actionizer
   module Extensions
     module Common
+      # Depended on by some extensions to handle joins.
       module ParamToThrough
         extend ::ActiveSupport::Concern
 

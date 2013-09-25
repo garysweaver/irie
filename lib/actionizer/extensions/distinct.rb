@@ -1,6 +1,6 @@
-# Allows the ability to return distinct records in the index query.
 module Actionizer
   module Extensions
+    # Allows the ability to return distinct records in the index query.
     module Distinct
       extend ::ActiveSupport::Concern
       ::Actionizer.available_extensions[:distinct] = '::' + Distinct.name

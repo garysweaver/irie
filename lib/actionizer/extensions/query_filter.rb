@@ -1,6 +1,6 @@
-# Allows use of a lambda to work with request parameters to filter results.
 module Actionizer
   module Extensions
+    # Allows use of a lambda to work with request parameters to filter results.
     module QueryFilter
       extend ::ActiveSupport::Concern
       ::Actionizer.available_extensions[:query_filter] = '::' + QueryFilter.name

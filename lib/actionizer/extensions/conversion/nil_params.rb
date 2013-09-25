@@ -1,7 +1,7 @@
-# Converts the following filter request param values to nil: 'NULL', 'null', 'nil'
 module Actionizer
   module Extensions
     module Conversion
+      # Converts the following filter request param values to nil: 'NULL', 'null', 'nil'
       module NilParams
         extend ::ActiveSupport::Concern
         ::Actionizer.available_extensions[:nil_params] = '::' + NilParams.name

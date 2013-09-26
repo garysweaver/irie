@@ -113,16 +113,14 @@ can_filter_by_query status: ->(q, status) { status == 'all' ? q : q.where(:statu
 
 and more!
 
-### Alternatives
+### Considering the Alternatives
 
-Actionizer is an alternative to [Inherited Resources](https://github.com/josevalim/inherited_resources). Here's a comparison:
+A comparison with [Inherited Resources](https://github.com/josevalim/inherited_resources):
 
-* Actionizer was developed to solve the problem of needing a flexible JSON service controller for JavaScript applications intended to be used with JavaScript frameworks such as AngularJS and Ember, but evolved into a set of concerns you can include to build your controller easily.
+* Actionizer was developed to solve the problem of needing a flexible JSON service controller for applications intended to be used with JavaScript frameworks such as AngularJS and Ember, but evolved into a set of concerns you can include to build your controller easily.
 * Inherited Resources was primarily developed for handling HTML forms in Rails, but supports other formats as well.
 * Actionizer supports flexible request param based filtering and ordering, both with defaults, quick to write lambda queries and filters, and a relational param syntax.
 * Inherited Resources has some finder options by request param value, and relies more heavily on fat models to handle behavior.
-
-Review both and any other solutions you can find, and decide what fits best for you.
 
 ### Installation
 
@@ -627,7 +625,7 @@ end
 
 That will output all the configuration, the actionizer includes that are loaded, and even the order that instance methods would be processed per included module that is registered.
 
-#### Upgrading from restful_json
+### Upgrading
 
 See the [changelog][changelog] and git log. [restful_json_last_release](https://github.com/FineLinePrototyping/restful_json/tree/restful_json_last_release) is restful_json v4.5.1, but we removed all restful_json tags. restful_json tag commit IDs are listed in [legacy](https://github.com/FineLinePrototyping/restful_json/blob/master/LEGACY.md).
 

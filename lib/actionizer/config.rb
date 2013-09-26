@@ -21,31 +21,23 @@ end
 
 Actionizer.configure do
   
-  # Used in param filters function.
   # Default for :using in can_filter_by.
   self.can_filter_by_default_using = [:eq]
   
-  # Used in param filters function.
   # Delimiter for values in request parameter values.
   self.filter_split = ','
 
   # Use one or more alternate request parameter names for functions,
-  # e.g. use very_distinct instead of distinct, and either limit or limita for limit
-  #   self.function_param_names = {distinct: :very_distinct, limit: [:limit, :limita]}
-  # Supported_functions in the controller will still expect the original name, e.g. distinct.
+  # e.g. self.function_param_names = {distinct: :very_distinct, limit: [:limit, :limita]}
   self.function_param_names = {}
   
-  # Used in param filters function.
   # Delimiter for ARel predicate in the request parameter name.
   self.predicate_prefix = '.'
 
-  # Used in show, edit, update, and destroy actions.
-  # In most cases the request param 'id' means primary key.
   # You'd set this to false if id is used for something else other than primary key.
   self.id_is_primary_key_param = true
 
-  # Used in paging function.
-  # Default number of records to return.
+  # Used when paging is enabled.
   self.number_of_records_in_a_page = 15
 
   # Actions that you can implement in the controller via include_actions,
@@ -77,3 +69,4 @@ Actionizer.configure do
     update: [:query_includes, :render_options]
   }
 end
+

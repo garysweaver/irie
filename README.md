@@ -629,9 +629,7 @@ That will output all the configuration, the actionizer includes that are loaded,
 
 #### Upgrading from restful_json
 
-*Looking for restful_json? Actionizer is the latest version.*
-
-For what changed, see the release notes section below. The tag [restful_json_last_release](https://github.com/FineLinePrototyping/restful_json/tree/restful_json_last_release) is restful_json v4.5.1 tags and the other old tag commit IDs are in the [legacy](https://github.com/FineLinePrototyping/restful_json/blob/master/LEGACY.md) doc.
+See the [changelog][changelog] and git log. [restful_json_last_release](https://github.com/FineLinePrototyping/restful_json/tree/restful_json_last_release) is restful_json v4.5.1, but we removed all restful_json tags. restful_json tag commit IDs are listed in [legacy](https://github.com/FineLinePrototyping/restful_json/blob/master/LEGACY.md).
 
 ### Release Notes
 

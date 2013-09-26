@@ -2,8 +2,6 @@
 
 # actionizer
 
-*Looking for restful_json? Actionizer is the latest version. For the last release of restful_json, see [v4.5.1](https://github.com/FineLinePrototyping/restful_json/tree/v4.5.1).*
-
 Implement Rails 4 controller actions easily with a clear and concise mix of declarative and imperative code, like models.
 
 For example, to implement index, show, new, edit, create, update, and destroy methods, you can just include `Actionizer::Actions::All`:
@@ -628,6 +626,12 @@ end
 ```
 
 That will output all the configuration, the actionizer includes that are loaded, and even the order that instance methods would be processed per included module that is registered.
+
+#### Upgrading from restful_json
+
+*Looking for restful_json? Actionizer is the latest version.*
+
+For what changed, see the release notes section below. The tag [restful_json_last_release](https://github.com/FineLinePrototyping/restful_json/tree/restful_json_last_release) is restful_json v4.5.1 tags and the other old tag commit IDs are in the [legacy](https://github.com/FineLinePrototyping/restful_json/blob/master/LEGACY.md) doc.
 
 ### Release Notes
 

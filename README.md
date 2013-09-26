@@ -609,10 +609,6 @@ end
 
 That will output all the configuration, the actionizer includes that are loaded, and even the order that instance methods would be processed per included module that is registered.
 
-### Upgrading
-
-See the [changelog][changelog] and git log. [restful_json_last_release](https://github.com/FineLinePrototyping/restful_json/tree/restful_json_last_release) is restful_json v4.5.1, but we removed all restful_json tags. restful_json tag commit IDs are listed in [legacy](https://github.com/FineLinePrototyping/restful_json/blob/master/LEGACY.md).
-
 ### Release Notes
 
 See [changelog][changelog] and git log.

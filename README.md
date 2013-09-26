@@ -39,9 +39,12 @@ class PostsController < ApplicationController
 
   can_filter_by :author, through: [:author, :name]
   default_filter_by :author, eq: 'anonymous'
+
   can_filter_by :posted_on, using: [:lt, :eq, :gt]
   default_filter_by :posted_on, gt: 1.year.ago
+
   can_filter_by :company, through: [:author, :company, :name]
+
   can_order_by :posted_on, :author, :id
   default_order_by {:posted_on => :desc}, :id
 
@@ -50,70 +53,33 @@ end
 
 Then set up your routes and views.
 
-Now you can get posts by author:
+Now here are some of the URLs you can hit:
 
 ```
 https://example.org/posts?author=John
-```
-
-get posts after 2012-08-08:
-
-```
 https://example.org/posts?posted_on.gt=2012-08-08
-```
-
-count those posts:
-
-```
 https://example.org/posts?posted_on.gt=2012-08-08&count=
-```
-
-get posts by the author's company name:
-
-```
 https://example.org/posts?company=Lipton
-```
-
-find out how many pages of results there are:
-
-```
 https://example.org/posts?page_count=
-```
-
-get the first page:
-
-```
 https://example.org/posts?page=1
-```
-
-get a custom page:
-
-```
 https://example.org/posts?offset=30&limit=15
-```
-
-change the sort to ascending by author and descending by id:
-
-```
 https://example.org/posts?order=author,-id
 ```
 
-define a query to allow only admins to see private posts:
+You can also define a query to allow only admins to see private posts:
 
 ```ruby
 index_query ->(q) { @current_user.admin? ? q : q.where(:access => 'public')
 ```
 
-change the query depending on a supplied param:
+and change the query depending on a supplied param:
 
 ```ruby
 can_filter_by_query status: ->(q, status) { status == 'all' ? q : q.where(:status => status) },
                     color: ->(q, color) { color == 'red' ? q.where("color = 'red' or color = 'ruby'") : q.where(:color => color) }
 ```
 
-and more!
-
-### Considering the Alternatives
+### Similar Projects
 
 A comparison with [Inherited Resources](https://github.com/josevalim/inherited_resources):
 
@@ -149,32 +115,38 @@ or in bulk, like:
 ```ruby
 Actionizer.configure do
   
-  # Used in param filters function.
   # Default for :using in can_filter_by.
   self.can_filter_by_default_using = [:eq]
   
-  # Used in param filters function.
   # Delimiter for values in request parameter values.
   self.filter_split = ','
 
   # Use one or more alternate request parameter names for functions,
-  # e.g. use very_distinct instead of distinct, and either limit or limita for limit
-  #   self.function_param_names = {distinct: :very_distinct, limit: [:limit, :limita]}
-  # Supported_functions in the controller will still expect the original name, e.g. distinct.
+  # e.g. self.function_param_names = {distinct: :very_distinct, limit: [:limit, :limita]}
   self.function_param_names = {}
   
-  # Used in param filters function.
   # Delimiter for ARel predicate in the request parameter name.
   self.predicate_prefix = '.'
 
-  # Used in show, edit, update, and destroy actions.
-  # In most cases the request param 'id' means primary key.
   # You'd set this to false if id is used for something else other than primary key.
   self.id_is_primary_key_param = true
 
-  # Used in paging function.
-  # Default number of records to return.
+  # Used when paging is enabled.
   self.number_of_records_in_a_page = 15
+
+  # Actions that you can implement in the controller via include_actions,
+  # e.g. include_actions :index, :show
+  # Each is added as each file is required when the gem is loaded, so for a full list,
+  # check ::Actionizer.available_actions in rails c.
+  # You shouldn't have to worry about configuring this typically.
+  self.available_actions = {}
+
+  # Extensions to actions that you can implement in the controller via include_extensions,
+  # e.g. include_extensions :count, :paging
+  # Each is added as each file is required when the gem is loaded, so for a full list,
+  # check ::Actionizer.available_extensions in rails c.
+  # You shouldn't have to worry about configuring this typically.
+  self.available_extensions = {}
 
   # When you include the defined action module, it includes the associated modules.
   # If value or value array contains symbol it will look up symbol in self.available_extensions in the controller
@@ -182,13 +154,13 @@ Actionizer.configure do
   # If value is String will assume String is the fully-qualified module name to include, e.g. index: '::My::Module'
   # If constant, it will just include constant (module), e.g. index: ::My::Module
   self.autoincludes = {
-    create: [:query_includes],
-    destroy: [:query_includes],
-    edit: [:query_includes],
+    create: [:query_includes, :render_options],
+    destroy: [:query_includes, :render_options],
+    edit: [:query_includes, :render_options],
     index: [:index_query, :order, :param_filters, :query_filter, :query_includes],
     new: [],
     show: [:query_includes],
-    update: [:query_includes]
+    update: [:query_includes, :render_options]
   }
 end
 ```
@@ -201,7 +173,7 @@ The default controller config may be fine, but you can customize it.
 
 In the controller, you can set a variety of class attributes with `self.something = ...` in the body of your controller.
 
-All of the app-level configuration parameters are configurable in the controller class body:
+All of the app-level configuration parameters are configurable in the controller class body, e.g.:
 
 ```ruby
   self.can_filter_by_default_using = [:eq]
@@ -210,31 +182,37 @@ All of the app-level configuration parameters are configurable in the controller
   self.predicate_prefix = '.'
   self.number_of_records_in_a_page = 15
   self.id_is_primary_key_param = true
-  # note: if you (re)define this in the controller, you'd need to do it before include_action(s):
-  self.autoincludes = {...}
 ```
 
 Controller-only config options:
 
 ```ruby
 self.model_class = YourModel
+
+# if you have a wierd name that doesn't work with ActiveSupport's pluralize, etc.
 self.model_singular_name = 'your_model'
 self.model_plural_name = 'your_models'
 ```
 
+#### About Extensions
+
+As you may have noticed in `autoincludes`, some concerns are included as a package along with the action include.
+
+The following assumes that you are using the default autoincludes and included the relevant action.
+
 #### Filtering by Attribute(s)
 
-`can_filter_by` with the request parameter name as a symbol will filter the results by the value of that request parameter, e.g.:
+`can_filter_by` filters the index action the request parameter name as a symbol will filter the results by the value of that request parameter, e.g.:
 
 
 ```ruby
-can_filter_by :posts
+can_filter_by :title
 ```
 
-allows you to filter by posts:
+allows you to filter by title:
 
 ```
-http://localhost:3000/posts?foo_id=1
+http://localhost:3000/posts?title=Awesome
 ```
 
 If you do `Arel::Predications.public_instance_methods.sort` in Rails console, you can see a list of the available predicates:
@@ -252,7 +230,7 @@ can_filter_by :seen_on, using: [:gteq, :eq_any]
 By appending the predicate prefix (`.` by default) to the request parameter name, you can use any [ARel][arel] predicate you allowed, e.g.:
 
 ```
-http://localhost:3000/foobars?seen_on.gteq=2012-08-08
+http://localhost:3000/posts?seen_on.gteq=2012-08-08
 ```
 
 And `can_filter_by` can specify a `:through` to provide an easy way to inner join through a bunch of models using ActiveRecord relations, by specifying 0-to-many association names to go "through" to the final argument, which is the attribute name on the last model. The following is equivalent to the last query:
@@ -329,7 +307,7 @@ includes_extension :distinct
 enables:
 
 ```
-http://localhost:3000/foobars?distinct=
+http://localhost:3000/posts?distinct=
 ```
 
 ##### Count
@@ -343,7 +321,7 @@ include_extension :count
 enables:
 
 ```
-http://localhost:3000/foobars?count=
+http://localhost:3000/posts?count=
 ```
 
 That will set the `@count` instance variable that you can use in your view.
@@ -362,7 +340,7 @@ include_extension :paging
 enables:
 
 ```
-http://localhost:3000/foobars?page_count=
+http://localhost:3000/posts?page_count=
 ```
 
 That will set the `@page_count` instance variable that you can use in your view.
@@ -380,8 +358,8 @@ include_extension :paging
 To access each page of results:
 
 ```
-http://localhost:3000/foobars?page=1
-http://localhost:3000/foobars?page=2
+http://localhost:3000/posts?page=1
+http://localhost:3000/posts?page=2
 ```
 
 To set page size at application level:
@@ -407,16 +385,16 @@ include_extensions :offset, :limit
 enables:
 
 ```
-http://localhost:3000/foobars?offset=5
-http://localhost:3000/foobars?limit=5
+http://localhost:3000/posts?offset=5
+http://localhost:3000/posts?limit=5
 ```
 
 You can combine them to act like page:
 
 ```
-http://localhost:3000/foobars?limit=15
-http://localhost:3000/foobars?offset=15&limit=15
-http://localhost:3000/foobars?offset=30&limit=15
+http://localhost:3000/posts?limit=15
+http://localhost:3000/posts?offset=15&limit=15
+http://localhost:3000/posts?offset=30&limit=15
 ```
 
 #### Order
@@ -430,13 +408,19 @@ can_order_by :foo_date, :foo_color
 Will let the client send the order parameter with those parameters and optional +/- prefix to designate sort direction, e.g. the following will sort by foo_date ascending then foo_color descending:
 
 ```
-http://localhost:3000/foobars?order=foo_date,-foo_color
+http://localhost:3000/posts?order=foo_date,-foo_color
 ```
 
-The `default_order_by` specifies an ordered array of hashes of attributes to sort direction or attributes that should be ascending: 
+The `default_order_by` specifies an ordered array of ascending attributes and/or hashes of attributes to sort direction: 
 
 ```ruby
-default_order_by {:foo_date => :asc}, :foo_color, {:bar_date => :desc}
+default_order_by :posted_at => :desc, :id => :desc
+```
+
+or:
+
+```ruby
+default_order_by {:this_is_desc => :desc}, :this_is_asc, {:no_different_than_a_symbol => :asc}, :this_is_asc_also, :id => :desc
 ```
 
 #### Custom Index Queries
@@ -464,14 +448,14 @@ To avoid n+1 queries, use `.includes(...)` in your query to eager load any assoc
 If you wanted to specify the serializer option in the index:
 
 ```ruby
-render_options :index, serializer: FoobarSerializer
+render_options :index, serializer: PostSerializer
 ```
 
 (You can use more than one action and more than one option.)
 
 Also available are `render_valid_options` and `render_invalid_options` (when record/collection respond to `.errors` and has more than one error) that are merged into any `render_options` you provide. (Please see the Exception Handling section for information about handling exceptions.)
 
-For more control, you can either implement `options_for_render(record_or_collection)`, or both `options_for_collection_render(records)` for index and `options_for_render(record)` for other actions, or implement any action's `render_*(...)` method (where * is the action name).
+For more control, you can either implement `options_for_render(record_or_collection)`, or both `options_for_collection_render(records)` for index, and `options_for_render(record)` for other actions. Or, implement any action's `render_*(...)` method (where * is the action name).
 
 #### Avoid n+1 Queries
 
@@ -499,8 +483,8 @@ query_includes_for :index, :something_alias_methoded_from_index, are: [posts: [{
 Each Actionizer-implemented action method except `new` calls a corresponding `params_for_*` method. For `create` and `update` this calls `(model_name)_params` method expecting you to have defined that method to call `permit`, e.g.
 
 ```ruby
-def foobar_params
-  params.require(:foobar).permit(:name)
+def post_params
+  params.require(:post).permit(:name)
 end
 ```
 
@@ -508,11 +492,11 @@ But, if you need action-specific permittance, just override the corresponding `p
 
 ```ruby
 def params_for_create
-  params.require(:foobar).permit(:name, :color)
+  params.require(:post).permit(:name, :color)
 end
 
 def params_for_update
-  params.require(:foobar).permit(:color)
+  params.require(:post).permit(:color)
 end
 ```
 

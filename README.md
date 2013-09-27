@@ -69,7 +69,7 @@ https://example.org/posts?order=author,-id
 You can also define a query to allow only admins to see private posts:
 
 ```ruby
-index_query ->(q) { @current_user.admin? ? q : q.where(:access => 'public')
+index_query ->(q) { @current_user.admin? ? q : q.where(:access => 'public') }
 ```
 
 and change the query depending on a supplied param:

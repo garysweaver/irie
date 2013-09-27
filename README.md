@@ -1,6 +1,6 @@
 [![Build Status](https://secure.travis-ci.org/FineLinePrototyping/actionizer.png?branch=master)][travis] [![Gem Version](https://badge.fury.io/rb/actionizer.png)][badgefury]
 
-# actionizer
+# Actionizer
 
 Implement Rails 4 controller actions easily with a clear and concise mix of declarative and imperative code, like models.
 
@@ -572,7 +572,7 @@ query_includes_for :index, are: []
 
 #### Debugging Includes
 
-If a concern method is not being called that you think should be called or an actionizer method is not there that you assumed should be loaded, you may need to determine what was included and in what order concern methods are being used.
+If a concern method is not being called that you think should be called or a method is missing, you may need to determine what was included and in what order concern methods are being used.
 
 If there is a problem with class load related to includes:
 
@@ -593,7 +593,7 @@ def initialize(*args)
 end
 ```
 
-That will output all the configuration, the actionizer includes that are loaded, and even the order that instance methods would be processed per included module that is registered.
+That will output all include registration information including the ordered controller's registered includes and method inheritance order for registered includes.
 
 ### Release Notes
 
@@ -601,11 +601,11 @@ See [changelog][changelog] and git log.
 
 ### Contributing
 
-Please fork, make changes in a separate branch, and do a pull request for your branch. Thanks!
+Please fork, make changes in a separate branch, and do a pull request. Thanks!
 
 ### Authors
 
-This app was written by [FineLine Prototyping, Inc.](http://www.finelineprototyping.com) by the following contributors:
+Actionize was written by [FineLine Prototyping, Inc.](http://www.finelineprototyping.com) by the following contributors:
 * [Gary Weaver](https://github.com/garysweaver)
 * [Tommy Odom](https://github.com/tpodom)
 

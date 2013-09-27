@@ -605,7 +605,7 @@ Please fork, make changes in a separate branch, and do a pull request. Thanks!
 
 ### Authors
 
-Actionize was written by [FineLine Prototyping, Inc.](http://www.finelineprototyping.com) by the following contributors:
+This was written by [FineLine Prototyping, Inc.](http://www.finelineprototyping.com) by the following contributors:
 * [Gary Weaver](https://github.com/garysweaver)
 * [Tommy Odom](https://github.com/tpodom)
 

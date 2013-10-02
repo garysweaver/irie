@@ -10,6 +10,7 @@ ActiveRecord::Schema.define(:version => 1) do
   create_table :bars do |t|
     t.integer :foobar_id
     t.string :code
+    t.string :open_hours
   end
 
   create_table :foobars do |t|

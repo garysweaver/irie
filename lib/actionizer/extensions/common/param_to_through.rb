@@ -11,39 +11,93 @@ module Actionizer
           self.param_to_through ||= {}
         end
 
-        def index_filters
-          self.param_to_through.each do |param_name, through_array|
-            param_value = params_for_index[param_name]
-            unless param_value.nil?
-              # build query
-              # e.g. SomeModel.all.joins({:assoc_name => {:sub_assoc => {:sub_sub_assoc => :sub_sub_sub_assoc}}).where(sub_sub_sub_assoc_model_table_name: {column_name: value})
-              last_model_class = @model_class
-              joins = nil # {:assoc_name => {:sub_assoc => {:sub_sub_assoc => :sub_sub_sub_assoc}}
-              through_array.each do |association_or_attribute|
-                if association_or_attribute == through_array.last
-                  # must convert param value to string before possibly using with ARel because of CVE-2013-1854, fixed in: 3.2.13 and 3.1.12 
-                  # https://groups.google.com/forum/?fromgroups=#!msg/rubyonrails-security/jgJ4cjjS8FE/BGbHRxnDRTIJ
-                  @relation.joins!(joins).where!(last_model_class.table_name.to_sym => {association_or_attribute => convert_param_value(param_name.to_s, param_value)})
-                else
-                  found_classes = last_model_class.reflections.collect {|association_name, reflection| reflection.class_name.constantize if association_name.to_sym == association_or_attribute}.compact
-                  if found_classes.size > 0
-                    last_model_class = found_classes[0]
-                  else
-                    # bad can_filter_by :through found at runtime
-                    raise "#{association_or_attribute.inspect} not found on #{last_model_class}"
-                  end
+        module ClassMethods
+          # An alterative method to defining :through options (for can_filter_by, can_order_by, etc.)
+          # in a single place that isn't on the same line as another class method.
+          #
+          # E.g.:
+          #   define_params name: {company: {employee: :full_name}},
+          #                 color: :external_color
+          #   can_filter_by :external_color
+          #   can_filter_by :name
+          #   can_order_by :external_color
+          #   can_order_by :name
+          def define_params(*args)
+            options = args.extract_options!
 
-                  if joins.nil?
-                    joins = association_or_attribute
+            raise "define_param(s) only takes a single hash of param name(s) to hash(es)" if args.length > 0
+
+            # Shallow clone to help avoid subclass inheritance related sharing issues.
+            self.param_to_through = self.param_to_through.clone
+
+            options.each do |param_name, through_val|
+              param_name = param_name.to_s
+              self.param_to_through[param_name] = (convert = ->(hsh, orig=nil) do
+                orig ||= hsh
+                case hsh
+                when String, Symbol
+                  {attr_name: hsh}
+                when Hash
+                  case hsh.values.first
+                  when String, Symbol
+                    {attr_name: hsh.values.first, joins: hsh.keys.first}
+                  when Hash
+                    case hsh.values.first.values.first
+                    when String, Symbol
+                      attr_name = hsh.values.first.values.first
+                      hsh[hsh.keys.first] = hsh.values.first.keys.first
+                      {attr_name: attr_name, joins: orig}
+                    when Hash
+                      convert.call(hsh.values.first, orig)
+                    else
+                      raise "Invalid :through option: #{hsh.values.first.values.first} in #{self}"
+                    end
                   else
-                    joins = {association_or_attribute => joins}
+                    raise "Invalid :through option: #{hsh.values.first} in #{self}"
                   end
+                else
+                  raise "Invalid :through option: #{hsh} in #{self}"
                 end
-              end
+              end)[through_val.deep_dup]
             end
+
+            self.param_to_through
+          end
+          alias define_param define_params
+        end
+
+        # Call .joins! on the relation with configured :through options after parsing them
+        # and then return a new options hash that has :attr_name and may have :joins if
+        # define_params was called or :through option was used.
+        def apply_joins_and_return_opts(param_name)
+          old_param_name = param_name
+          opts = self.param_to_through[param_name.to_s] || {}
+          @relation.joins!(opts[:joins]) if opts[:joins]
+          opts.reverse_merge!(attr_name: param_name.to_sym)
+        end
+
+        # Walk any configured :through options to get the ARel table or return @model_class.arel_table.
+        def get_arel_table(param_name)
+          opts = self.param_to_through[param_name.to_s] || {}
+          hsh = opts[:joins]
+          return @model_class.arel_table unless hsh && hsh.size > 0
+          # find arel_table corresponding to
+          find_assoc_model_class = ->(last_model_class, assoc_name) do
+            next_class = last_model_class.reflections.map{|refl_assoc_name, refl| refl.class_name.constantize if refl_assoc_name.to_s == assoc_name.to_s}.compact.first
+            raise "#{last_model_class} is missing association #{hsh.values.first} defined in #{self} through option or define_params" unless next_class
+            next_class
           end
 
-          super if defined?(super)
+          (find_arel_table = ->(last_model_class, val) do
+            case val
+            when String, Symbol
+              find_assoc_model_class.call(last_model_class, val).arel_table
+            when Hash
+              find_arel_table.call(find_assoc_model_class.call(last_model_class, val.keys.first), val.values.first)
+            else
+              raise "get_arel_table failed because unhandled #{val} in joins in through"
+            end
+          end)[@model_class, opts[:joins]]
         end
       end
     end

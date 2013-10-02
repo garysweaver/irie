@@ -37,13 +37,13 @@ class PostsController < ApplicationController
 
   respond_to :json, :html
 
-  can_filter_by :author, through: [:author, :name]
+  can_filter_by :author, through: {author: :name}
   default_filter_by :author, eq: 'anonymous'
 
   can_filter_by :posted_on, using: [:lt, :eq, :gt]
   default_filter_by :posted_on, gt: 1.year.ago
 
-  can_filter_by :company, through: [:author, :company, :name]
+  can_filter_by :company, through: {author: {company: :name}
 
   can_order_by :posted_on, :author, :id
   default_order_by {:posted_on => :desc}, :id
@@ -219,11 +219,13 @@ By appending the predicate prefix (`.` by default) to the request parameter name
 http://localhost:3000/posts?seen_on.gteq=2012-08-08
 ```
 
-And `can_filter_by` can specify a `:through` to provide an easy way to inner join through a bunch of models using ActiveRecord relations, by specifying 0-to-many association names to go "through" to the final argument, which is the attribute name on the last model. The following is equivalent to the last query:
+And `can_filter_by` can specify a `:through` which (inner) joins and sets the deepest symbol in the hash as the key for the parameter value, then does a where, e.g. the following:
 
 ```ruby
-can_filter_by :a_request_param_name, through: [:some_assoc, :some_attr]
+can_filter_by :name, through: {company: {employee: :full_name}}
 ```
+
+would do `joins(company: {employee: :full_name}).where()
 
 Let's say you are in MagicalValleyController, and the MagicalValley model `has many :magical_unicorns`. The MagicalUnicorn model has an attribute called `name`. You want to return MagicalValleys that are associated with all of the MagicalUnicorns named 'Rainbow'. You could do either:
 
@@ -234,7 +236,7 @@ can_filter_by_query magical_unicorn_name: ->(q, param_value) { q.joins(:magical_
 or:
 
 ```ruby
-can_filter_by :magical_unicorn_name, through: [:magical_unicorns, :name]
+can_filter_by :magical_unicorn_name, through: {magical_unicorns: :name}
 ```
 
 and you can then use this:
@@ -246,7 +248,7 @@ http://localhost:3000/magical_valleys?magical_unicorn_name=Rainbow
 or if a MagicalUnicorn `has_many :friends` and a MagicalUnicorn's friend has a name attribute:
 
 ```ruby
-can_filter_by :magical_unicorn_friend_name, through: [:magical_unicorns, :friends, :name]
+can_filter_by :magical_unicorn_friend_name, through: {magical_unicorns: {friends: :name}}
 ```
 
 and use this to get valleys associated with unicorns who in turn have a friend named Oscar:
@@ -484,6 +486,19 @@ end
 def params_for_update
   params.require(:post).permit(:color)
 end
+```
+
+#### Using define_params vs :through option
+
+The `:through` option in `can_filter_by` and `can_order_by` just uses `define_params` to set the attribute name alias and options (which is parsed into a joins hash and attribute name internally). So, if you don't mind a little more typing, it might make the intent clearer, e.g.
+
+```ruby
+define_params name: {company: {employee: :full_name}},
+              color: :external_color
+can_filter_by :external_color
+can_filter_by :name
+can_order_by :external_color
+can_order_by :name
 ```
 
 #### Other Extensions

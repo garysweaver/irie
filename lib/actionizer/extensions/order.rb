@@ -27,7 +27,7 @@ module Actionizer
         # When :through is specified, it will take the array supplied to through as 0 to many model names following by an attribute name. It will follow through
         # each association until it gets to the attribute to filter by that via ARel joins, e.g. if the model Foobar has an association to :foo, and on the Foo model there is an assocation
         # to :bar, and you want to order by bar.name (foobar.foo.bar.name):
-        #  can_order_by :my_param_name, through: [:foo, :bar, :name]
+        #  can_order_by :my_param_name, through: {foo: {bar: :name}}
         def can_order_by(*args)
           options = args.extract_options!
 
@@ -42,13 +42,10 @@ module Actionizer
             self.can_be_ordered_by << arg.to_s unless self.can_be_ordered_by.include?(arg.to_s)
           end
 
-          # This does the same as the through in can_filter_by: it just sets up joins in the index action.
           if opt_through
-            # Shallow clone to help avoid subclass inheritance related sharing issues.
-            self.param_to_through = self.param_to_through.clone
-
             args.each do |through_key|
-              self.param_to_through[through_key.to_sym] = opt_through
+              # note: handles cloning, etc.
+              self.add_param_to_through(through_key.to_sym, opt_through)
             end
           end
         end
@@ -97,10 +94,14 @@ module Actionizer
             elsif order_param_value[0] == '+'
               order_param_value = order_param_value.reverse.chomp('+').reverse
             end
+
             # order of logic here is important:
-            # do not to_sym the partial param value until passes whitelist to avoid symbol attack
-            if self.can_be_ordered_by.include?(order_param_value) && !already_ordered_by.include?(order_param_value.to_sym)                
-              @relation.order!(order_param_value.to_sym => direction)
+            # do not to_sym the partial param value until passes whitelist to avoid symbol attack.
+            # be sure to pass in the same param name as the default param it is trying to override,
+            # if there is one.
+            if self.can_be_ordered_by.include?(order_param_value) && !already_ordered_by.include?(order_param_value.to_sym)
+              opts = apply_joins_and_return_opts(order_param_value.to_s)
+              @relation.order!((opts[:attr_sym] || order_param_value.to_sym) => direction)
               already_ordered_by << order_param_value.to_sym
             end
           end
@@ -108,7 +109,8 @@ module Actionizer
 
         self.default_ordered_by.each do |attr_sym, direction|
           if !already_ordered_by.include?(attr_sym)
-            @relation.order!(attr_sym => direction)
+            opts = apply_joins_and_return_opts(attr_sym.to_s)
+            @relation.order!((opts[:attr_sym] || attr_sym) => direction)
             already_ordered_by << attr_sym
           end
         end

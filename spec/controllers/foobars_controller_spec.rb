@@ -9,39 +9,69 @@ describe FoobarsController do
 
   before(:each) do
     FoobarsController.test_role = 'admin'
+    # clean up everytime for now
+    Bar.destroy_all
+    Foo.destroy_all
+    Barfoo.destroy_all
     10.times do |c|
-      Foo.where(:id => c, :code => "123#{c}").first_or_create
-      Bar.where(:id => c, :code => "abc#{c}").first_or_create
+      #TODO: clean up tests. this is a mess
+      bar = Bar.where(id: c).first || Bar.create(id: c, code: "abc#{c}", open_hours: c)
+      Foo.create(id: c, code: "123#{c}", bar: bar) unless Foo.where(id: c).first
     end
   end
 
   describe "GET index" do
-    it 'returns foobars in default order' do
+    it 'returns foobars in default order with default filter' do
       Foobar.delete_all
       expected = []
       
       10.times do |c|
         expected << Foobar.create(foo: Foo.where(id: c).first)
       end
+      expected.reject!{|i|i.foo_id == 9} # default filter
+
       get :index, format: :json
       assigns(:foobars).should eq(expected.reverse)
       # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
-      last_id = Foobar.last.id
-      @response.body.should eq("{\"check\":\"foobars-index: size=10, ids=#{last_id.downto(last_id-9).collect{|i|i}.join(',')}\"}")
+      first_id = expected.last.id-(expected.length - 1)
+      last_id = expected.last.id
+      @response.body.should eq("{\"check\":\"foobars-index: size=#{expected.length}, ids=#{last_id.downto(first_id).collect{|i|i}.join(',')}\"}")
     end
 
-    it 'allows requested ascending order' do
+    it 'returns foobars via through filter' do
+      Foobar.delete_all
+      expected = []
+      
+      Bar.all.each do |b|
+        expected << Foobar.create(foo: Foo.find(b.foo.id)) if b.foo.try(:id)
+      end
+      expected_foobar = Foobar.all.joins(foo: :bar).where(Bar.arel_table.eq(open_hours: Bar.last.open_hours)).to_a.first
+      raise "test setup failure. expected to be able to get Foobar via Foobar.all.joins(foo: :bar).where(open_hours: Foobar.last.foo.bar.open_hours).to_a.first\n\n" unless expected_foobar
+      begin
+        ActiveRecord::Base.logger = Logger.new(STDOUT)
+        get :index, format: :json, bar: Foobar.last.foo.bar.open_hours
+      ensure
+        ActiveRecord::Base.logger = nil
+      end
+      assigns(:foobars).length.should eq(1)
+      @response.body.should eq("change this test value")
+    end
+
+    it 'allows requested ascending order with default filter' do
       Foobar.delete_all
       expected = []
       
       10.times do |c|
         expected << Foobar.create(foo: Foo.where(id: c).first)
       end
-      get :index, format: :json, order: 'foo_id'
+      expected.reject!{|i|i.foo_id == 9} # default filter
+
+      get :index, format: :json, order: 'foo_id,+bar,-barfoo_id'
       assigns(:foobars).should eq(expected)
       # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
-      last_id = Foobar.last.id
-      @response.body.should eq("{\"check\":\"foobars-index: size=10, ids=#{(last_id-9).upto(last_id).collect{|i|i}.join(',')}\"}")
+      first_id = expected.last.id-(expected.length - 1)
+      last_id = expected.last.id
+      @response.body.should eq("{\"check\":\"foobars-index: size=#{expected.length}, ids=#{(first_id.upto(last_id)).collect{|i|i}.join(',')}\"}")
     end
 
     it 'returns foobars with simple filter' do
@@ -53,6 +83,18 @@ describe FoobarsController do
         expected << fb if c == 5
       end
       get :index, format: :json, foo_id: 5
+      assigns(:foobars).should eq(expected)
+    end
+
+    it 'returns foobars with defined param filter' do
+      Foobar.delete_all
+      expected = []
+      
+      10.times do |c|
+        fb = Foobar.create(foo: Foo.where(id: c).first)
+        expected << fb if c == 5
+      end
+      get :index, format: :json, renamed_foo_id: 5
       assigns(:foobars).should eq(expected)
     end
 

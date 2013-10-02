@@ -26,7 +26,7 @@ module Actionizer
         # When :through is specified, it will take the array supplied to through as 0 to many model names following by an attribute name. It will follow through
         # each association until it gets to the attribute to filter by that via ARel joins, e.g. if the model Foobar has an association to :foo, and on the Foo model there is an assocation
         # to :bar, and you want to filter by bar.name (foobar.foo.bar.name):
-        #  can_filter_by :my_param_name, through: [:foo, :bar, :name]
+        #  can_filter_by :my_param_name, through: {foo: {bar: :name}}
         def can_filter_by(*args)
           options = args.extract_options!
 
@@ -52,11 +52,8 @@ module Actionizer
 
           if opt_through
             args.each do |through_key|
-              # Shallow clone to help avoid subclass inheritance related sharing issues.
-              self.param_to_through = self.param_to_through.clone
-
-              # can override another through defined elsewhere
-              self.param_to_through[through_key.to_sym] = opt_through
+              # note: handles cloning, etc.
+              self.define_params(through_key => opt_through)
             end
           end
         end
@@ -87,25 +84,23 @@ module Actionizer
 
       def index_filters
         filtered_by_param_names = []
-        self.param_to_attr_and_arel_predicate.keys.each do |param_name|
-          if param_to_attr_and_arel_predicate[param_name]
-            attr_sym = param_to_attr_and_arel_predicate[param_name][0]
-            predicate_sym = param_to_attr_and_arel_predicate[param_name][1]
-            if params_for_index.key?(param_name)
-              one_or_more_param = params_for_index[param_name].to_s.split(self.filter_split).collect{|v| convert_param_value(attr_sym.to_s, v)}
-              @relation.where!(
-                @relation.arel_table[attr_sym].
-                try(predicate_sym, 
-                  one_or_more_param))
-              filtered_by_param_names << attr_sym
-            end
+        self.param_to_attr_and_arel_predicate.each do |param_name, attr_sym_and_predicate_name|
+          attr_sym, predicate_sym = *attr_sym_and_predicate_name
+          if params_for_index.key?(attr_sym)
+            one_or_more_param = params_for_index[attr_sym].to_s.split(self.filter_split).collect{|v| convert_param_value(attr_sym.to_s, v)}
+            opts = apply_joins_and_return_opts(attr_sym.to_s)
+            arel_table = get_arel_table(attr_sym)
+            @relation.where!(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, one_or_more_param))
+            filtered_by_param_names << attr_sym
           end
         end
 
         self.default_filtered_by.each do |attr_sym, predicates_to_default_values|
           unless filtered_by_param_names.include?(attr_sym) || predicates_to_default_values.blank?
             predicates_to_default_values.each do |predicate_sym, one_or_more_default_value|
-              @relation.where!(t[attr_sym].try(predicate_sym, Array.wrap(one_or_more_default_value)))
+              opts = apply_joins_and_return_opts(attr_sym.to_s)
+              arel_table = get_arel_table(attr_sym)
+              @relation.where!(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, Array.wrap(one_or_more_default_value)))
             end
           end
         end

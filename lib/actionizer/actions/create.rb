@@ -7,6 +7,7 @@ module Actionizer
 
       included do
         include ::Actionizer::Actions::Base
+        include ::Actionizer::Actions::Common::Creator
         
         Array.wrap(self.autoincludes[:create]).each do |obj|
           case obj
@@ -40,7 +41,7 @@ module Actionizer
       end
 
       def perform_create(the_params)
-        record = @model_class.new(the_params)
+        record = new_model_instance(the_params)
         record.save
         instance_variable_set(@model_at_singular_name_sym, record)
       end

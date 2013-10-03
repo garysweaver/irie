@@ -34,8 +34,7 @@ module Actionizer
           opt_through = options.delete(:through)
           raise "options #{options.inspect} not supported by can_filter_by" if options.present?
 
-          # Shallow clone to help avoid subclass inheritance related sharing issues.
-          self.param_to_attr_and_arel_predicate = self.param_to_attr_and_arel_predicate.clone
+          self.param_to_attr_and_arel_predicate = self.param_to_attr_and_arel_predicate.deep_dup
 
           # :using is the default action if no options are present
           if opt_using || options.size == 0
@@ -68,8 +67,7 @@ module Actionizer
         def default_filter_by(*args)
           options = args.extract_options!
 
-          # Shallow clone to help avoid subclass inheritance related sharing issues.
-          self.default_filtered_by = self.default_filtered_by.clone
+          self.default_filtered_by = self.default_filtered_by.deep_dup
           
           args.each do |attr_name|
             if self.default_filtered_by[attr_name.to_sym]

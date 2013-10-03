@@ -23,8 +23,7 @@ module Actionizer
         def render_options(*args)
           options = args.extract_options!
 
-          # Shallow clone to help avoid subclass inheritance related sharing issues.
-          self.action_to_render_options = self.action_to_render_options.clone
+          self.action_to_render_options = self.action_to_render_options.deep_dup
 
           args.each do |action_name|
             if self.action_to_render_options[action_name.to_sym]
@@ -42,8 +41,7 @@ module Actionizer
         def valid_render_options(*args)
           options = args.extract_options!
 
-          # Shallow clone to help avoid subclass inheritance related sharing issues.
-          self.action_to_valid_render_options = self.action_to_valid_render_options.clone
+          self.action_to_valid_render_options = self.action_to_valid_render_options.deep_dup
 
           args.each do |action_name|
             if self.action_to_valid_render_options[action_name.to_sym]
@@ -61,8 +59,7 @@ module Actionizer
         def invalid_render_options(*args)
           options = args.extract_options!
 
-          # Shallow clone to help avoid subclass inheritance related sharing issues.
-          self.action_to_invalid_render_options = self.action_to_invalid_render_options.clone
+          self.action_to_invalid_render_options = self.action_to_invalid_render_options.deep_dup
 
           args.each do |action_name|
             if self.action_to_invalid_render_options[action_name.to_sym]
@@ -79,10 +76,11 @@ module Actionizer
         result = defined?(super) ? super : {}
         (result ||= {}).merge!(self.action_to_render_options[params[:action].to_sym] || {})
         if record_or_collection.respond_to?(:errors) && record_or_collection.errors.size > 0
-          result.merge!(self.action_to_invalid_render_options[params[:action].to_sym] || {})
+          result = result.merge(self.action_to_invalid_render_options[params[:action].to_sym] || {})
         else
-          result.merge!(self.action_to_valid_render_options[params[:action].to_sym] || {})
+          result = result.merge(self.action_to_valid_render_options[params[:action].to_sym] || {})
         end
+        result
       end
     end
   end

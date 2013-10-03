@@ -1,3 +1,9 @@
+GIT
+  remote: git://github.com/bmabey/database_cleaner.git
+  revision: 1ce7c9989acd4815621fe9a007fc4b759a37b239
+  specs:
+    database_cleaner (1.1.1)
+
 PATH
   remote: .
   specs:
@@ -87,6 +93,7 @@ DEPENDENCIES
   appraisal (~> 0.5.2)
   bundler (>= 1.2.2)
   cancan (~> 1.6.10)
+  database_cleaner!
   jbuilder
   rspec (~> 2.13.0)
   rspec-rails (~> 2.13.0)

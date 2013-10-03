@@ -1,9 +1,5 @@
 Dummy::Application.routes.draw do
-  resources :barfoos, :special_barfoos do
-    get 'some_action', :on => :collection
-  end
-
+  resources :barfoos
   resources :foobars
-  resources :posts
-  resources :my_posts
+  resources :special_barfoos
 end

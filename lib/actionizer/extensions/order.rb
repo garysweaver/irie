@@ -34,8 +34,7 @@ module Actionizer
           opt_through = options.delete(:through)
           raise "options #{options.inspect} not supported by can_order_by" if options.present?
 
-          # Shallow clone to help avoid subclass inheritance related sharing issues.
-          self.can_be_ordered_by = self.can_be_ordered_by.clone
+          self.can_be_ordered_by = self.can_be_ordered_by.deep_dup
 
           args.each do |arg|
             # store as strings because we have to do a string comparison later to avoid req param symbol attack
@@ -60,8 +59,7 @@ module Actionizer
         def default_order_by(*args)
           options = args.extract_options!
 
-          # Shallow clone to help avoid subclass inheritance related sharing issues.
-          self.default_ordered_by = self.default_ordered_by.clone
+          self.default_ordered_by = self.default_ordered_by.deep_dup
 
           # hash is ordered in recent versions of Ruby we support
           args.flatten.each do |item|

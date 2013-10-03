@@ -14,8 +14,9 @@ module Actionizer
       end
 
       def index_filters
-        if (param_value = aliased_param(:page))
-          page = param_value.to_i
+        page_param_value = aliased_param(:page)
+        unless page_param_value.nil?
+          page = page_param_value.to_i
           page = 1 if page < 1
           @relation.offset!((self.number_of_records_in_a_page * (page - 1)).to_s)
           @relation.limit!(self.number_of_records_in_a_page.to_s)

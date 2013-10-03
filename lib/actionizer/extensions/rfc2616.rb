@@ -10,11 +10,12 @@ module Actionizer
         if record_or_collection && !(record_or_collection.respond_to?(:errors) && record_or_collection.errors.size > 0)
           case params[:action]
           when 'create'
-            result.merge!({status: :created})
+            result = result.merge({status: :created})
           when 'update'
-            result.merge!({status: :no_content})
+            result = result.merge({status: :no_content})
           end
         end
+        result
       end
     end
   end

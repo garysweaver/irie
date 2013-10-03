@@ -27,8 +27,7 @@ module Actionizer
 
             raise "define_param(s) only takes a single hash of param name(s) to hash(es)" if args.length > 0
 
-            # Shallow clone to help avoid subclass inheritance related sharing issues.
-            self.param_to_through = self.param_to_through.clone
+            self.param_to_through = self.param_to_through.deep_dup
 
             options.each do |param_name, through_val|
               param_name = param_name.to_s
@@ -73,7 +72,7 @@ module Actionizer
           old_param_name = param_name
           opts = self.param_to_through[param_name.to_s] || {}
           @relation.joins!(opts[:joins]) if opts[:joins]
-          opts.reverse_merge!(attr_name: param_name.to_sym)
+          opts.reverse_merge(attr_name: param_name.to_sym)
         end
 
         # Walk any configured :through options to get the ARel table or return @model_class.arel_table.

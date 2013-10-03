@@ -22,8 +22,7 @@ module Actionizer
 
           raise "arguments #{args.inspect} are not supported by can_filter_by_query" if args.length > 0
 
-          # Shallow clone to help avoid subclass inheritance related sharing issues.
-          self.param_to_query = self.param_to_query.clone
+          self.param_to_query = self.param_to_query.deep_dup
           
           options.each do |param_name, proc|
             self.param_to_query[param_name.to_sym] = proc

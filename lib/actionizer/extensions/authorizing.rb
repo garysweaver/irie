@@ -15,6 +15,11 @@ module Actionizer
 
     private
 
+      def new_model_instance(aparams)
+        authorize! params[:action].to_sym, @model_class
+        defined?(super) ? super : @model_class.new
+      end
+
       def find_model_instance_with(the_params, first_sym)
         instance = super
         authorize! params[:action].to_sym, instance

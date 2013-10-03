@@ -9,298 +9,225 @@ describe FoobarsController do
 
   before(:each) do
     FoobarsController.test_role = 'admin'
-    # clean up everytime for now
-    Bar.destroy_all
-    Foo.destroy_all
-    Barfoo.destroy_all
+    @request.env['CONTENT_TYPE'] = 'application/json'
+
     10.times do |c|
-      #TODO: clean up tests. this is a mess
       bar = Bar.where(id: c).first || Bar.create(id: c, code: "abc#{c}", open_hours: c)
-      Foo.create(id: c, code: "123#{c}", bar: bar) unless Foo.where(id: c).first
+      foo = Foo.create(id: c, code: "123#{c}", bar: bar)
+      Foobar.create(foo: foo)
     end
   end
 
-  describe "GET index" do
-    it 'returns foobars in default order with default filter' do
-      Foobar.delete_all
-      expected = []
-      
-      10.times do |c|
-        expected << Foobar.create(foo: Foo.where(id: c).first)
-      end
-      expected.reject!{|i|i.foo_id == 9} # default filter
+  it 'index returns foobars in default order with default filter' do
+    expected = Foobar.all.reject!{|i|i.foo_id == 3} # default filter
 
-      get :index, format: :json
-      assigns(:foobars).should eq(expected.reverse)
-      # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
-      first_id = expected.last.id-(expected.length - 1)
-      last_id = expected.last.id
-      @response.body.should eq("{\"check\":\"foobars-index: size=#{expected.length}, ids=#{last_id.downto(first_id).collect{|i|i}.join(',')}\"}")
-    end
+    json_index
+    assigns(:foobars).should eq(expected.reverse)
+    # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
+    response.body.should eq("{\"check\":\"foobars-index: size=#{expected.length}, ids=#{expected.reverse.collect{|f|f.id}.join(',')}\"}")
+  end
 
-    it 'returns foobars via through filter' do
-      Foobar.delete_all
-      expected = []
-      
-      Bar.all.each do |b|
-        expected << Foobar.create(foo: Foo.find(b.foo.id)) if b.foo.try(:id)
-      end
-      expected_foobar = Foobar.all.joins(foo: :bar).where(Bar.arel_table.eq(open_hours: Bar.last.open_hours)).to_a.first
-      raise "test setup failure. expected to be able to get Foobar via Foobar.all.joins(foo: :bar).where(open_hours: Foobar.last.foo.bar.open_hours).to_a.first\n\n" unless expected_foobar
-      begin
-        ActiveRecord::Base.logger = Logger.new(STDOUT)
-        get :index, format: :json, bar: Foobar.last.foo.bar.open_hours
-      ensure
-        ActiveRecord::Base.logger = nil
-      end
-      assigns(:foobars).length.should eq(1)
-      @response.body.should eq("change this test value")
-    end
+  it 'index returns foobars via through filter' do
+    expected_foobar = Foobar.all.joins(foo: :bar).where(Bar.arel_table[:open_hours].eq(Bar.last.open_hours)).to_a.first
 
-    it 'allows requested ascending order with default filter' do
-      Foobar.delete_all
-      expected = []
-      
-      10.times do |c|
-        expected << Foobar.create(foo: Foo.where(id: c).first)
-      end
-      expected.reject!{|i|i.foo_id == 9} # default filter
+    json_index bar: Foobar.last.foo.bar.open_hours
+    assigns(:foobars).length.should eq(1)
+    response.body.should eq("{\"check\":\"foobars-index: size=1, ids=#{expected_foobar.id}\"}")
+  end
 
-      get :index, format: :json, order: 'foo_id,+bar,-barfoo_id'
-      assigns(:foobars).should eq(expected)
-      # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
-      first_id = expected.last.id-(expected.length - 1)
-      last_id = expected.last.id
-      @response.body.should eq("{\"check\":\"foobars-index: size=#{expected.length}, ids=#{(first_id.upto(last_id)).collect{|i|i}.join(',')}\"}")
-    end
+  it 'index allows requested ascending order with default filter' do
+    expected = Foobar.all.reject!{|i|i.foo_id == 3} # default filter
 
-    it 'returns foobars with simple filter' do
-      Foobar.delete_all
-      expected = []
-      
-      10.times do |c|
-        fb = Foobar.create(foo: Foo.where(id: c).first)
-        expected << fb if c == 5
-      end
-      get :index, format: :json, foo_id: 5
-      assigns(:foobars).should eq(expected)
-    end
+    json_index order: 'foo_id,+bar,-barfoo_id'
+    assigns(:foobars).should eq(expected)
+    # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
+    first_id = expected.last.id-(expected.length - 1)
+    last_id = expected.last.id
+    response.body.should eq("{\"check\":\"foobars-index: size=#{expected.length}, ids=#{expected.collect{|f|f.id}.join(',')}\"}")
+  end
 
-    it 'returns foobars with defined param filter' do
-      Foobar.delete_all
-      expected = []
-      
-      10.times do |c|
-        fb = Foobar.create(foo: Foo.where(id: c).first)
-        expected << fb if c == 5
-      end
-      get :index, format: :json, renamed_foo_id: 5
-      assigns(:foobars).should eq(expected)
-    end
+  it 'index returns foobars with simple filter' do
+    expected = [Foobar.first]
+    
+    json_index foo_id: expected.first.foo.id
+    assigns(:foobars).should eq(expected)
+  end
 
-    it 'returns foobars with a query' do
-      Foobar.delete_all
-      expected = []
-      
-      10.times do |c|
-        fb = Foobar.create(foo: Foo.where(id: c).first)
-        expected << fb if c == 5
-      end
-      get :index, format: :json, a_query: 5
-      assigns(:foobars).should eq(expected)
+  it 'index returns foobars with defined param filter' do
+    expected = [Foobar.first]
+
+    json_index renamed_foo_id: expected.first.foo.id
+    assigns(:foobars).should eq(expected)
+  end
+
+  it 'index returns foobars with a query' do
+    expected = [Foobar.first]
+
+    json_index a_query: expected.first.foo.id
+    assigns(:foobars).should eq(expected)
+  end
+
+  it 'show assigns foobar' do
+    foobar = Foobar.first
+
+    json_show Foobar.primary_key => foobar.id
+    assigns(:foobar).is_a?(Foobar).should be
+    response.status.should eq(200), "show failed (got #{response.status}): #{response.body}"
+    # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
+    response.body.should eq("{\"check\":\"foobars-show: #{foobar.id}\"}")
+  end
+
+  it 'show fails for bad id' do
+    begin
+      json_show id: '9999999'
+      fail('should have raised error')
+    rescue => e
+      e.message.should include('ound')
     end
   end
 
-  describe "GET show" do
-    it 'assigns foobar' do
-      Foobar.delete_all
-      b = Foobar.create(foo: Foo.where(id: 1).first)
-      get :show, Foobar.primary_key => b.id, format: :json
-      assigns(:foobar).is_a?(Foobar).should be
-      response.status.should eq(200), "show failed (got #{response.status}): #{response.body}"
-      # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
-      @response.body.should eq("{\"check\":\"foobars-show: #{b.id}\"}")
-    end
+  it 'new assigns foobar' do
+    get :new, format: :json
+    assigns(:foobar).is_a?(Foobar).should be
+    response.status.should eq(200), "new failed (got #{response.status}): #{response.body}"
+    # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
+    response.body.should eq("{\"check\":\"foobars-new: \"}")
+  end
 
-    it 'fails for bad id' do
-      begin
-        Foobar.delete_all
-        get :show, id: '9999999', format: :json
-        fail('should have raised error')
-      rescue => e
-        e.message.should include('ound')
-      end
+  it 'new fails when cancan disallows user' do
+    FoobarsController.test_role = 'nobody'
+
+    begin
+      json_new
+      fail "cancan should not allow get" if response.status < 400
+    rescue
     end
   end
 
-  describe "GET new" do
-    it 'assigns foobar' do
-      Foobar.delete_all
-      get :new, format: :json
-      assigns(:foobar).is_a?(Foobar).should be
-      response.status.should eq(200), "new failed (got #{response.status}): #{response.body}"
-      # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
-      @response.body.should eq("{\"check\":\"foobars-new: \"}")
+  it 'edit assigns foobar' do
+    foobar = Foobar.last
+    json_edit Foobar.primary_key => foobar.id
+    assigns(:foobar).is_a?(Foobar).should be
+    assigns(:foobar).foo_id.should eq(foobar.foo_id)
+  end
+
+  it 'edit fails for bad id' do
+    begin
+      json_edit id: '9999999'
+      fail "should have raised error"
+    rescue
+      assigns(:foobar).should be_nil
     end
   end
 
-  describe "GET edit" do
-    it 'assigns foobar' do
-      Foobar.delete_all
-      b = Foobar.create(foo: Foo.where(id: 1).first)
-      get :edit, Foobar.primary_key => b.id, format: :json
-      assigns(:foobar).is_a?(Foobar).should be
-      assigns(:foobar).foo_id.should eq(1)
-    end
+  it 'edit fails when cancan disallows user' do
+    FoobarsController.test_role = 'nobody'
 
-    it 'fails for bad id' do
-      begin
-        Foobar.delete_all
-        get :edit, id: '9999999', format: :json
-        fail "should have raised error"
-      rescue
-        assigns(:foobar).should be_nil
-      end
+    begin
+      json_edit Foobar.primary_key => Foobar.last.id
+      fail "cancan should not allow get" if response.status < 400
+    rescue
     end
   end
-
-   describe "POST create" do
-    it 'allowed for accepted params' do
-      Foobar.delete_all
-      # won't wrap in test without this per https://github.com/rails/rails/issues/6633
-      @request.env['CONTENT_TYPE'] = 'application/json'
-      before_count = Foobar.count
-      post :create, foobar: {foo: Foo.where(id: 1).first.to_json}, format: :json
-      response.status.should eq(201), "create failed (got #{response.status}): #{response.body}"
-      Foobar.count.should eq(before_count + 1)
-      @response.body.should eq("{\"check\":\"foobars-create: #{Foobar.last.id}\"}")
+  
+  it 'create allowed for accepted params' do
+    before_count = Foobar.count
+    foo = Foo.create
+    autolog :methods do
+      json_create foobar: {foo_id: foo.id}
     end
+    Foobar.count.should eq(before_count + 1), "Didn't create Foobar"
+    response.status.should eq(201), "Bad response code (got #{response.status}): #{response.body}"
+    Foobar.last.should_not be_nil, "Last Foobar was nil"
+    Foobar.last.foo_id.should eq(foo.id), "Expected created Foobar to have foo_id #{foo.id.inspect} but was #{Foobar.last.foo_id.inspect}"
+    response.body.should eq("{\"check\":\"foobars-create: #{Foobar.last.id}\"}")
+  end
 
-    it 'does not accept non-whitelisted params' do
-      Foobar.delete_all
-      # won't wrap in test without this per https://github.com/rails/rails/issues/6633
-      @request.env['CONTENT_TYPE'] = 'application/json'
+  it 'create does not accept non-whitelisted params' do
+    begin
       bar = Bar.create
-      post :create, foobar: {bar: bar}, format: :json
-      # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
-      Foobar.where(bar_id: 1).should be_empty, "should not have created with non-whitelisted param"
-    end
-
-    it 'does not accept whitelisted params when cancan disallows user' do
-      FoobarsController.test_role = 'nobody'
-      Foobar.delete_all
-      # won't wrap in test without this per https://github.com/rails/rails/issues/6633
-      @request.env['CONTENT_TYPE'] = 'application/json'
-      begin
-        put :create, foo: Foo.where(id: 1).first, format: :json
-        fail "cancan should not allow put" if response.status < 400
-      rescue
-      end
-      assert_match '', @response.body
-      Foobar.where(foo_id: 1).should be_empty, "should not have updated with whitelisted param when cancan disallows user"
+      json_create foobar: {bar_id: bar.id}
+      fail 'Expected ActionController::UnpermittedParameters to be raised for non-whitelisted param'
+    rescue ActionController::UnpermittedParameters
+      Foobar.where(bar_id: bar.id).should be_empty, "should not have created with non-whitelisted param"
     end
   end
 
-  describe "PUT update" do
-    it 'allowed for accepted params' do
-      Foobar.delete_all
-      # won't wrap in test without this per https://github.com/rails/rails/issues/6633
-      @request.env['CONTENT_TYPE'] = 'application/json'
-      b = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
-      foo_id = '1'
-      put :update, Foobar.primary_key => b.id, foo_id: foo_id, format: :json
-      # should be 204, but not worth the trouble to fix
-      response.status.should eq(204), "update failed (got #{response.status}): #{response.body}"
-      assert_match '', @response.body
-      Foobar.where(foo_id: foo_id).should_not be_empty, "should have updated param"
-    end
+  it 'create does not create when cancan disallows user' do
+    FoobarsController.test_role = 'nobody'
 
-    it 'does not accept non-whitelisted params' do
-      Foobar.delete_all
-      # won't wrap in test without this per https://github.com/rails/rails/issues/6633
-      @request.env['CONTENT_TYPE'] = 'application/json'
-      random_id = "k#{SecureRandom.urlsafe_base64}"
-      b = Foobar.create(bar_id: random_id)
-      bar_id = '1'
-      # this test was intermittently failing, so have a test setup check. I think SecureRandom was
-      # returning 1 strangely, so prefixed with k.
-      Foobar.where(bar_id: bar_id).should be_empty, "test setup failure. we deleted all Foobars but bar_id=#{random_id}, but one existed with bar_id=#{bar_id}"
-      put :update, Foobar.primary_key => b.id, bar_id: bar_id, format: :json
-      response.status.should eq(204), "update failed (got #{response.status}): #{response.body}"
-      assert_match '', @response.body
-      Foobar.where(bar_id: bar_id).should be_empty, "should not have updated with non-whitelisted param"
+    start_count = Foobar.count
+    begin
+      json_create
+      fail "cancan should not allow put" if response.status < 400
+    rescue
     end
-
-    it 'does not accept whitelisted params when cancan disallows user' do
-      FoobarsController.test_role = 'nobody'
-      Foobar.delete_all
-      # won't wrap in test without this per https://github.com/rails/rails/issues/6633
-      @request.env['CONTENT_TYPE'] = 'application/json'
-      b = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
-      foo_id = '1'
-      begin
-        put :update, Foobar.primary_key => b.id, foo_id: foo_id, format: :json
-        fail "cancan should not allow put" if response.status < 400
-      rescue
-      end
-      Foobar.where(foo_id: foo_id).should be_empty, "should not have updated with whitelisted param when cancan disallows user"
-    end
-
-    it 'fails with HTTP 404 for missing record' do
-      begin
-        Foobar.delete_all
-        # won't wrap in test without this per https://github.com/rails/rails/issues/6633
-        @request.env['CONTENT_TYPE'] = 'application/json'
-        put :update, id: '9999999', foo_id: '', format: :json
-        fail "should have raised error"
-      rescue
-        Foobar.where(id: '9999999').should be_empty, "should not have created record"
-      end
-    end
-
-    #TODO: implement ability in permitters to return 400 Bad Request like strong_parameters, if invalid params provided. currently is just ignored
-    #it 'fails for rejected params' do
-    #  Foobar.delete_all
-    #  # won't wrap in test without this per https://github.com/rails/rails/issues/6633
-    #  @request.env['CONTENT_TYPE'] = 'application/json'
-    #  b = Foobar.create(bar_id: SecureRandom.urlsafe_base64)
-    #  put :update, Foobar.primary_key => b.id, bar_id: '1', format: :json
-    #  response.status.should eq(400), "update should have failed for unaccepted param (got #{response.status}): #{response.body}"
-    #end
+    Foobar.count.should eq(start_count), "should not have created new record when CanCan disallows user"
   end
 
-  describe "DELETE destroy" do
-    it 'allowed for accepted id' do
-      Foobar.delete_all
-      # won't wrap in test without this per https://github.com/rails/rails/issues/6633
-      @request.env['CONTENT_TYPE'] = 'application/json'
-      b = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
-      delete :destroy, id: b, format: :json
-      assert_match '', @response.body
-      response.status.should eq(200), "destroy failed (got #{response.status}): #{response.body}"
-    end
+  it 'update allowed for accepted params' do
+    foobar = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
+    foo_id = Foo.first.id
+    json_update foobar: {Foobar.primary_key => foobar.id, foo_id: foo_id}
+    response.status.should eq(204), "update failed (got #{response.status}): #{response.body}"
+    assert_match '', response.body
+    Foobar.find(foobar.id).foo_id.should eq(foo_id), "should have updated param"
+  end
 
-    it 'should not fail with HTTP 404 for missing record' do
-      Foobar.delete_all
-      # won't wrap in test without this per https://github.com/rails/rails/issues/6633
-      @request.env['CONTENT_TYPE'] = 'application/json'
-      delete :destroy, id: '9999999', format: :json
-      assert_match '', @response.body
-      response.status.should eq(200), "destroy failed (got #{response.status}): #{response.body}"
+  it 'update does not accept non-whitelisted params' do
+    orig_bar_id = "k#{SecureRandom.urlsafe_base64}"
+    foobar = Foobar.create(bar_id: orig_bar_id)
+    bar_id = Bar.first.id
+    begin
+      json_update foobar: {Foobar.primary_key => foobar.id, bar_id: bar_id}
+      fail 'should have raised for non-whitelisted param'
+    rescue ::ActionController::UnpermittedParameters
     end
+    Foobar.find(foobar.id).bar_id.should eq(orig_bar_id), "should not have updated with non-whitelisted param. expected #{orig_bar_id} but bar_id was #{Foobar.find(foobar.id).bar_id}"
+  end
 
-    it 'should fail with error if subclass of StandardError' do
-      begin
-        Foobar.delete_all
-        # won't wrap in test without this per https://github.com/rails/rails/issues/6633
-        @request.env['CONTENT_TYPE'] = 'application/json'
-        b = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
-        # expect this to make destroy fail and reset in after hook
-        $error_to_raise_on_next_save_or_destroy_only = SomeSubtypeOfStandardError.new("some type of standard error")
-        delete :destroy, id: b, format: :json
-        fail "should have raised error"
-      rescue
-      end
+  it 'update does not accept whitelisted params when cancan disallows user' do
+    FoobarsController.test_role = 'nobody'
+    foobar = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
+    foo_id = Foo.first.id
+    begin
+      json_update foobar: {Foobar.primary_key => foobar.id, foo_id: foo_id}
+      fail "cancan should not allow put" if response.status < 400
+    rescue
+    end
+    Foobar.find(foobar.id).foo_id.should eq(foobar.foo_id), "should not have updated with whitelisted param when cancan disallows user"
+  end
+
+  it 'update fails with HTTP 404 for missing record' do
+    begin
+      json_update foobar: {id: '9999999', foo_id: ''}
+      fail "should have raised error"
+    rescue
+      Foobar.where(id: '9999999').should be_empty, "should not have created record"
+    end
+  end
+
+  it 'destroy allowed for accepted id' do
+    foobar = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
+    json_destroy id: foobar
+    assert_match '', response.body
+    response.status.should eq(200), "destroy failed (got #{response.status}): #{response.body}"
+  end
+
+  it 'destroy is idempotent/should not fail for missing record' do
+    json_destroy id: '9999999'
+    assert_match '', response.body
+    response.status.should eq(200), "destroy failed (got #{response.status}): #{response.body}"
+  end
+
+  it 'destroy should fail with error if subclass of StandardError' do
+    begin
+      foobar = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
+      # expect this to make destroy fail and reset in after hook
+      $error_to_raise_on_next_save_or_destroy_only = SomeSubtypeOfStandardError.new("some type of standard error")
+      json_destroy id: foobar
+      fail "should have raised error"
+    rescue
     end
   end
 end

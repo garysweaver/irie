@@ -15,7 +15,7 @@ class FoobarsController < ApplicationController
   can_filter_by :bar, through: {foo: {bar: :open_hours}}
   can_order_by :foo_id
 
-  default_filter_by :foo_id, not_eq: 9
+  default_filter_by :foo_id, not_eq: 3
   default_order_by [{foo_id: :desc}]
   query_includes_for :create, :index, are: [:foo]
   query_includes_for :update, are: [:bar]
@@ -23,9 +23,9 @@ class FoobarsController < ApplicationController
 private
 
   def foobar_params
-    params.permit(:id, :foo_id)
-  rescue => e
-    puts "Problem with foobar_params: #{params.inspect}"
-    raise e
+    params.require(:foobar).permit(:id, :foo_id, :foo_attributes)
+  #rescue => e
+  #  puts "Problem with foobar_params: #{params.inspect}"
+  #  raise e
   end
 end

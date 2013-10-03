@@ -5,4 +5,3 @@ require File.expand_path('../application', __FILE__)
 Dummy::Application.initialize!
 
 ActiveRecord::Base.send(:include, CanCan::ModelAdditions)
-ActiveRecord::Base.send(:include, ActiveModel::ForbiddenAttributesProtection)

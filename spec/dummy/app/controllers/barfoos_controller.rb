@@ -14,9 +14,9 @@ class BarfoosController < ApplicationController
 private
 
   def barfoo_params
-    params.permit(:id)
-  rescue => e
-    puts "Problem with barfoo_params: #{params.inspect}"
-    raise e
+    params.require(:barfoo).permit(:id)
+  #rescue => e
+  #  puts "Problem with barfoo_params: #{params.inspect}"
+  #  raise e
   end
 end

@@ -8,6 +8,7 @@ gem 'cancan', '~> 1.6.10'
 gem 'appraisal', '~> 0.5.2'
 gem 'bundler', '>= 1.2.2'
 gem 'simplecov', '~> 0.7.1'
+gem 'database_cleaner', github: 'bmabey/database_cleaner'
 gem 'jbuilder'
 
 #gem 'activerecord-jdbc-adapter', platform: :jruby

@@ -24,12 +24,10 @@ module Actionizer
         def query_includes(*args)
           options = args.extract_options!
 
-          # Shallow clone to help avoid subclass inheritance related sharing issues.
-          self.all_action_query_includes = self.all_action_query_includes.clone
-
-          options.merge!(self.all_action_query_includes.extract_options!)
-          self.all_action_query_includes += args
-          self.all_action_query_includes << options
+          self.all_action_query_includes = self.all_action_query_includes.deep_dup
+          old_options = self.all_action_query_includes.extract_options!
+          self.all_action_query_includes = (self.all_action_query_includes + args).uniq
+          self.all_action_query_includes << old_options.merge(options)
         end
 
         # Calls .includes(...) only on specified action queries, e.g.:
@@ -41,8 +39,7 @@ module Actionizer
           opt_are = options.delete(:are)
           raise "options #{options.inspect} not supported by can_filter_by" if options.present?
 
-          # Shallow clone to help avoid subclass inheritance related sharing issues.
-          self.action_to_query_includes = self.action_to_query_includes.clone
+          self.action_to_query_includes = self.action_to_query_includes.deep_dup
 
           args.each do |an_action|
             if opt_are

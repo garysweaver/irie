@@ -15,7 +15,7 @@ class FoobarsController < ApplicationController
   can_filter_by :bar, through: {foo: {bar: :open_hours}}
   can_order_by :foo_id
 
-  default_filter_by :foo_id, not_eq: 3
+  default_filter_by :renamed_foo_id, not_eq: 3
   default_order_by [{foo_id: :desc}]
   query_includes_for :create, :index, are: [:foo]
   query_includes_for :update, are: [:bar]

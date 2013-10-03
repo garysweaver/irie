@@ -495,10 +495,10 @@ The `:through` option in `can_filter_by` and `can_order_by` just uses `define_pa
 ```ruby
 define_params name: {company: {employee: :full_name}},
               color: :external_color
-can_filter_by :external_color
 can_filter_by :name
-can_order_by :external_color
-can_order_by :name
+default_filter_by :name, eq: 'Guest'
+can_order_by :color
+default_filter_by :color, eq: 'blue'
 ```
 
 #### Other Extensions

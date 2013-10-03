@@ -133,9 +133,7 @@ describe FoobarsController do
   it 'create allowed for accepted params' do
     before_count = Foobar.count
     foo = Foo.create
-    autolog :methods do
-      json_create foobar: {foo_id: foo.id}
-    end
+    json_create foobar: {foo_id: foo.id}
     Foobar.count.should eq(before_count + 1), "Didn't create Foobar"
     response.status.should eq(201), "Bad response code (got #{response.status}): #{response.body}"
     Foobar.last.should_not be_nil, "Last Foobar was nil"

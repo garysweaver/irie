@@ -16,12 +16,13 @@ module Actionizer
           # in a single place that isn't on the same line as another class method.
           #
           # E.g.:
+          #
           #   define_params name: {company: {employee: :full_name}},
           #                 color: :external_color
-          #   can_filter_by :external_color
           #   can_filter_by :name
-          #   can_order_by :external_color
-          #   can_order_by :name
+          #   default_filter_by :name, eq: 'Guest'
+          #   can_order_by :color
+          #   default_filter_by :color, eq: 'blue'
           def define_params(*args)
             options = args.extract_options!
 

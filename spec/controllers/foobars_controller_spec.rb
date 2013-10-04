@@ -5,8 +5,6 @@ class SomeSubtypeOfStandardError < StandardError
 end
 
 describe FoobarsController do
-  render_views
-
   before(:each) do
     FoobarsController.test_role = 'admin'
     @request.env['CONTENT_TYPE'] = 'application/json'

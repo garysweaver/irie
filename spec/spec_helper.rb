@@ -45,6 +45,7 @@ RSpec.configure do |config|
   config.mock_with :rspec
   config.order = :random
   config.include JsonSpec::Helpers
+  config.render_views = true
 
   config.before(:suite) do
     DatabaseCleaner.strategy = :transaction

@@ -1,9 +1,7 @@
 require 'rails'
 require 'spec_helper'
 
-describe BarfoosController do
-  render_views
-  
+describe BarfoosController do  
   before(:each) do
     BarfoosController.test_role = 'admin'
     @request.env['CONTENT_TYPE'] = 'application/json'

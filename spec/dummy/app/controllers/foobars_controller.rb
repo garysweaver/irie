@@ -23,7 +23,8 @@ class FoobarsController < ApplicationController
 private
 
   def foobar_params
-    params.require(:foobar).permit(:id, :foo_id, :foo_attributes)
+    params.require(:foobar).permit(:id, foo_attributes: [:id, :code])
+
   #rescue => e
   #  puts "Problem with foobar_params: #{params.inspect}"
   #  raise e

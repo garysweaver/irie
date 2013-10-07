@@ -131,10 +131,10 @@ describe FoobarsController do
   it 'create allowed for accepted params' do
     before_count = Foobar.count
     foo = Foo.create
-    json_create foobar: {foo_id: foo.id}
+    json_create foobar: {foo_attributes: {id: foo.id}}
     Foobar.count.should eq(before_count + 1), "Didn't create Foobar"
     response.status.should eq(201), "Bad response code (got #{response.status}): #{response.body}"
-    Foobar.last.should_not be_nil, "Last Foobar was nil"
+    Foobar.last.foo.should_not be_nil, "Last Foobar's foo was nil, so didn't accept foo_attributes with id in json create"
     Foobar.last.foo_id.should eq(foo.id), "Expected created Foobar to have foo_id #{foo.id.inspect} but was #{Foobar.last.foo_id.inspect}"
     response.body.should eq("{\"check\":\"foobars-create: #{Foobar.last.id}\"}")
   end
@@ -162,16 +162,16 @@ describe FoobarsController do
   end
 
   it 'update allowed for accepted params' do
-    foobar = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
+    foobar = Foobar.create(foo_id: Foo.last.id)
     foo_id = Foo.first.id
-    json_update foobar: {Foobar.primary_key => foobar.id, foo_id: foo_id}
+    json_update foobar: {Foobar.primary_key => foobar.id, foo_attributes: {id: foo_id}}
     response.status.should eq(204), "update failed (got #{response.status}): #{response.body}"
     assert_match '', response.body
     Foobar.find(foobar.id).foo_id.should eq(foo_id), "should have updated param"
   end
 
   it 'update does not accept non-whitelisted params' do
-    orig_bar_id = "k#{SecureRandom.urlsafe_base64}"
+    orig_bar_id = Bar.last.id
     foobar = Foobar.create(bar_id: orig_bar_id)
     bar_id = Bar.first.id
     begin
@@ -184,10 +184,11 @@ describe FoobarsController do
 
   it 'update does not accept whitelisted params when cancan disallows user' do
     FoobarsController.test_role = 'nobody'
-    foobar = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
+    foobar = Foobar.create(foo_id: Foo.last.id)
+    orig_foo_id = Foo.last.id
     foo_id = Foo.first.id
     begin
-      json_update foobar: {Foobar.primary_key => foobar.id, foo_id: foo_id}
+      json_update foobar: {Foobar.primary_key => foobar.id, foo_attributes: {id: foo_id}}
       fail "cancan should not allow put" if response.status < 400
     rescue
     end
@@ -196,7 +197,7 @@ describe FoobarsController do
 
   it 'update fails with HTTP 404 for missing record' do
     begin
-      json_update foobar: {id: '9999999', foo_id: ''}
+      json_update foobar: {id: '9999999', food: ''}
       fail "should have raised error"
     rescue
       Foobar.where(id: '9999999').should be_empty, "should not have created record"
@@ -204,7 +205,7 @@ describe FoobarsController do
   end
 
   it 'destroy allowed for accepted id' do
-    foobar = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
+    foobar = Foobar.create(foo_id: Foo.last.id)
     json_destroy id: foobar
     assert_match '', response.body
     response.status.should eq(200), "destroy failed (got #{response.status}): #{response.body}"
@@ -218,10 +219,10 @@ describe FoobarsController do
 
   it 'destroy should fail with error if subclass of StandardError' do
     begin
-      foobar = Foobar.create(foo_id: SecureRandom.urlsafe_base64)
+      foobar = Foobar.create(foo_id: Foo.last.id)
       # expect this to make destroy fail and reset in after hook
       $error_to_raise_on_next_save_or_destroy_only = SomeSubtypeOfStandardError.new("some type of standard error")
-      json_destroy id: foobar
+      json_destroy id: foobar.id
       fail "should have raised error"
     rescue
     end

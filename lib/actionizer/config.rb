@@ -9,7 +9,8 @@ module Actionizer
     :function_param_names,
     :id_is_primary_key_param,
     :number_of_records_in_a_page,
-    :predicate_prefix
+    :predicate_prefix,
+    :update_should_return_entity
   ]
 
   class << self
@@ -68,5 +69,8 @@ Actionizer.configure do
     show: [:query_includes],
     update: [:query_includes, :render_options]
   }
+
+  # By default, it sets the instance variable, but does not return entity if request update (e.g. in JSON format).
+  self.update_should_return_entity = false
 end
 

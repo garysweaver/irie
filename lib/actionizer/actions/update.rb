@@ -47,7 +47,8 @@ module Actionizer
       end
 
       def render_update(record)
-        perform_render(record)
+        include_instance_in_render = self.update_should_return_entity || (record.respond_to?(:errors) && record.errors.size > 0)
+        perform_render(include_instance_in_render ? record : nil)
       end
     end
   end

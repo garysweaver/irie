@@ -20,8 +20,8 @@ describe SpecialBarfoosController do
     b = Barfoo.create(status: 1, favorite_food: "borscht", favorite_drink: "vodka")
     favorite_food = "test"
     json_update barfoo: {Foobar.primary_key => b.id, favorite_food: favorite_food}
-    # this really should be 204. :( not our problem
-    response.status.should eq(204), "update failed (got #{response.status}): #{response.body}"
+    # returning 204 because controller by default won't return entity with update per RFC 2616: http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.1
+    response.status.should eq(204), "unexpected code from update (got #{response.status}): #{response.body}"
     assert_match '', response.body
     Barfoo.where(favorite_food: favorite_food).should_not be_empty, "should have updated param"
   end

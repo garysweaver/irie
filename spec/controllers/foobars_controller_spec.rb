@@ -6,6 +6,7 @@ end
 
 describe FoobarsController do
   before(:each) do
+    FoobarsController.update_should_return_entity = true
     FoobarsController.test_role = 'admin'
     @request.env['CONTENT_TYPE'] = 'application/json'
 
@@ -70,7 +71,7 @@ describe FoobarsController do
 
     json_show Foobar.primary_key => foobar.id
     assigns(:foobar).is_a?(Foobar).should be
-    response.status.should eq(200), "show failed (got #{response.status}): #{response.body}"
+    response.status.should eq(200), "show returned unexpected response code (got #{response.status}): #{response.body}"
     # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
     response.body.should eq("{\"check\":\"foobars-show: #{foobar.id}\"}")
   end
@@ -85,9 +86,9 @@ describe FoobarsController do
   end
 
   it 'new assigns foobar' do
-    get :new, format: :json
+    json_new
     assigns(:foobar).is_a?(Foobar).should be
-    response.status.should eq(200), "new failed (got #{response.status}): #{response.body}"
+    response.status.should eq(200), "new returned unexpected response code (got #{response.status}): #{response.body}"
     # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
     response.body.should eq("{\"check\":\"foobars-new: \"}")
   end
@@ -129,13 +130,18 @@ describe FoobarsController do
   end
   
   it 'create allowed for accepted params' do
+    Foobar.delete_all
     before_count = Foobar.count
     foo = Foo.create
-    json_create foobar: {foo_attributes: {id: foo.id}}
-    Foobar.count.should eq(before_count + 1), "Didn't create Foobar"
-    response.status.should eq(201), "Bad response code (got #{response.status}): #{response.body}"
-    Foobar.last.foo.should_not be_nil, "Last Foobar's foo was nil, so didn't accept foo_attributes with id in json create"
+    json_create foobar: {foo_id: foo.id}
     Foobar.last.foo_id.should eq(foo.id), "Expected created Foobar to have foo_id #{foo.id.inspect} but was #{Foobar.last.foo_id.inspect}"
+
+    Foobar.count.should eq(before_count + 1), "Didn't create Foobar"
+    # RFC 2616 conformance checks. See: http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.1
+    response.headers['Location'].should eq("http://test.host/foobars.#{Foobar.last.id}"), "didn't include expected location header. was #{response.headers['Location']}"
+    response.headers['Content-Type'].should eq("application/json; charset=utf-8"), "didn't include expected content-type. was #{response.headers['Content-Type']}"
+    response.status.should eq(201), "Bad response code (got #{response.status}): #{response.body}"
+    
     response.body.should eq("{\"check\":\"foobars-create: #{Foobar.last.id}\"}")
   end
 
@@ -164,9 +170,10 @@ describe FoobarsController do
   it 'update allowed for accepted params' do
     foobar = Foobar.create(foo_id: Foo.last.id)
     foo_id = Foo.first.id
-    json_update foobar: {Foobar.primary_key => foobar.id, foo_attributes: {id: foo_id}}
-    response.status.should eq(204), "update failed (got #{response.status}): #{response.body}"
-    assert_match '', response.body
+    json_update foobar: {Foobar.primary_key => foobar.id, foo_id: foo_id}
+    # this controller is set to return entity on update, so will return 200 instead of 204
+    response.status.should eq(200), "update returned unexpected response code (got #{response.status}): #{response.body}"
+    assert_match "{\"check\":\"foobars-update: #{Foobar.last.id}\"}", response.body # no! need to fix
     Foobar.find(foobar.id).foo_id.should eq(foo_id), "should have updated param"
   end
 
@@ -188,7 +195,7 @@ describe FoobarsController do
     orig_foo_id = Foo.last.id
     foo_id = Foo.first.id
     begin
-      json_update foobar: {Foobar.primary_key => foobar.id, foo_attributes: {id: foo_id}}
+      json_update foobar: {Foobar.primary_key => foobar.id, foo_id: foo_id}
       fail "cancan should not allow put" if response.status < 400
     rescue
     end
@@ -208,13 +215,13 @@ describe FoobarsController do
     foobar = Foobar.create(foo_id: Foo.last.id)
     json_destroy id: foobar
     assert_match '', response.body
-    response.status.should eq(200), "destroy failed (got #{response.status}): #{response.body}"
+    response.status.should eq(200), "destroy returned unexpected response code (got #{response.status}): #{response.body}"
   end
 
   it 'destroy is idempotent/should not fail for missing record' do
     json_destroy id: '9999999'
     assert_match '', response.body
-    response.status.should eq(200), "destroy failed (got #{response.status}): #{response.body}"
+    response.status.should eq(200), "destroy returned unexpected response code (got #{response.status}): #{response.body}"
   end
 
   it 'destroy should fail with error if subclass of StandardError' do

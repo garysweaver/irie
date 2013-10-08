@@ -36,8 +36,9 @@ module Actionizer
         end || @action_result
       end
 
+      # Default is to return nil since these usually set in column defaults or model initialize,
+      # but can be overriden if you need to set in the controller.
       def params_for_new
-        params
       end
 
       def perform_new(the_params)

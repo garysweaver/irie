@@ -9,7 +9,7 @@ module Actionizer
         end
 
         def new_model_instance(aparams)
-          @model_class.new
+          @model_class.new(aparams)
         end
       end
     end

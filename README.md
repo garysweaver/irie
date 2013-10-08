@@ -148,6 +148,9 @@ Actionizer.configure do
     show: [:query_includes],
     update: [:query_includes, :render_options]
   }
+
+  # By default, it sets the instance variable, but does not return entity if request update (e.g. in JSON format).
+  self.update_should_return_entity = false
 end
 ```
 
@@ -168,6 +171,7 @@ All of the app-level configuration parameters are configurable in the controller
   self.predicate_prefix = '.'
   self.number_of_records_in_a_page = 15
   self.id_is_primary_key_param = true
+  self.update_should_return_entity = false
 ```
 
 Controller-only config options:

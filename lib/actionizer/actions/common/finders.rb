@@ -28,8 +28,6 @@ module Actionizer
           find_model_instance_with aparams, :first!
         end
 
-      private
-
         def find_model_instance_with(aparams, first_sym)
           # primary_key array support for composite_primary_keys.
           @relation = @model_class

@@ -13,8 +13,6 @@ module Actionizer
         (defined?(super) ? super : @model_class).accessible_by(current_ability, params[:action].to_sym)
       end
 
-    private
-
       def new_model_instance(aparams)
         authorize! params[:action].to_sym, @model_class
         defined?(super) ? super : @model_class.new(aparams)

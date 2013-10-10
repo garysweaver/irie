@@ -12,7 +12,7 @@ Gem::Specification.new do |s|
   s.description = %q{Implement Rails 4 controller actions easily with a clear and concise mix of declarative and imperative code, like models.}
   s.files = Dir['lib/**/*'] + ['Rakefile', 'README.md']
   s.license = 'MIT'
-  s.add_runtime_dependency 'actionpack', '>= 4.0.0'
-  s.add_runtime_dependency 'activerecord', '>= 4.0.0'
-  s.add_runtime_dependency 'activesupport', '>= 4.0.0'
+  s.add_runtime_dependency 'actionpack', '~> 4.0'
+  s.add_runtime_dependency 'activerecord', '~> 4.0'
+  s.add_runtime_dependency 'activesupport', '~> 4.0'
 end

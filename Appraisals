@@ -6,8 +6,10 @@
 #  gem 'json_spec'
 #end
 
-['4.0'].each do |rails_version|
-  appraise "rails_#{rails_version}" do
-    gem 'rails', rails_version
+# note: leaving this as appraisal setup for now, even though only testing one version of Rails,
+# because 4.1 is coming soon.
+[4.0].each do |version|
+  appraise "rails_#{version}" do
+    gem 'rails', "~> #{version}"
   end
 end

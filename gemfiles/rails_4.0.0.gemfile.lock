@@ -124,7 +124,6 @@ PLATFORMS
 DEPENDENCIES
   actionizer!
   appraisal (~> 0.5.2)
-  bundler (>= 1.2.2)
   cancan (~> 1.6.10)
   database_cleaner!
   jbuilder

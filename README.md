@@ -634,8 +634,6 @@ Copyright (c) 2013 FineLine Prototyping, Inc., released under the [MIT license][
 
 [travis]: http://travis-ci.org/FineLinePrototyping/actionizer
 [badgefury]: http://badge.fury.io/rb/actionizer
-[employee-training-tracker]: https://github.com/FineLinePrototyping/employee-training-tracker
-[built_with_angularjs]: http://builtwith.angularjs.org/
 [cancan]: https://github.com/ryanb/cancan
 [arel]: https://github.com/rails/arel
 [ar]: http://api.rubyonrails.org/classes/ActiveRecord/Relation.html

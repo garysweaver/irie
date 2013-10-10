@@ -614,6 +614,10 @@ end
 
 That will output all include registration information including the ordered controller's registered includes and method inheritance order for registered includes.
 
+### restful_json
+
+The project was originally named [restful_json][restful_json], but was renamed to Actionizer when it no longer was meant to be JSON-service specific. If you need the old tags, they can be found in [legacy][legacy].
+
 ### Release Notes
 
 See [changelog][changelog] and git log.
@@ -640,4 +644,6 @@ Copyright (c) 2013 FineLine Prototyping, Inc., released under the [MIT license][
 [public_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/public_exceptions.rb
 [show_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/show_exceptions.rb
 [changelog]: https://github.com/FineLinePrototyping/actionizer/blob/master/CHANGELOG.md
+[restful_json]: http://rubygems.org/gems/restful_json
+[legacy]: http://github.com/FineLinePrototyping/actionizer/blob/master/LEGACY.md
 [lic]: http://github.com/FineLinePrototyping/actionizer/blob/master/LICENSE

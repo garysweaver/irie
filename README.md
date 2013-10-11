@@ -229,27 +229,7 @@ And `can_filter_by` can specify a `:through` which (inner) joins and sets the de
 can_filter_by :name, through: {company: {employee: :full_name}}
 ```
 
-Specifying a lambda/proc is another way to make the query change depending on what is needed:
-
-```ruby
-can_filter_by_query magical_unicorn_name: ->(q, param_value) { q.joins(:magical_unicorns).where(magical_unicorns: {name: param_value}) }
-```
-
-The return value of the lambda becomes the new query, so you could really change the behavior of the query depending on the request parameter provided.
-
-Equivalent to the previous query, btw, is:
-
-```ruby
-can_filter_by :magical_unicorn_name, through: {magical_unicorns: :name}
-```
-
-Either would let you use this:
-
-```
-http://localhost:3000/magical_valleys?magical_unicorn_name=Rainbow
-```
-
-or if a MagicalUnicorn `has_many :friends` and a MagicalUnicorn's friend has a name attribute:
+If a MagicalUnicorn `has_many :friends` and a MagicalUnicorn's friend has a name attribute:
 
 ```ruby
 can_filter_by :magical_unicorn_friend_name, through: {magical_unicorns: {friends: :name}}
@@ -268,6 +248,8 @@ can_filter_by_query a_request_param_name: ->(q, param_value) { q.joins(:some_ass
 ```
 
 The second argument sent to the lambda is the request parameter value converted by the `convert_param_value(param_name, param_value)` method which may be customized. See elsewhere in this document for more information about the behavior of this method.
+
+The return value of the lambda becomes the new query, so you could really change the behavior of the query depending on the request parameter provided.
 
 ##### Customizing Request Parameter Value Conversion
 

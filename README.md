@@ -223,27 +223,27 @@ By appending the predicate prefix (`.` by default) to the request parameter name
 http://localhost:3000/posts?seen_on.gteq=2012-08-08
 ```
 
-And `can_filter_by` can specify a `:through` which (inner) joins and sets the deepest symbol in the hash as the key for the parameter value, then does a where, e.g. the following:
+And `can_filter_by` can specify a `:through` which (inner) joins and sets the deepest symbol in the hash as the key for the parameter value, then does a where, e.g.:
 
 ```ruby
 can_filter_by :name, through: {company: {employee: :full_name}}
 ```
 
-would do `joins(company: {employee: :full_name}).where()
-
-Let's say you are in MagicalValleyController, and the MagicalValley model `has many :magical_unicorns`. The MagicalUnicorn model has an attribute called `name`. You want to return MagicalValleys that are associated with all of the MagicalUnicorns named 'Rainbow'. You could do either:
+Specifying a lambda/proc is another way to make the query change depending on what is needed:
 
 ```ruby
 can_filter_by_query magical_unicorn_name: ->(q, param_value) { q.joins(:magical_unicorns).where(magical_unicorns: {name: param_value}) }
 ```
 
-or:
+The return value of the lambda becomes the new query, so you could really change the behavior of the query depending on the request parameter provided.
+
+Equivalent to the previous query, btw, is:
 
 ```ruby
 can_filter_by :magical_unicorn_name, through: {magical_unicorns: :name}
 ```
 
-and you can then use this:
+Either would let you use this:
 
 ```
 http://localhost:3000/magical_valleys?magical_unicorn_name=Rainbow

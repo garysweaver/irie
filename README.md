@@ -75,8 +75,13 @@ index_query ->(q) { @current_user.admin? ? q : q.where(:access => 'public') }
 and change the query depending on a supplied param:
 
 ```ruby
-can_filter_by_query status: ->(q, status) { status == 'all' ? q : q.where(:status => status) },
-                    color: ->(q, color) { color == 'red' ? q.where("color = 'red' or color = 'ruby'") : q.where(:color => color) }
+can_filter_by_query \
+    status: ->(q, status) {
+      status == 'all' ? q : q.where(:status => status)
+    },
+    color: ->(q, color) {
+      color == 'red' ? q.where("color = 'red' or color = 'ruby'") : q.where(:color => color)
+    }
 ```
 
 ### Similar Projects

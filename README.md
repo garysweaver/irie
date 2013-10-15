@@ -130,8 +130,8 @@ Actionizer.configure do
   # Delimiter for values in request parameter values.
   self.filter_split = ','
 
-  # Use one or more alternate request parameter names for functions,
-  # e.g. self.function_param_names = {distinct: :very_distinct, limit: [:limit, :limita]}
+  # Use one or more alternate request parameter names for functions, e.g.
+  # `self.function_param_names = {distinct: :very_distinct, limit: [:limit, :limita]}`
   self.function_param_names = {}
   
   # Delimiter for ARel predicate in the request parameter name.
@@ -144,10 +144,11 @@ Actionizer.configure do
   self.number_of_records_in_a_page = 15
 
   # When you include the defined action module, it includes the associated modules.
-  # If value or value array contains symbol it will look up symbol in self.available_extensions in the controller
-  # (which is defaulted to ::Actionizer.available_extensions).
-  # If value is String will assume String is the fully-qualified module name to include, e.g. index: '::My::Module'
-  # If constant, it will just include constant (module), e.g. index: ::My::Module
+  # If value or value array contains symbol it will look up symbol in 
+  # self.available_extensions in the controller (which is defaulted to 
+  # `::Actionizer.available_extensions`). If value is String will assume String is the
+  # fully-qualified module name to include, e.g. `index: '::My::Module'`, If constant,
+  # it will just include constant (module), e.g. `index: ::My::Module`.
   self.autoincludes = {
     create: [:query_includes, :render_options],
     destroy: [:query_includes, :render_options],
@@ -158,7 +159,8 @@ Actionizer.configure do
     update: [:query_includes, :render_options]
   }
 
-  # By default, it sets the instance variable, but does not return entity if request update (e.g. in JSON format).
+  # By default, it sets the instance variable, but does not return entity if request
+  # update, e.g. in JSON format.
   self.update_should_return_entity = false
 end
 ```
@@ -217,7 +219,10 @@ http://localhost:3000/posts?title=Awesome
 If you do `Arel::Predications.public_instance_methods.sort` in Rails console, you can see a list of the available predicates:
 
 ```ruby
-:does_not_match, :does_not_match_all, :does_not_match_any, :eq, :eq_all, :eq_any, :gt, :gt_all, :gt_any, :gteq, :gteq_all, :gteq_any, :in, :in_all, :in_any, :lt, :lt_all, :lt_any, :lteq, :lteq_all, :lteq_any, :matches, :matches_all, :matches_any, :not_eq, :not_eq_all, :not_eq_any, :not_in, :not_in_all, :not_in_any
+:does_not_match, :does_not_match_all, :does_not_match_any, :eq, :eq_all, :eq_any, :gt,
+:gt_all, :gt_any, :gteq, :gteq_all, :gteq_any, :in, :in_all, :in_any, :lt, :lt_all,
+:lt_any, :lteq, :lteq_all, :lteq_any, :matches, :matches_all, :matches_any, :not_eq,
+:not_eq_all, :not_eq_any, :not_in, :not_in_all, :not_in_any
 ```
 
 `:using` means you can use those [ARel][arel] predicates for filtering:
@@ -253,7 +258,9 @@ http://localhost:3000/magical_valleys?magical_unicorn_friend_name=Oscar
 Use `can_filter_by_query` to provide a lambda:
 
 ```ruby
-can_filter_by_query a_request_param_name: ->(q, param_value) { q.joins(:some_assoc).where(some_assocs_table_name: {some_attr: param_value}) }
+can_filter_by_query a_request_param_name: ->(q, param_value) {
+  q.joins(:some_assoc).where(some_assocs_table_name: {some_attr: param_value})
+}
 ```
 
 The second argument sent to the lambda is the request parameter value converted by the `convert_param_value(param_name, param_value)` method which may be customized. See elsewhere in this document for more information about the behavior of this method.
@@ -272,7 +279,8 @@ Specify default filters to define attributes, ARel predicates, and values to use
   can_filter_by :attr_name_1
   can_filter_by :production_date, :creation_date, using: [:gt, :eq, :lteq]
   default_filter_by :attr_name_1, eq: 5
-  default_filter_by :production_date, :creation_date, gt: 1.year.ago, lteq: 1.year.from_now
+  default_filter_by :production_date, :creation_date, gt: 1.year.ago,
+                    lteq: 1.year.from_now
 ```
 
 and both attr_name_1 and production_date are supplied by the client, then it would filter by the client's attr_name_1 and production_date and filter creation_date by both > 1 year ago and <= 1 year from now.
@@ -403,7 +411,9 @@ default_order_by :posted_at => :desc, :id => :desc
 or:
 
 ```ruby
-default_order_by {:this_is_desc => :desc}, :this_is_asc, {:no_different_than_a_symbol => :asc}, :this_is_asc_also, :id => :desc
+default_order_by {:this_is_desc => :desc}, :this_is_asc,
+                 {:no_different_than_a_symbol => :asc},
+                 :this_is_asc_also, :id => :desc
 ```
 
 #### Custom Index Queries
@@ -562,8 +572,10 @@ To fix, you may decide to either: (1) change order/definition of includes in `qu
 
 ```ruby
 index_query ->(q) {
-  # Using standard joins performs an INNER JOIN like we want, but doesn't eager load.
-  # Using includes does an eager load, but does a LEFT OUTER JOIN, which isn't really what we want, but in this scenario is probably ok.
+  # Using standard joins performs an INNER JOIN like we want, but doesn't
+  # eager load.
+  # Using includes does an eager load, but does a LEFT OUTER JOIN, which
+  # isn't really what we want, but in this scenario is probably ok.
   # Using standard joins & includes results in bad SQL with table aliases.
   # So, using includes & custom joins seems like a decent solution.
   q.includes(:bartender, :waitress, :owner, :customer)

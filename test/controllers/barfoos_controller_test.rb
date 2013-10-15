@@ -5,8 +5,6 @@ DatabaseCleaner.strategy = :transaction
 class TestBarfoosController < ActionController::TestCase
 
   def setup
-    ancestors = self.class.ancestors
-    test_case = ancestors[ancestors.index(ActionController::TestCase) - 1]
     @controller = BarfoosController.new
 
     DatabaseCleaner.start

@@ -80,7 +80,11 @@ can_filter_by_query \
       status == 'all' ? q : q.where(:status => status)
     },
     color: ->(q, color) {
-      color == 'red' ? q.where("color = 'red' or color = 'ruby'") : q.where(:color => color)
+      if color == 'red'
+        q.where("color = 'red' or color = 'ruby'")
+      else
+        q.where(:color => color)
+      end
     }
 ```
 

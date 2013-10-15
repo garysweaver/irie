@@ -10,6 +10,7 @@ module Actionizer
       end
 
       def index_filters
+        logger.debug("Actionizer::Extensions::Distinct.index_filters") if Actionizer.debug?
         @relation.distinct! if aliased_param(:distinct)
         super if defined?(super)
       end

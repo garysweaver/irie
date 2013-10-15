@@ -1,19 +1,21 @@
-require 'bundler/setup'
-require 'bundler/gem_tasks'
+require 'bundler'
+require 'rake/testtask'
 require 'appraisal'
 
-require 'rspec/core/rake_task'
-RSpec::Core::RakeTask.new(:spec)
+Bundler::GemHelper.install_tasks
 
-# Override the default task
-task :default => [] # Just in case it hasn't already been set
-Rake::Task[:default].clear
-task :default => :appraise
+Rake::TestTask.new do |t|
+  t.libs = ['lib','test']
+  t.test_files = Dir.glob(["test/**/*_test.rb"])
+  t.verbose = true
+end
 
-task :appraise do |t|
-  if ENV['BUNDLE_GEMFILE'] =~ /gemfiles/
-    Rake::Task[:spec].invoke
-  else
-    exec 'rake appraisal:install && rake appraisal'
-  end
+task :default => [:test]
+task :spec => [:test]
+
+desc "Setup Appraisal."
+task 'appraisal:setup' do
+  Rake::Task['appraisal:cleanup'].invoke
+  Rake::Task['appraisal:gemfiles'].invoke
+  Rake::Task['appraisal:install'].invoke
 end

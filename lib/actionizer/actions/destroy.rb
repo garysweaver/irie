@@ -32,22 +32,26 @@ module Actionizer
       # The controller's destroy (delete) method to destroy a resource.
       # RESTful delete is idempotent, i.e. does not fail if the record does not exist.
       def destroy
+        logger.debug("Actionizer::Actions::Destroy.destroy") if Actionizer.debug?
         return catch(:action_break) do
           render_destroy perform_destroy(params_for_destroy)
         end || @action_result
       end
 
       def params_for_destroy
+        logger.debug("Actionizer::Actions::Destroy.params_for_destroy") if Actionizer.debug?
         params
       end
 
       def perform_destroy(the_params)
+        logger.debug("Actionizer::Actions::Destroy.perform_destroy(#{the_params.inspect})") if Actionizer.debug?
         record = find_model_instance(the_params)
         @destroy_result = record.destroy if record
-        instance_variable_set(@model_at_singular_name_sym, record)
+        instance_variable_set(instance_variable_name_sym, record)
       end
 
       def render_destroy(record)
+        logger.debug("Actionizer::Actions::Destroy.render_destroy(#{record.inspect})") if Actionizer.debug?
         perform_render(record)
       end
     end

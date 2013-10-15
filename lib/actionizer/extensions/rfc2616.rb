@@ -7,6 +7,7 @@ module Actionizer
       ::Actionizer.available_extensions[:rfc2616] = '::' + Rfc2616.name
 
       def options_for_render(record_or_collection)
+        logger.debug("Actionizer::Extensions::Rfc2616.options_for_render(#{record_or_collection.inspect})") if Actionizer.debug?
         result = defined?(super) ? super : {}
         unless record_or_collection && record_or_collection.respond_to?(:errors) && record_or_collection.errors.size > 0
           case params[:action]

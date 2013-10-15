@@ -177,11 +177,11 @@ All of the app-level configuration parameters are configurable in the controller
 Controller-only config options:
 
 ```ruby
-self.model_class = YourModel
+self.resource_class = YourModel
 
 # if you have a wierd name that doesn't work with ActiveSupport's pluralize, etc.
-self.model_singular_name = 'your_model'
-self.model_plural_name = 'your_models'
+self.instance_name = 'your_model'
+self.collection_name = 'your_models'
 ```
 
 #### About Extensions
@@ -533,7 +533,7 @@ include_extension :boolean_params
 
 #### Primary Keys
 
-Supports composite primary keys. If `@model_class.primary_key.is_a?(Array)`, show/edit/update/destroy will use your two or more request params for the ids that make up the composite.
+Supports composite primary keys. If `resource_class.primary_key.is_a?(Array)`, show/edit/update/destroy will use your two or more request params for the ids that make up the composite.
 
 #### Exception Handling
 
@@ -573,22 +573,43 @@ query_includes_for :index, are: []
 
 #### Debugging Includes
 
-If a concern method is not being called that you think should be called or a method is missing, you may need to determine what was included and in what order concern methods are being used.
+##### Logging
 
-If there is a problem with class load related to includes:
+If you enabled Actionizer's debug option via:
+
+```ruby
+Actionizer.debug = true
+```
+
+Then all the included modules (actions, extensions) will use `logger.debug ...` to log some information about what is executed. So, in addition to turning on debug in Actionizer, you may need to turn on debug logging in Rails, for the base controller, the specific controller(s) depending on your needs, e.g. this might work:
+
+```ruby
+Actionizer.debug = true
+ActionController::Base.logger.level = Logger::DEBUG
+```
+
+##### ::Actionizer::ControllerDebugging
+
+If there is a problem with class load related to includes, add this to the class body of your controller:
 
 ```ruby
 require 'actionizer/controller_debugging'
 extend ::Actionizer::ControllerDebugging
+
+ActionController::Base.logger.level = Logger::DEBUG
+
 # Ensure this comes after all relevant includes.
 output_actionizer_debugging_info
 ```
 
-If there is a problem with instance methods/behavior related to includes:
+If there is a problem with instance methods/behavior related to includes, add this to the class body of your controller:
 
 ```ruby
 require 'actionizer/controller_debugging'
 include ::Actionizer::ControllerDebugging
+
+ActionController::Base.logger.level = Logger::DEBUG
+
 def initialize(*args)
   output_actionizer_debugging_info
 end

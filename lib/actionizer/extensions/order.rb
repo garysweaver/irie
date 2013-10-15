@@ -77,6 +77,7 @@ module Actionizer
       end
 
       def after_index_filters
+        logger.debug("Actionizer::Extensions::Order.after_index_filters") if Actionizer.debug?
         already_ordered_by = []
         aliased_params(:order).reject{|v| v.nil?}.each do |param_value|
           order_params = param_value.split(self.filter_split)

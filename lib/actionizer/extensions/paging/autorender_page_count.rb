@@ -8,6 +8,7 @@ module Actionizer
         ::Actionizer.available_extensions[:autorender_page_count] = '::' + AutorenderPageCount.name
 
         def render_index_page_count(count)
+          logger.debug("Actionizer::Extensions::Paging::AutorenderPageCount.render_index_page_count(#{count.inspect})") if Actionizer.debug?
           @page_count = count
           respond_to do |format|
             format.html { render "#{params[:action]}_page_count" }

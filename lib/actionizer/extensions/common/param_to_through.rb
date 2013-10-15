@@ -76,28 +76,28 @@ module Actionizer
           opts.reverse_merge(attr_name: param_name.to_sym)
         end
 
-        # Walk any configured :through options to get the ARel table or return @model_class.arel_table.
+        # Walk any configured :through options to get the ARel table or return resource_class.arel_table.
         def get_arel_table(param_name)
           opts = self.param_to_through[param_name.to_s] || {}
           hsh = opts[:joins]
-          return @model_class.arel_table unless hsh && hsh.size > 0
+          return resource_class.arel_table unless hsh && hsh.size > 0
           # find arel_table corresponding to
-          find_assoc_model_class = ->(last_model_class, assoc_name) do
-            next_class = last_model_class.reflections.map{|refl_assoc_name, refl| refl.class_name.constantize if refl_assoc_name.to_s == assoc_name.to_s}.compact.first
-            raise "#{last_model_class} is missing association #{hsh.values.first} defined in #{self} through option or define_params" unless next_class
+          find_assoc_resource_class = ->(last_resource_class, assoc_name) do
+            next_class = last_resource_class.reflections.map{|refl_assoc_name, refl| refl.class_name.constantize if refl_assoc_name.to_s == assoc_name.to_s}.compact.first
+            raise "#{last_resource_class} is missing association #{hsh.values.first} defined in #{self} through option or define_params" unless next_class
             next_class
           end
 
-          (find_arel_table = ->(last_model_class, val) do
+          (find_arel_table = ->(last_resource_class, val) do
             case val
             when String, Symbol
-              find_assoc_model_class.call(last_model_class, val).arel_table
+              find_assoc_resource_class.call(last_resource_class, val).arel_table
             when Hash
-              find_arel_table.call(find_assoc_model_class.call(last_model_class, val.keys.first), val.values.first)
+              find_arel_table.call(find_assoc_resource_class.call(last_resource_class, val.keys.first), val.values.first)
             else
               raise "get_arel_table failed because unhandled #{val} in joins in through"
             end
-          end)[@model_class, opts[:joins]]
+          end)[resource_class, opts[:joins]]
         end
       end
     end

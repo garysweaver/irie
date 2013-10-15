@@ -25,9 +25,5 @@ private
 
   def foobar_params
     params.require(:foobar).permit(:id, :foo_id)
-
-  #rescue => e
-  #  puts "Problem with foobar_params: #{params.inspect}"
-  #  raise e
   end
 end

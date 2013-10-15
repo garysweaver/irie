@@ -52,16 +52,19 @@ module Actionizer
       end
 
       def after_index_filters
+        logger.debug("Actionizer::Extensions::QueryIncludes.after_index_filters") if Actionizer.debug?
         apply_includes
         super if defined?(super)
       end
 
       def after_find_where
+        logger.debug("Actionizer::Extensions::QueryIncludes.after_find_where") if Actionizer.debug?
         apply_includes
         super if defined?(super)
       end
 
       def apply_includes
+        logger.debug("Actionizer::Extensions::QueryIncludes.apply_includes") if Actionizer.debug?
         this_includes = self.action_to_query_includes[params[:action].to_sym] || self.all_action_query_includes
         if this_includes && this_includes.size > 0
           @relation.includes!(*this_includes)

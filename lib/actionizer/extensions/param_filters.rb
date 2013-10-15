@@ -81,6 +81,7 @@ module Actionizer
       end
 
       def index_filters
+        logger.debug("Actionizer::Extensions::ParamFilters.index_filters") if Actionizer.debug?
         filtered_by_param_names = []
         self.param_to_attr_and_arel_predicate.each do |param_name, attr_sym_and_predicate_name|
           attr_sym, predicate_sym = *attr_sym_and_predicate_name

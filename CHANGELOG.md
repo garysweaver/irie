@@ -19,13 +19,16 @@ Changes since restful_json v4.5.1:
 * Split action behavior into more methods to be easily overrideable.
 * Removed `query_for` index action copying behavior and replaced with `index_query`.
 * Removed `with_query` on `can_filter_by` and replaced with method `can_filter_by_query`.
-* No longer send (t) into query lambdas. If you need it in the lambda, use `@model_class.arel_table`.
+* No longer send (t) into query lambdas. If you need it in the lambda, use `resource_class.arel_table`.
 * Can rename or alias the request parameter names used for functions to avoid conflicts with attributes.
 * Renamed functions to match relational counterpart: uniq -> distinct, skip -> offset, take -> limit.
 * Predicate prefix is now `.` instead of `!`.
 * Must intentionally include action methods, e.g. `include_actions :all`.
 * `supports_functions` replaced with intentionally include extension modules, e.g. `include_extensions :paging, :order` like `supports_functions`. However, `autoincludes` allows similar behavior before by automatically including configurable sets of modules for features that don't really do anything unless you call their class methods to configure.
 * Added self.update_should_return_entity to config.
+* Changed model class and name related variables resource_class, collection_name, instance_name methods, similar to inherited_resources.
+* Allow ability to get resource_class, etc. on controller class vs. only instance.
+* Added debug option to enable debug logging in instance methods to help track execution without tracing/debugging.
 
 ## restful_json 4.5.1 ##
 

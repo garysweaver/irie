@@ -10,6 +10,7 @@ module Actionizer
       end
 
       def index_filters
+        logger.debug("Actionizer::Extensions::Offset.index_filters") if Actionizer.debug?
         aliased_params(:offset).each {|param_value| @relation.offset!(param_value)}
         super if defined?(super)
       end

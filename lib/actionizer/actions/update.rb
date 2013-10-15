@@ -31,22 +31,26 @@ module Actionizer
 
       # The controller's update (put) method to update a resource.
       def update
+        logger.debug("Actionizer::Actions::Update.update") if Actionizer.debug?
         return catch(:action_break) do
           render_update perform_update(params_for_update)
         end || @action_result
       end
 
       def params_for_update
-        __send__(@model_singular_name_params_sym)
+        logger.debug("Actionizer::Actions::Update.params_for_update") if Actionizer.debug?
+        __send__(instance_name_params_sym)
       end
 
       def perform_update(the_params)
+        logger.debug("Actionizer::Actions::Update.perform_update(#{the_params.inspect})") if Actionizer.debug?
         record = find_model_instance!(the_params)
         record.update_attributes(the_params)
-        instance_variable_set(@model_at_singular_name_sym, record)
+        instance_variable_set(instance_variable_name_sym, record)
       end
 
       def render_update(record)
+        logger.debug("Actionizer::Actions::Update.render_update(#{record.inspect})") if Actionizer.debug?
         include_instance_in_render = self.update_should_return_entity || (record.respond_to?(:errors) && record.errors.size > 0)
         perform_render(include_instance_in_render ? record : nil)
       end

@@ -7,6 +7,7 @@ module Actionizer
       ::Actionizer.available_extensions[:autorender_count] = '::' + AutorenderCount.name
       
       def render_index_count(count)
+        logger.debug("Actionizer::Extensions::AutorenderCount.render_index_count(#{count.inspect})") if Actionizer.debug?
         @count = count
         respond_to do |format|
           format.html { render "#{params[:action]}_count" }

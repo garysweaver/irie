@@ -6,63 +6,62 @@ module Actionizer
       included do
         # define attributes for config keys and use values from config
         Actionizer::CONTROLLER_OPTIONS.each do |key|
-          class_attribute key, instance_writer: true
-          self.send("#{key}=".to_sym, 
-            ::Actionizer.send(key))
+          class_attribute key, instance_writer: true unless respond_to?(key)
+          self.send("#{key}=".to_sym, ::Actionizer.send(key)) unless self.send(key.to_sym)
         end
-     
-        class_attribute(:model_class, instance_writer: true) unless self.respond_to? :model_class
-        class_attribute(:model_singular_name, instance_writer: true) unless self.respond_to? :model_singular_name
-        class_attribute(:model_plural_name, instance_writer: true) unless self.respond_to? :model_plural_name
+
+        controller_class = self.to_s.start_with?('#<') ? self.class : self
+
+        class_attribute :resource_class, instance_writer: true unless respond_to?(:resource_class, true)
+        define_singleton_method :resource_class, -> { controller_class.name.chomp('Controller').split('::').last.singularize.constantize }
+        class_attribute :instance_name, instance_writer: true unless respond_to?(:instance_name, true)
+        define_singleton_method :instance_name, -> { controller_class.resource_class.name.underscore }
+        class_attribute :collection_name, instance_writer: true unless respond_to?(:collection_name, true)
+        define_singleton_method :collection_name, -> { controller_class.instance_name.pluralize }
+        class_attribute :instance_variable_name_sym, instance_writer: true unless respond_to?(:instance_variable_name_sym, true)
+        define_singleton_method :instance_variable_name_sym, -> { "@#{controller_class.instance_name}".to_sym }
+        class_attribute :collection_variable_name_sym, instance_writer: true unless respond_to?(:collection_variable_name_sym, true)
+        define_singleton_method :collection_variable_name_sym, -> { "@#{controller_class.collection_name}".to_sym }
+        class_attribute :instance_name_params_sym, instance_writer: true unless respond_to?(:instance_name_params_sym, true)
+        define_singleton_method :instance_name_params_sym, -> { "#{controller_class.instance_name}_params".to_sym }
+        class_attribute :collection_name_params_sym, instance_writer: true unless respond_to?(:collection_name_params_sym, true)
+        define_singleton_method :collection_name_params_sym, -> { "#{controller_class.collection_name}_params".to_sym }
       end
 
-      # In initialize we:
-      # * guess model name, if unspecified, from controller name
-      # * define instance variables containing model name
-      # * define the (model_plural_name)_url method, needed if controllers are not in the same module as the models
-      # Note: if controller name is not based on model name *and* controller is in different module than model, you'll need to
-      # redefine the appropriate method(s) to return urls if needed.
       def initialize
+        logger.debug("Actionizer::Actions::Base.initialize") if Actionizer.debug?
         super
 
-        # if not set, use controller classname
-        qualified_controller_name = self.class.name.chomp('Controller')
-        @model_class = self.model_class || qualified_controller_name.split('::').last.singularize.constantize
-
-        raise "#{self.class.name} failed to initialize. self.model_class cannot be nil in #{self}" if @model_class.nil?
-
-        @model_singular_name = self.model_singular_name || self.model_class.name.underscore
-        @model_plural_name = self.model_plural_name || @model_singular_name.pluralize
-        @model_at_plural_name_sym = "@#{@model_plural_name}".to_sym
-        @model_at_singular_name_sym = "@#{@model_singular_name}".to_sym
-        @model_singular_name_params_sym = "#{@model_singular_name}_params".to_sym
-
-        @action_to_singular_action_model_params_method = {}
-        @action_to_plural_action_model_params_method = {}
-
-        underscored_modules_and_underscored_plural_model_name = qualified_controller_name.gsub('::','_').underscore
+        raise "#{self.class.name} failed to initialize. self.resource_class cannot be nil in #{self}" if resource_class.nil?
 
         # This is a workaround for controllers that are in a different module than the model only works if the controller's base part of the unqualified name in the plural model name.
         # If the model name is different than the controller name, you will need to define methods to return the right urls.
-        class_eval "def #{@model_plural_name}_url;#{underscored_modules_and_underscored_plural_model_name}_url;end" unless @model_plural_name == underscored_modules_and_underscored_plural_model_name
+        plural_url_method = "#{collection_name}_url".to_sym
+        singular_url_method = "#{instance_name}_url".to_sym
+        underscored_modules_and_underscored_plural_model_name = self.class.name.chomp('Controller').gsub('::','_').underscore
         singularized_underscored_modules_and_underscored_plural_model_name = underscored_modules_and_underscored_plural_model_name
-        class_eval "def #{@model_singular_name}_url(record);#{singularized_underscored_modules_and_underscored_plural_model_name}_url(record);end" unless @model_singular_name == singularized_underscored_modules_and_underscored_plural_model_name
+        class_eval "def #{plural_url_method};#{underscored_modules_and_underscored_plural_model_name}_url;end" unless collection_name == underscored_modules_and_underscored_plural_model_name || self.class.instance_methods(false).include?(plural_url_method)
+        class_eval "def #{singular_url_method}(record);#{singularized_underscored_modules_and_underscored_plural_model_name}_url(record);end" unless instance_name == singularized_underscored_modules_and_underscored_plural_model_name || self.class.instance_methods(false).include?(singular_url_method)
       end
 
       def convert_param_value(param_name, param_value)
+        logger.debug("Actionizer::Actions::Base.convert_param_value(#{param_name.inspect}, #{param_value.inspect})") if Actionizer.debug?
         param_value
       end
 
       def aparams
+        logger.debug("Actionizer::Actions::Base.aparams") if Actionizer.debug?
         method_sym = "params_for_#{params[:action]}".to_sym
         respond_to?(method_sym, true) ? (__send__(method_sym) || params) : params
       end
 
       def perform_render(record_or_collection, options = nil)
+        logger.debug("Actionizer::Actions::Base.perform_render(#{record_or_collection.inspect}, #{options.inspect})") if Actionizer.debug?
         respond_with record_or_collection, (options || options_for_render(record_or_collection))
       end
 
       def options_for_render(record_or_collection)
+        logger.debug("Actionizer::Actions::Base.perform_render(#{record_or_collection.inspect})") if Actionizer.debug?
         {}
       end
     end

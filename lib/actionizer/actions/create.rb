@@ -31,22 +31,26 @@ module Actionizer
 
       # The controller's create (post) method to create a resource.
       def create
+        logger.debug("Actionizer::Actions::Create.create") if Actionizer.debug?
         return catch(:action_break) do
           render_create perform_create(params_for_create)
         end || @action_result
       end
 
       def params_for_create
-        __send__(@model_singular_name_params_sym)
+        logger.debug("Actionizer::Actions::Create.params_for_create") if Actionizer.debug?
+        __send__(instance_name_params_sym)
       end
 
       def perform_create(the_params)
+        logger.debug("Actionizer::Actions::Create.perform_create(#{the_params.inspect})") if Actionizer.debug?
         record = new_model_instance(the_params)
         record.save
-        instance_variable_set(@model_at_singular_name_sym, record)
+        instance_variable_set(instance_variable_name_sym, record)
       end
 
       def render_create(record)
+        logger.debug("Actionizer::Actions::Create.render_create(#{record.inspect})") if Actionizer.debug?
         perform_render(record)
       end
     end

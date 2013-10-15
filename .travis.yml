@@ -1,5 +1,13 @@
-language: ruby
 rvm:
-  - 2.0.0
   - 1.9.3
-script: 'bundle install && rake appraisal:install && rake appraisal'
+  - 2.0.0
+  - jruby-19mode
+before_install:
+  - travis_retry gem install bundler
+  - bundle --version
+install:
+  - travis_retry bundle install
+before_script:
+  - travis_retry bundle exec rake appraisal:setup
+script:
+  - bundle exec rake appraisal test

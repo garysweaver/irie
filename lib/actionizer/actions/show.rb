@@ -31,21 +31,25 @@ module Actionizer
 
       # The controller's show (get) method to return a resource.
       def show
+        logger.debug("Actionizer::Actions::Show.show") if Actionizer.debug?
         return catch(:action_break) do
           render_show perform_show(params_for_show)
         end || @action_result
       end
 
       def perform_show(the_params)
+        logger.debug("Actionizer::Actions::Show.perform_show(#{the_params.inspect})") if Actionizer.debug?
         record = find_model_instance!(the_params)
-        instance_variable_set(@model_at_singular_name_sym, record)
+        instance_variable_set(instance_variable_name_sym, record)
       end
 
       def params_for_show
+        logger.debug("Actionizer::Actions::Show.params_for_show") if Actionizer.debug?
         params
       end
 
       def render_show(record)
+        logger.debug("Actionizer::Actions::Show.render_show(#{record.inspect})") if Actionizer.debug?
         perform_render(record)
       end
     end

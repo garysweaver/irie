@@ -9,6 +9,7 @@ module Actionizer
         end
 
         def after_find_where
+          logger.debug("Actionizer::Actions::Common::Finders.after_find_where(#{aparams.inspect})") if Actionizer.debug?
           super if defined?(super)
         end
 
@@ -17,6 +18,7 @@ module Actionizer
         #
         # Supports composite_keys.
         def find_model_instance(aparams)
+          logger.debug("Actionizer::Actions::Common::Finders.find_model_instance(#{aparams.inspect})") if Actionizer.debug?
           find_model_instance_with aparams, :first
         end
 
@@ -25,19 +27,21 @@ module Actionizer
         #
         # Supports composite_keys.
         def find_model_instance!(aparams)
+          logger.debug("Actionizer::Actions::Common::Finders.find_model_instance!(#{aparams.inspect})") if Actionizer.debug?
           find_model_instance_with aparams, :first!
         end
 
         def find_model_instance_with(aparams, first_sym)
+          logger.debug("Actionizer::Actions::Common::Finders.find_model_instance_with!(#{aparams.inspect}, #{first_sym.inspect})") if Actionizer.debug?
           # primary_key array support for composite_primary_keys.
-          @relation = @model_class
-          if @model_class.primary_key.is_a? Array
+          @relation = resource_class
+          if resource_class.primary_key.is_a? Array
             @relation.primary_key.each do |pkey|
               @relation = @relation.where(pkey.to_sym => convert_param_value(pkey.to_s, aparams[pkey])) if aparams.key?(pkey)
             end
           else
-            id_param_name = (self.id_is_primary_key_param && aparams.key?(:id)) ? 'id' : @model_class.primary_key.to_s
-            @relation = @relation.where(@model_class.primary_key.to_sym => convert_param_value(id_param_name, aparams[id_param_name]))
+            id_param_name = (self.id_is_primary_key_param && aparams.key?(:id)) ? 'id' : resource_class.primary_key.to_s
+            @relation = @relation.where(resource_class.primary_key.to_sym => convert_param_value(id_param_name, aparams[id_param_name]))
           end
 
           after_find_where

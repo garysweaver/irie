@@ -7,6 +7,7 @@ module Actionizer
     # values for all matching defined request params. Does *not* convert param
     # value with convert_param_value(...).
     def aliased_params(function_sym)
+      logger.debug("Actionizer::ParamAliases.aliased_params(#{function_sym.inspect})") if Actionizer.debug?
       if self.function_param_names.key?(function_sym)
         self.function_param_names[function_sym].select {|v| params.key?(v)}.collect {|param_name| aparams[param_name]}
       else
@@ -16,6 +17,7 @@ module Actionizer
 
     # Same as aliased_params(function_sym).first.
     def aliased_param(function_sym)
+      logger.debug("Actionizer::ParamAliases.aliased_param(#{function_sym.inspect})") if Actionizer.debug?
       aliased_params(function_sym).first
     end
   end

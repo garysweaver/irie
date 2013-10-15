@@ -73,6 +73,7 @@ module Actionizer
       end
 
       def options_for_render(record_or_collection)
+        logger.debug("Actionizer::Extensions::RenderOptions.options_for_render(#{record_or_collection.inspect})") if Actionizer.debug?
         result = defined?(super) ? super : {}
         (result ||= {}).merge!(self.action_to_render_options[params[:action].to_sym] || {})
         if record_or_collection.respond_to?(:errors) && record_or_collection.errors.size > 0

@@ -10,6 +10,7 @@ module Actionizer
 
         # Converts request param values 'NULL', 'null', and 'nil' to nil.
         def convert_param_value(param_name, param_value)
+          logger.debug("Actionizer::Extensions::Conversion::NilParams.convert_param_value(#{param_name.inspect}, #{param_value.inspect})") if Actionizer.debug?
           param_value = super || param_value
           param_value && NILS.include?(param_value) ? nil : param_value
         end

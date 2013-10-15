@@ -14,6 +14,7 @@ module Actionizer
       end
 
       def index_filters
+        logger.debug("Actionizer::Extensions::Paging.index_filters") if Actionizer.debug?
         page_param_value = aliased_param(:page)
         unless page_param_value.nil?
           page = page_param_value.to_i
@@ -25,6 +26,7 @@ module Actionizer
       end
 
       def after_index_filters
+        logger.debug("Actionizer::Extensions::Paging.after_index_filters") if Actionizer.debug?
         if aliased_param(:page_count)
           # explicit return to return from calling method of the proc
           count_value = @relation.count.to_i
@@ -36,6 +38,7 @@ module Actionizer
       end
 
       def render_index_page_count
+        logger.debug("Actionizer::Extensions::Paging.render_index_page_count") if Actionizer.debug?
         render 'index_page_count'
       end
     end

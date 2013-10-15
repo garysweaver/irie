@@ -31,6 +31,7 @@ module Actionizer
       end
 
       def index_filters
+        logger.debug("Actionizer::Extensions::QueryFilter.index_filters") if Actionizer.debug?
         self.param_to_query.each do |param_name, param_query|
           param_value = params_for_index[param_name]
           unless param_value.nil?

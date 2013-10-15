@@ -31,6 +31,7 @@ module Actionizer
 
       # The controller's new method (e.g. used for new record in html format).
       def new
+        logger.debug("Actionizer::Actions::New.new") if Actionizer.debug?
         return catch(:action_break) do
           render_new perform_new(params_for_new)
         end || @action_result
@@ -39,13 +40,17 @@ module Actionizer
       # Default is to return nil since these usually set in column defaults or model initialize,
       # but can be overriden if you need to set in the controller.
       def params_for_new
+        logger.debug("Actionizer::Actions::New.params_for_new") if Actionizer.debug?
+        nil
       end
 
       def perform_new(the_params)
-        instance_variable_set(@model_at_singular_name_sym, new_model_instance(the_params))
+        logger.debug("Actionizer::Actions::New.perform_new(#{the_params.inspect})") if Actionizer.debug?
+        instance_variable_set(instance_variable_name_sym, new_model_instance(the_params))
       end
 
       def render_new(record)
+        logger.debug("Actionizer::Actions::New.render_new(#{record.inspect})") if Actionizer.debug?
         perform_render(record)
       end
     end

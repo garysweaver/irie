@@ -7,6 +7,7 @@ module Actionizer
       ::Actionizer.available_extensions[:autorender_errors] = '::' + AutorenderErrors.name
 
       def perform_render(record_or_collection, options = nil)
+        logger.debug("Actionizer::Extensions::AutorenderErrors.perform_render(#{record_or_collection.inspect}, #{options.inspect})") if Actionizer.debug?
         if !request.format.html? && record_or_collection.respond_to?(:errors) && record_or_collection.errors.size > 0
           respond_to do |format|
             format.any { render request.format.symbol => { errors: record_or_collection.errors }, status: 422 }

@@ -10,15 +10,18 @@ module Actionizer
 
       # Scope query by .accessible_by(...).
       def query_for_index
-        (defined?(super) ? super : @model_class).accessible_by(current_ability, params[:action].to_sym)
+        logger.debug("Actionizer::Extensions::Extensions.query_for_index") if Actionizer.debug?
+        (defined?(super) ? super : resource_class).accessible_by(current_ability, params[:action].to_sym)
       end
 
       def new_model_instance(aparams)
-        authorize! params[:action].to_sym, @model_class
-        defined?(super) ? super : @model_class.new(aparams)
+        logger.debug("Actionizer::Extensions::Extensions.new_model_instance(#{aparams.inspect})") if Actionizer.debug?
+        authorize! params[:action].to_sym, resource_class
+        defined?(super) ? super : resource_class.new(aparams)
       end
 
       def find_model_instance_with(the_params, first_sym)
+        logger.debug("Actionizer::Extensions::Extensions.find_model_instance_with(#{the_params.inspect}, #{first_sym.inspect})") if Actionizer.debug?
         instance = super
         authorize! params[:action].to_sym, instance
       end

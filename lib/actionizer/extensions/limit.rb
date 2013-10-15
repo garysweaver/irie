@@ -10,6 +10,7 @@ module Actionizer
       end
 
       def index_filters
+        logger.debug("Actionizer::Extensions::Limit.index_filters") if Actionizer.debug?
         aliased_params(:limit).each {|param_value| @relation.limit!(param_value)}
         super if defined?(super)
       end

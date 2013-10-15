@@ -5,6 +5,7 @@ module Actionizer
     :available_actions,
     :available_extensions,
     :can_filter_by_default_using,
+    :debug,
     :filter_split,
     :function_param_names,
     :id_is_primary_key_param,
@@ -14,7 +15,7 @@ module Actionizer
   ]
 
   class << self
-    CONTROLLER_OPTIONS.each{|o|attr_accessor o}
+    CONTROLLER_OPTIONS.each{|name|attr_accessor name; define_method("#{name}?") { !!public_send(name) } }
     def configure(&blk); class_eval(&blk); end
   end
 

@@ -246,7 +246,8 @@ can_filter_by :name, through: {company: {employee: :full_name}}
 If a MagicalUnicorn `has_many :friends` and a MagicalUnicorn's friend has a name attribute:
 
 ```ruby
-can_filter_by :magical_unicorn_friend_name, through: {magical_unicorns: {friends: :name}}
+can_filter_by :magical_unicorn_friend_name,
+              through: {magical_unicorns:{friends: :name}}
 ```
 
 and use this to get valleys associated with unicorns who in turn have a friend named Oscar:
@@ -468,7 +469,7 @@ and action-specific:
 
 ```ruby
 query_includes_for :create, are: [:category, :comments]
-query_includes_for :index, :something_alias_methoded_from_index, are: [posts: [{comments: :guest}, :tags]]
+query_includes_for :index, :show, are: [posts: [{comments: :guest}, :tags]]
 ```
 
 #### Customizing Parameter Permittance
@@ -579,8 +580,10 @@ index_query ->(q) {
   # Using standard joins & includes results in bad SQL with table aliases.
   # So, using includes & custom joins seems like a decent solution.
   q.includes(:bartender, :waitress, :owner, :customer)
-    .joins('INNER JOIN employees bartenders ON bartenders.employee_id = shifts.bartender_id')
-    .joins('INNER JOIN waitresses shift_workers ON shift_workers.id = shifts.waitress_id')
+    .joins('INNER JOIN employees bartenders ON bartenders.employee_id = ' +
+    'shifts.bartender_id')
+    .joins('INNER JOIN waitresses shift_workers ON shift_workers.id = ' +
+    'shifts.waitress_id')
     .where(bartenders: {certified: 'yes'})
     .where(shift_workers: {attitude: 'great'})
 }

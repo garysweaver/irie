@@ -15,8 +15,8 @@ require 'dummy/config/environment'
 require 'dummy/db/schema'
 require 'rails/test_help'
 
-$:.unshift File.expand_path('../support', __FILE__)
-Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each { |f| require f }
+#$:.unshift File.expand_path('../support', __FILE__)
+#Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each { |f| require f }
 
 puts "Testing Rails v#{Rails.version}"
 Rails.backtrace_cleaner.remove_silencers!

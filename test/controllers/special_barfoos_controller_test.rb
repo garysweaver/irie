@@ -9,7 +9,6 @@ class TestSpecialBarfoosController < ActionController::TestCase
     Actionizer.update_should_return_entity = false
     @controller = SpecialBarfoosController.new
     $test_role = 'admin'
-    #@request.env['CONTENT_TYPE'] = 'application/json'
   end
 
   def teardown

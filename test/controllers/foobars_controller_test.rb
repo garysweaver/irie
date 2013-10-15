@@ -12,7 +12,6 @@ class TestFoobarsController < ActionController::TestCase
     Actionizer.update_should_return_entity = true
     @controller = FoobarsController.new
     $test_role = 'admin'
-    #@request.env['CONTENT_TYPE'] = 'application/json'
 
     10.times do |c|
       bar = Bar.where(id: c).first || Bar.create(id: c, code: "abc#{c}", open_hours: c)

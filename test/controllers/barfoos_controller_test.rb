@@ -5,12 +5,10 @@ DatabaseCleaner.strategy = :transaction
 class TestBarfoosController < ActionController::TestCase
 
   def setup
-    @controller = BarfoosController.new
-
     DatabaseCleaner.start
     Actionizer.update_should_return_entity = false
+    @controller = BarfoosController.new
     $test_role = 'admin'
-    #@request.env['CONTENT_TYPE'] = 'application/json'
   end
 
   def teardown

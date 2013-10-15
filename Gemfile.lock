@@ -112,6 +112,7 @@ PLATFORMS
 
 DEPENDENCIES
   actionizer!
+  activerecord-jdbcsqlite3-adapter
   appraisal (~> 0.5.2)
   cancan (~> 1.6.10)
   database_cleaner (~> 1.2.0)

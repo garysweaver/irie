@@ -145,7 +145,7 @@ class TestFoobarsController < ActionController::TestCase
 
     assert_equal before_count + 1, Foobar.count, "Didn't create Foobar"
     # RFC 2616 conformance checks. See: http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.1
-    assert_equal "http://test.host/foobars.#{Foobar.last.id}", response.headers['Location'], "didn't include expected location header. was #{response.headers['Location']}"
+    assert_equal "http://test.host/foobars/#{Foobar.last.id}", response.headers['Location'], "didn't include expected location header. was #{response.headers['Location']}"
     assert_equal "application/json; charset=utf-8", response.headers['Content-Type'], "didn't include expected content-type. was #{response.headers['Content-Type']}"
     assert_equal 201, response.status, "Bad response code (got #{response.status}): #{response.body}"
     

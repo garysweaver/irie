@@ -572,7 +572,7 @@ include_action :my_custom_action
 include_extension :boolean_params
 ```
 
-Doing that doesn't make as much sense when you just have modules in the root namespace, but if you have longer namespaces to modules or want to bundle modules under a single symbol (vs. creating another module to bundle them). Really, it is a trade off of additional registration vs. class/module name conflicts.
+Doing that doesn't make as much sense when you just have modules in the root namespace, but it might if you have longer namespaces for organization and to avoid class/module name conflicts.
 
 #### Primary Keys
 

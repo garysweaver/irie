@@ -541,15 +541,38 @@ module BooleanParams
   end
 
 end
+```
 
-Actionizer.available_extensions[:boolean_params] = '::BooleanParams'
+If you are just doing regular `include`'s in your controllers, that's all you need. If you'd like to use the `include_action`/`include_extension` method of doing includes, which lets you include bundles of includes, a good place to register the custom concerns is in a shared module, e.g.
+
+in `app/controllers/concerns/service_controller.rb`:
+
+```ruby
+module ServiceController
+  extend ::ActiveSupport::Concern
+
+  included do
+    include ::Actionizer::Controller
+    respond_to :json
+
+    # note: Referencing as string so we don't load the concern before it is used.
+    ::Actionizer.available_actions[:my_custom_action] = '::MyCustomAction'
+    ::Actionizer.available_extensions[:boolean_params] = '::BooleanParams'
+  end
+
+end
 ```
 
 Now you could use this in your controller:
 
 ```ruby
+include ServiceController
+
+include_action :my_custom_action
 include_extension :boolean_params
 ```
+
+Doing that doesn't make as much sense when you just have modules in the root namespace, but if you have longer namespaces to modules or want to bundle modules under a single symbol (vs. creating another module to bundle them). Really, it is a trade off of additional registration vs. class/module name conflicts.
 
 #### Primary Keys
 

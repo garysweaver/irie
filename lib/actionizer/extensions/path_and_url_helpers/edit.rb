@@ -9,8 +9,6 @@ module Actionizer
       # methods if they don't exist:
       # * edit_foo_path(*args, &block)
       # * edit_foo_url(*args, &block)
-      # * edit_resource_path(*args, &block)
-      # * edit_resource_url(*args, &block)
       module Edit
         extend ::ActiveSupport::Concern
         ::Actionizer.available_extensions[:edit_path_and_url] = '::' + Edit.name
@@ -41,12 +39,6 @@ module Actionizer
             unless controller_namespace.size == 0
               self.class_eval "def #{instance_url_method}(*args, &block);#{controller_namespace}#{instance_url_method}(*args, &block);end"
               self.class_eval "def #{instance_path_method}(*args, &block);#{controller_namespace}#{instance_path_method}(*args, &block);end"
-            end
-            if self.instance_methods(true).include?(instance_url_method)
-              self.class_eval "alias_method :edit_resource_url, #{instance_url_method.inspect}"
-            end
-            if self.instance_methods(true).include?(instance_path_method)
-              self.class_eval "alias_method :edit_resource_path, #{instance_path_method.inspect}"
             end
           end
         

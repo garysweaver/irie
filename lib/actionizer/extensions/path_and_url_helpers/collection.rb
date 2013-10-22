@@ -6,8 +6,6 @@ module Actionizer
       #
       # For self.collection_name="foos"/self.instance_name="foo"/FoosController, would create the following 
       # methods if they don't exist:
-      # * collection_path(*args, &block)
-      # * collection_url(*args, &block)
       # * foos_path(*args, &block)
       # * foos_url(*args, &block)
       module Collection
@@ -40,12 +38,6 @@ module Actionizer
             unless controller_namespace.size == 0
               self.class_eval "def #{collection_url_method}(*args, &block);#{controller_namespace}#{collection_url_method}(*args, &block);end"
               self.class_eval "def #{collection_path_method}(*args, &block);#{controller_namespace}#{collection_path_method}(*args, &block);end"
-            end
-            if self.instance_methods(true).include?(collection_url_method)
-              self.class_eval "alias_method :collection_url, #{collection_url_method.inspect}"
-            end
-            if self.instance_methods(true).include?(collection_path_method)
-              self.class_eval "alias_method :collection_path, #{collection_path_method.inspect}"
             end
           end
         

@@ -15,10 +15,14 @@ module Actionizer
       class_attribute :collection_name_params_sym, instance_writer: true unless respond_to?(:collection_name_params_sym, true)
 
       self.defaults
-      class_eval "def self.inherited(subclass); subclass.defaults; super if defined?(super); end"
     end
 
     module ClassMethods
+
+      def self.inherited(subclass)
+        subclass.defaults
+        super if defined?(super)
+      end
 
       # Method similar to defaults method in inherited_resources that lets you set
       # :resource_class, :instance_name, :collection_name as options, e.g.

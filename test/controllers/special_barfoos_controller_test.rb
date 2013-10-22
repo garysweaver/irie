@@ -15,6 +15,20 @@ class TestSpecialBarfoosController < ActionController::TestCase
     DatabaseCleaner.clean
   end
 
+  
+  [:barfoo_url,
+    :barfoo_path,
+    :barfoos_url,
+    :barfoos_path,
+    :edit_barfoo_url,
+    :edit_barfoo_path,
+    :new_barfoo_url,
+    :new_barfoo_path].each do |m|
+    test "has method #{m.to_s.inspect} for non-standard model name" do
+      assert @controller.respond_to? m
+    end
+  end
+
   test 'index returns special barfoos with correct fields' do
     expected = []
     10.times do |c|

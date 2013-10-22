@@ -507,10 +507,10 @@ default_filter_by :color, eq: 'blue'
 
 You may or may not need these, but each of the following are autoincluded with the relevant actions in the default configuration.
 
-* `:collection_path_and_url` - implements collection path and url methods on include and revised values when subclass from class that includes, e.g for FoosController would implement foos_url, foos_path, collection_url, collection_path.
-* `:edit_path_and_url` - implements edit path and url on include and revised values when subclass from class that includes, e.g for FoosController would implement edit_foo_url, edit_foo_path, edit_resource_url, edit_resource_path.
-* `:new_path_and_url` - implements new path and url on include and revised values when subclass from class that includes, e.g for FoosController would implement new_foo_url, new_foo_path, new_resource_url, new_resource_path.
-* `:resource_path_and_url` - implements resource path and url on include and revised values when subclass from class that includes, e.g for FoosController would implement foo_url, foo_path, resource_url, resource_path.
+* `:collection_path_and_url` - implements collection name path and url methods on include and revised values when subclass from class that includes.
+* `:edit_path_and_url` - implements edit resource name path and url on include and revised values when subclass from class that includes.
+* `:new_path_and_url` - implements new resource name path and url on include and revised values when subclass from class that includes.
+* `:resource_path_and_url` - implements resource name path and url on include and revised values when subclass from class that includes.
 
 Path and URL methods should "just work" if you follow the Rails convention of the controller name being the plural form of the model followed by "Controller", e.g. `Namespace::Does::Not::Matter::Here::FoosController` manages model `Foo`. If you must a different collection name/resource name/model class name, be sure to call `resource_definition_updated` which should update these.
 

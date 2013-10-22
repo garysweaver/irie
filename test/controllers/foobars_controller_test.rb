@@ -24,6 +24,19 @@ class TestFoobarsController < ActionController::TestCase
     DatabaseCleaner.clean
   end
 
+  [:foobar_url,
+    :foobar_path,
+    :foobars_url,
+    :foobars_path,
+    :edit_foobar_url,
+    :edit_foobar_path,
+    :new_foobar_url,
+    :new_foobar_path].each do |m|
+    test "has method #{m.to_s.inspect} for implicitly found model name" do
+      assert @controller.respond_to? m
+    end
+  end
+
   test 'index returns foobars in default order with default filter' do
     expected = Foobar.all.reject!{|i|i.foo_id == 3} # default filter
 

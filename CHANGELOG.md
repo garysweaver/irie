@@ -29,6 +29,9 @@ Changes since restful_json v4.5.1:
 * Changed model class and name related variables resource_class, collection_name, instance_name methods, similar to inherited_resources.
 * Allow ability to get resource_class, etc. on controller class vs. only instance.
 * Added debug option to enable debug logging in instance methods to help track execution without tracing/debugging.
+* Config errors now Actionizer::ConfigurationError.
+* Rework of url and path helpers.
+* Support for configuring model-related attributes via `default` method with options somewhat similar to inherited_resources.
 
 ## restful_json 4.5.1 ##
 

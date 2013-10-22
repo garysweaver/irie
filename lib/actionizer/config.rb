@@ -49,13 +49,13 @@ Actionizer.configure do
   # fully-qualified module name to include, e.g. `index: '::My::Module'`, If constant,
   # it will just include constant (module), e.g. `index: ::My::Module`.
   self.autoincludes = {
-    create: [:query_includes, :render_options],
-    destroy: [:query_includes, :render_options],
-    edit: [:query_includes, :render_options],
-    index: [:index_query, :order, :param_filters, :query_filter, :query_includes],
-    new: [],
-    show: [:query_includes],
-    update: [:query_includes, :render_options]
+    create: [:query_includes, :render_options, :resource_path_and_url],
+    destroy: [:query_includes, :render_options, :resource_path_and_url],
+    edit: [:query_includes, :render_options, :edit_path_and_url],
+    index: [:index_query, :order, :param_filters, :query_filter, :query_includes, :collection_path_and_url],
+    new: [:new_path_and_url],
+    show: [:query_includes, :resource_path_and_url],
+    update: [:query_includes, :render_options, :resource_path_and_url]
   }
 
   # By default, it sets the instance variable, but does not return entity if request

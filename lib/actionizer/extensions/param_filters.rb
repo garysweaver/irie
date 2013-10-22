@@ -32,7 +32,7 @@ module Actionizer
 
           opt_using = options.delete(:using)
           opt_through = options.delete(:through)
-          raise "options #{options.inspect} not supported by can_filter_by" if options.present?
+          raise ::Actionizer::ConfigurationError.new "options #{options.inspect} not supported by can_filter_by" if options.present?
 
           self.param_to_attr_and_arel_predicate = self.param_to_attr_and_arel_predicate.deep_dup
 

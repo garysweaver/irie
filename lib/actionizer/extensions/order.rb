@@ -32,7 +32,7 @@ module Actionizer
           options = args.extract_options!
 
           opt_through = options.delete(:through)
-          raise "options #{options.inspect} not supported by can_order_by" if options.present?
+          raise ::Actionizer::ConfigurationError.new "options #{options.inspect} not supported by can_order_by" if options.present?
 
           self.can_be_ordered_by = self.can_be_ordered_by.deep_dup
 
@@ -69,7 +69,7 @@ module Actionizer
             when String, Symbol
               self.default_ordered_by[item.to_sym] = :asc
             else
-              raise "Can't default_order_by #{item}"
+              raise ::Actionizer::ConfigurationError.new "Can't default_order_by #{item}"
             end
           end
           self.default_ordered_by.merge!(options)

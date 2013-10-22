@@ -1,5 +1,29 @@
 module Actionizer
   module Actions
+    # When included, defines all Actionizer::CONTROLLER_OPTIONS as class_attributes, and
+    # defines the following class_attributes if not defined with the following defaults
+    # defined as singleton_methods, so that they :
+    # * resource_class -> { controller_class.name.chomp('Controller').split('::').last.singularize.constantize }
+    # * instance_name -> { controller_class.resource_class.name.underscore }
+    # * collection_name -> { controller_class.instance_name.pluralize }
+    # * instance_variable_name_sym -> { "@#{controller_class.instance_name}".to_sym }
+    # * collection_variable_name_sym -> { "@#{controller_class.collection_name}".to_sym }
+    # * instance_name_params_sym -> { "#{controller_class.instance_name}_params".to_sym }
+    # * collection_name_params_sym -> { "#{controller_class.collection_name}_params".to_sym }
+    # and then calls url_and_path_helpers.
+    #
+    # Also defines url and path helper methods if they don't exist, e.g. for 
+    # self.collection_name="foos"/self.instance_name="foo"/FoosController, would create the following 
+    # collection methods if they don't exist:
+    # * collection_path(*args, &block)
+    # * collection_url(*args, &block)
+    # * foos_path(*args, &block)
+    # * foos_url(*args, &block)
+    # and will create the following resource methods if they don't exist:
+    # * foo_path(*args, &block)
+    # * foo_url(*args, &block)
+    # * resource_path(*args, &block)
+    # * resource_url(*args, &block)
     module Base
       extend ::ActiveSupport::Concern
 
@@ -10,35 +34,12 @@ module Actionizer
           self.send("#{key}=".to_sym, ::Actionizer.send(key)) unless self.send(key.to_sym)
         end
 
-        controller_class = self.to_s.start_with?('#<') ? self.class : self
-
-        class_attribute :resource_class, instance_writer: true unless respond_to?(:resource_class, true)
-        define_singleton_method :resource_class, -> { controller_class.name.chomp('Controller').split('::').last.singularize.constantize }
-
-        class_attribute :instance_name, instance_writer: true unless respond_to?(:instance_name, true)
-        define_singleton_method :instance_name, -> { controller_class.resource_class.name.underscore }
-
-        class_attribute :collection_name, instance_writer: true unless respond_to?(:collection_name, true)
-        define_singleton_method :collection_name, -> { controller_class.instance_name.pluralize }
-
-        class_attribute :instance_variable_name_sym, instance_writer: true unless respond_to?(:instance_variable_name_sym, true)
-        define_singleton_method :instance_variable_name_sym, -> { "@#{controller_class.instance_name}".to_sym }
-
-        class_attribute :collection_variable_name_sym, instance_writer: true unless respond_to?(:collection_variable_name_sym, true)
-        define_singleton_method :collection_variable_name_sym, -> { "@#{controller_class.collection_name}".to_sym }
-
-        class_attribute :instance_name_params_sym, instance_writer: true unless respond_to?(:instance_name_params_sym, true)
-        define_singleton_method :instance_name_params_sym, -> { "#{controller_class.instance_name}_params".to_sym }
-
-        class_attribute :collection_name_params_sym, instance_writer: true unless respond_to?(:collection_name_params_sym, true)
-        define_singleton_method :collection_name_params_sym, -> { "#{controller_class.collection_name}_params".to_sym }
+        include ::Actionizer::ResourceDefinition
       end
 
       def initialize
         logger.debug("Actionizer::Actions::Base.initialize") if Actionizer.debug?
         super
-
-        raise "#{self.class.name} failed to initialize. self.resource_class cannot be nil in #{self}" if resource_class.nil?
       end
 
       def convert_param_value(param_name, param_value)

@@ -8,7 +8,7 @@ class SpecialBarfoosController < ApplicationController
   include_extensions(*Actionizer.available_extensions.keys)
   
   # make it use Barfoo class under the hood
-  self.resource_class = Barfoo
+  defaults resource_class: Barfoo
 
   index_query ->(q) {q.where(:status => 2)}
 

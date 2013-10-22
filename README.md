@@ -150,13 +150,13 @@ Actionizer.configure do
   # fully-qualified module name to include, e.g. `index: '::My::Module'`, If constant,
   # it will just include constant (module), e.g. `index: ::My::Module`.
   self.autoincludes = {
-    create: [:query_includes, :render_options],
-    destroy: [:query_includes, :render_options],
-    edit: [:query_includes, :render_options],
-    index: [:index_query, :order, :param_filters, :query_filter, :query_includes],
-    new: [],
-    show: [:query_includes],
-    update: [:query_includes, :render_options]
+    create: [:query_includes, :render_options, :resource_path_and_url],
+    destroy: [:query_includes, :render_options, :resource_path_and_url],
+    edit: [:query_includes, :render_options, :edit_path_and_url],
+    index: [:index_query, :order, :param_filters, :query_filter, :query_includes, :collection_path_and_url],
+    new: [:new_path_and_url],
+    show: [:query_includes, :resource_path_and_url],
+    update: [:query_includes, :render_options, :resource_path_and_url]
   }
 
   # By default, it sets the instance variable, but does not return entity if request
@@ -185,14 +185,10 @@ All of the app-level configuration parameters are configurable in the controller
   self.update_should_return_entity = false
 ```
 
-Controller-only config options:
+Though it will try to determine them implicitly from the controller name, if you need to override one or more pieces of info about the model, you can do that from a `defaults` method which is partially-similar to the one in [inherited_resources][inherited_resources]:
 
 ```ruby
-self.resource_class = YourModel
-
-# if you have a wierd name that doesn't work with ActiveSupport's pluralize, etc.
-self.instance_name = 'your_model'
-self.collection_name = 'your_models'
+defaults resource_class: Barfoo, instance_name: 'barfoo', collection_name: 'barfoos'
 ```
 
 #### About Extensions
@@ -507,6 +503,17 @@ can_order_by :color
 default_filter_by :color, eq: 'blue'
 ```
 
+#### Path and Url Helper Extensions
+
+You may or may not need these, but each of the following are autoincluded with the relevant actions in the default configuration.
+
+* `:collection_path_and_url` - implements collection path and url methods on include and revised values when subclass from class that includes, e.g for FoosController would implement foos_url, foos_path, collection_url, collection_path.
+* `:edit_path_and_url` - implements edit path and url on include and revised values when subclass from class that includes, e.g for FoosController would implement edit_foo_url, edit_foo_path, edit_resource_url, edit_resource_path.
+* `:new_path_and_url` - implements new path and url on include and revised values when subclass from class that includes, e.g for FoosController would implement new_foo_url, new_foo_path, new_resource_url, new_resource_path.
+* `:resource_path_and_url` - implements resource path and url on include and revised values when subclass from class that includes, e.g for FoosController would implement foo_url, foo_path, resource_url, resource_path.
+
+Path and URL methods should "just work" if you follow the Rails convention of the controller name being the plural form of the model followed by "Controller", e.g. `Namespace::Does::Not::Matter::Here::FoosController` manages model `Foo`. If you must a different collection name/resource name/model class name, be sure to call `resource_definition_updated` which should update these.
+
 #### Other Extensions
 
 The following concerns, which you can include via `include_extension ...` or via including the corresponding module, might also be of use in your controller:
@@ -518,7 +525,9 @@ The following concerns, which you can include via `include_extension ...` or via
 
 #### Writing Your Own Extensions
 
-Extensions are just modules. The only different thing is that you can `@action_result = ...; throw(:action_break)` in any method that is called by an Actionizer action and it will break the execution of the action and return `@action_result`. This allows the ease of control that you'd have typically in a single long action method, but lets you use modules to easily share action method functionality. To those unfamiliar, `throw` in Ruby is a normal flow control mechanism, unlike `raise` which is for exceptions.
+Extensions are just modules. There is no magic.
+
+The somewhat special thing about Actionizer extensions if that you can `@action_result = ...; throw(:action_break)` in any method that is called by an Actionizer action and it will break the execution of the action and return `@action_result`. This allows the ease of control that you'd have typically in a single long action method, but lets you use modules to easily share action method functionality. To those unfamiliar, `throw` in Ruby is a normal flow control mechanism, unlike `raise` which is for exceptions.
 
 Some hopefully good examples of how to extend modules are in lib/actionizer/extensions/* and the actions themselves are in lib/actionizer/actions/*. Get familiar with the code even if you don't plan on customizing, if for no other reason than to have another set of eyes on the code.
 
@@ -694,6 +703,7 @@ Copyright (c) 2013 FineLine Prototyping, Inc., released under the [MIT license][
 [public_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/public_exceptions.rb
 [show_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/show_exceptions.rb
 [changelog]: https://github.com/FineLinePrototyping/actionizer/blob/master/CHANGELOG.md
+[inherited_resources]: https://github.com/josevalim/inherited_resources
 [restful_json]: http://rubygems.org/gems/restful_json
 [legacy]: http://github.com/FineLinePrototyping/actionizer/blob/master/LEGACY.md
 [lic]: http://github.com/FineLinePrototyping/actionizer/blob/master/LICENSE

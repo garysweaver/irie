@@ -26,7 +26,7 @@ module Actionizer
           def define_params(*args)
             options = args.extract_options!
 
-            raise "define_param(s) only takes a single hash of param name(s) to hash(es)" if args.length > 0
+            raise ::Actionizer::ConfigurationError.new "define_param(s) only takes a single hash of param name(s) to hash(es)" if args.length > 0
 
             self.param_to_through = self.param_to_through.deep_dup
 
@@ -50,13 +50,13 @@ module Actionizer
                     when Hash
                       convert.call(hsh.values.first, orig)
                     else
-                      raise "Invalid :through option: #{hsh.values.first.values.first} in #{self}"
+                      raise ::Actionizer::ConfigurationError.new "Invalid :through option: #{hsh.values.first.values.first} in #{self}"
                     end
                   else
-                    raise "Invalid :through option: #{hsh.values.first} in #{self}"
+                    raise ::Actionizer::ConfigurationError.new "Invalid :through option: #{hsh.values.first} in #{self}"
                   end
                 else
-                  raise "Invalid :through option: #{hsh} in #{self}"
+                  raise ::Actionizer::ConfigurationError.new "Invalid :through option: #{hsh} in #{self}"
                 end
               end)[through_val.deep_dup]
             end
@@ -84,7 +84,7 @@ module Actionizer
           # find arel_table corresponding to
           find_assoc_resource_class = ->(last_resource_class, assoc_name) do
             next_class = last_resource_class.reflections.map{|refl_assoc_name, refl| refl.class_name.constantize if refl_assoc_name.to_s == assoc_name.to_s}.compact.first
-            raise "#{last_resource_class} is missing association #{hsh.values.first} defined in #{self} through option or define_params" unless next_class
+            raise ::Actionizer::ConfigurationError.new "#{last_resource_class} is missing association #{hsh.values.first} defined in #{self} through option or define_params" unless next_class
             next_class
           end
 
@@ -95,7 +95,7 @@ module Actionizer
             when Hash
               find_arel_table.call(find_assoc_resource_class.call(last_resource_class, val.keys.first), val.values.first)
             else
-              raise "get_arel_table failed because unhandled #{val} in joins in through"
+              raise ::Actionizer::ConfigurationError.new "get_arel_table failed because unhandled #{val} in joins in through"
             end
           end)[resource_class, opts[:joins]]
         end

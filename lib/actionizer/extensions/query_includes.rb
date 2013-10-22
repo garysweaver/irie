@@ -37,7 +37,7 @@ module Actionizer
           options = args.extract_options!
 
           opt_are = options.delete(:are)
-          raise "options #{options.inspect} not supported by can_filter_by" if options.present?
+          raise ::Actionizer::ConfigurationError.new "options #{options.inspect} not supported by can_filter_by" if options.present?
 
           self.action_to_query_includes = self.action_to_query_includes.deep_dup
 
@@ -45,7 +45,7 @@ module Actionizer
             if opt_are
               (self.action_to_query_includes ||= {}).merge!({an_action.to_sym => opt_are})
             else
-              raise "#{self.class.name} must supply an :are option with includes_for #{an_action.inspect}"
+              raise ::Actionizer::ConfigurationError.new "#{self.class.name} must supply an :are option with includes_for #{an_action.inspect}"
             end
           end
         end

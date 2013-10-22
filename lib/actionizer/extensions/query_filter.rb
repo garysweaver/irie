@@ -20,7 +20,7 @@ module Actionizer
         def can_filter_by_query(*args)
           options = args.extract_options!
 
-          raise "arguments #{args.inspect} are not supported by can_filter_by_query" if args.length > 0
+          raise ::Actionizer::ConfigurationError.new "arguments #{args.inspect} are not supported by can_filter_by_query" if args.length > 0
 
           self.param_to_query = self.param_to_query.deep_dup
           

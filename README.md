@@ -637,11 +637,21 @@ If you enabled Actionizer's debug option via:
 Actionizer.debug = true
 ```
 
-Then all the included modules (actions, extensions) will use `logger.debug ...` to log some information about what is executed. So, in addition to turning on debug in Actionizer, you may need to turn on debug logging in Rails, for the base controller, the specific controller(s) depending on your needs, e.g. this might work:
+Then all the included modules (actions, extensions) will use `logger.debug ...` to log some information about what is executed.
+
+To log debug to console only in your tests, you could put this in your test helper:
 
 ```ruby
-Actionizer.debug = true
+::Actionizer.debug = true
+ActionController::Base.logger = Logger.new(STDOUT)
 ActionController::Base.logger.level = Logger::DEBUG
+```
+
+However, that might not catch all the initialization debug logging that could occur. Instead, you might put the following into the block in `config/environments/test.rb`:
+
+```ruby
+::Actionizer.debug = true
+config.log_level = :debug
 ```
 
 ##### ::Actionizer::ControllerDebugging

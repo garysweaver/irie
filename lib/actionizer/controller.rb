@@ -18,18 +18,22 @@ module Actionizer
       def include_actions(*args)
         args.each do |arg|
           arg_sym = arg.to_sym
-          begin
-            if arg_sym == :all
-              self.available_actions.values.each do |module_class_name|
+          if arg_sym == :all
+            self.available_actions.each do |key, module_class_name|
+              begin
                 include module_class_name.constantize
+              rescue NameError => e
+                raise ::Actionizer::ConfigurationError.new "Failed to resolve action module '#{module_class_name}' with key #{key.inspect} in self.available_actions when including all actions. Error: \n#{e.message}\n#{e.backtrace.join("\n")}"
               end
-            elsif module_class_name = self.available_actions[arg.to_sym]
-              include module_class_name.constantize
-            else
-              raise ::Actionizer::ConfigurationError.new "#{arg.inspect} isn't defined in self.available_actions"
             end
-          rescue NameError => e
-            raise ::Actionizer::ConfigurationError.new "Failed to resolve action module: #{module_class_name}. Ensure the value of self.available_actions[#{arg_sym.inspect}] is a string representing a valid constant. Error: \n#{e.message}\n#{e.backtrace.join("\n")}"
+          elsif module_class_name = self.available_actions[arg.to_sym]
+            begin
+              include module_class_name.constantize
+            rescue NameError => e
+              raise ::Actionizer::ConfigurationError.new "Failed to resolve action module '#{module_class_name}' with key #{arg_sym.inspect} in self.available_actions. Error: \n#{e.message}\n#{e.backtrace.join("\n")}"
+            end      
+          else
+            raise ::Actionizer::ConfigurationError.new "#{arg.inspect} isn't defined in self.available_actions"
           end
         end
       end
@@ -42,18 +46,22 @@ module Actionizer
       def include_extensions(*args)
         args.each do |arg|
           arg_sym = arg.to_sym
-          begin
-            if arg_sym == :all
-              self.available_extensions.values.each do |module_class_name|
+          if arg_sym == :all
+            self.available_extensions.each do |key, module_class_name|
+              begin
                 include module_class_name.constantize
+              rescue NameError => e
+                raise ::Actionizer::ConfigurationError.new "Failed to resolve extension module '#{module_class_name}' with key #{key.inspect} in self.available_extensions when including all extensions. Error: \n#{e.message}\n#{e.backtrace.join("\n")}"
               end
-            elsif module_class_name = self.available_extensions[arg.to_sym]
-              include module_class_name.constantize
-            else
-              raise ::Actionizer::ConfigurationError.new "#{arg.inspect} isn't defined in self.available_extensions"
             end
-          rescue NameError => e
-            raise ::Actionizer::ConfigurationError.new "Failed to resolve extension module: #{module_class_name}. Ensure the value of self.available_extensions[#{arg_sym.inspect}] is a string representing a valid constant. Error: \n#{e.message}\n#{e.backtrace.join("\n")}"
+          elsif module_class_name = self.available_extensions[arg.to_sym]
+            begin
+              include module_class_name.constantize
+            rescue NameError => e
+              raise ::Actionizer::ConfigurationError.new "Failed to resolve extension module '#{module_class_name}' with key #{arg_sym.inspect} in self.available_extensions. Error: \n#{e.message}\n#{e.backtrace.join("\n")}"
+            end      
+          else
+            raise ::Actionizer::ConfigurationError.new "#{arg.inspect} isn't defined in self.available_extensions"
           end
         end
       end

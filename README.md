@@ -4,11 +4,11 @@
 
 Implement Rails 4 controller actions easily with a clear and concise mix of declarative and imperative code, like models.
 
-For example, to implement index, show, new, edit, create, update, and destroy methods, you can just include `Actionizer::Actions::All`:
+For example, to implement index, show, new, edit, create, update, and destroy methods with their default autoincludes:
 
 ```ruby
 class PostsController < ApplicationController
-  include Actionizer::Actions::All
+  include_actions :all
 
   respond_to :json, :html
 

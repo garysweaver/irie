@@ -5,7 +5,7 @@ class SpecialBarfoosController < ApplicationController
   respond_to :json
 
   include_actions :all
-  include_extensions(*Actionizer.available_extensions.keys)
+  include_extensions :all
   
   # make it use Barfoo class under the hood
   defaults resource_class: Barfoo

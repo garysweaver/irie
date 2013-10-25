@@ -5,9 +5,13 @@ module Irie
       extend ::ActiveSupport::Concern
       ::Irie.available_extensions[:count] = '::' + Count.name
 
+      included do
+        include ::Irie::ParamAliases
+      end
+
       def index
         logger.debug("Irie::Extensions::Count.index(#{count.inspect})") if Irie.debug?
-        return super if permitted_params[:count]
+        return super if aliased_param(:count)
         @count = get_collection_ivar.count
         respond_to(:autorender_count) ? autorender_count(@count) : @count
       end

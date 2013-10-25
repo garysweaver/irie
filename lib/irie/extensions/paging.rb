@@ -34,7 +34,7 @@ module Irie
 
       def index
         logger.debug("Irie::Extensions::Paging.index(#{count.inspect})") if Irie.debug?
-        return super if permitted_params[:page_count]
+        return super if aliased_param(:page_count)
         @page_count = get_collection_ivar.count
         respond_to(:autorender_count) ? autorender_count(@page_count) : @page_count
       end

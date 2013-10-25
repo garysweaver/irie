@@ -32,9 +32,14 @@ module Irie
         defined?(super) ? super : get_collection_ivar
       end
 
-      def render_index_page_count
-        logger.debug("Irie::Extensions::Paging.render_index_page_count") if Irie.debug?
-        render 'index_page_count'
+      def index
+        logger.debug("Irie::Extensions::Paging.index(#{count.inspect})") if Irie.debug?
+        return super if permitted_params[:page_count]
+        @page_count = get_collection_ivar.count
+        index! do |format|
+          format.html { render "#{params[:action]}_page_count" }
+          format.any { render request.format.symbol => { count: @page_count } }
+        end
       end
     end
   end

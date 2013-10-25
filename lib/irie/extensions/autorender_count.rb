@@ -6,12 +6,13 @@ module Irie
       extend ::ActiveSupport::Concern
       ::Irie.available_extensions[:autorender_count] = '::' + AutorenderCount.name
       
-      def render_index_count(count)
-        logger.debug("Irie::Extensions::AutorenderCount.render_index_count(#{count.inspect})") if Irie.debug?
-        @count = count
-        respond_to do |format|
+      def index
+        logger.debug("Irie::Extensions::AutorenderCount.index(#{count.inspect})") if Irie.debug?
+        return super if permitted_params[:count]
+        @count = get_collection_ivar.count
+        index! do |format|
           format.html { render "#{params[:action]}_count" }
-          format.any { render request.format.symbol => { count: count } }
+          format.any { render request.format.symbol => { count: @count } }
         end
       end
       

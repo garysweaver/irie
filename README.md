@@ -66,14 +66,16 @@ can_filter_by_query \
     }
 ```
 
-### Similar Projects
+Note: if you just want to use autoincludes, just specify `extensions` by itself, e.g.
 
-A comparison with [Inherited Resources](https://github.com/josevalim/inherited_resources):
+```ruby
+class PostsController < ApplicationController
+  inherit_resources
 
-* Irie was developed to solve the problem of needing a flexible JSON service controller for applications intended to be used with JavaScript frameworks such as AngularJS and Ember, but evolved into a set of concerns you can include to build your controller easily.
-* Inherited Resources was primarily developed for handling HTML forms in Rails, but supports other formats as well.
-* Irie supports flexible request param based filtering and ordering, both with defaults, quick to write lambda queries and filters, and a relational param syntax.
-* Inherited Resources has some finder options by request param value, and relies more heavily on fat models to handle behavior.
+  actions :index
+  extensions
+end
+```
 
 ### Installation
 

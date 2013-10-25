@@ -15,5 +15,5 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'actionpack', '~> 4.0'
   s.add_runtime_dependency 'activerecord', '~> 4.0'
   s.add_runtime_dependency 'activesupport', '~> 4.0'
-  s.add_runtime_dependency 'inherited_resources', '~> 1.4.1'
+  s.add_runtime_dependency 'inherited_resources', '~> 1.4'
 end

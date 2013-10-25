@@ -51,5 +51,5 @@ untitled
 /coverage
 
 # ignore lock files
-#Gemfile.lock
-#gemfiles/*.lock
+Gemfile.lock
+gemfiles/*.lock

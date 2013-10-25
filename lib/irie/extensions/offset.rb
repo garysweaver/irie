@@ -11,7 +11,7 @@ module Irie
 
       def collection
         logger.debug("Irie::Extensions::Offset.index_filters") if Irie.debug?
-        aliased_params(:offset).each {|param_value| collection.offset!(param_value)}
+        aliased_param_values(:offset).each {|param_value| collection.offset!(param_value)}
         defined?(super) ? super : collection
       end
     end

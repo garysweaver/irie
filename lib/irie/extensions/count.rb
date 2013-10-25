@@ -11,7 +11,7 @@ module Irie
 
       def index
         logger.debug("Irie::Extensions::Count.index(#{count.inspect})") if Irie.debug?
-        return super if aliased_param(:count)
+        return super if first_aliased_param_value(:count)
         @count = collection.count
         respond_to(:autorender_count) ? autorender_count(@count) : @count
       end

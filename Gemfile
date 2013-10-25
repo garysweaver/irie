@@ -1,6 +1,8 @@
 source 'https://rubygems.org'
 
 gemspec
+# why isn't it using the gemspec in non-Appraisal tests?
+gem 'inherited_resources'
 
 gem 'appraisal', '~> 0.5.2'
 gem 'cancan', '~> 1.6.10'
@@ -13,5 +15,4 @@ gem 'minitest-reporters', '~> 0.14.23'
 
 gem 'sqlite3', :platform => :ruby
 gem 'activerecord-jdbcsqlite3-adapter', :platform => :jruby
-gem 'inherited_resources', '~> 1.4.1'
 gem 'autolog'

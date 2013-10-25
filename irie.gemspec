@@ -12,8 +12,8 @@ Gem::Specification.new do |s|
   s.description = %q{Extensions for Inherited Resources for request parameter-based filters, paging, ordering, includes, etc.}
   s.files = Dir['lib/**/*'] + ['Rakefile', 'README.md']
   s.license = 'MIT'
+  s.add_dependency 'inherited_resources', '~> 1.4'
   s.add_runtime_dependency 'actionpack', '~> 4.0'
   s.add_runtime_dependency 'activerecord', '~> 4.0'
   s.add_runtime_dependency 'activesupport', '~> 4.0'
-  s.add_runtime_dependency 'inherited_resources', '~> 1.4'
 end

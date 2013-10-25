@@ -79,7 +79,7 @@ module Irie
       def collection
         logger.debug("Irie::Extensions::Order.after_index_filters") if Irie.debug?
         already_ordered_by = []
-        aliased_params(:order).reject{|v| v.nil?}.each do |param_value|
+        aliased_param_values(:order).reject{|v| v.nil?}.each do |param_value|
           order_params = param_value.split(self.filter_split)
           order_params.each do |order_param_value|
             # not using convert_param_value here.

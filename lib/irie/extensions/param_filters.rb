@@ -85,8 +85,8 @@ module Irie
         filtered_by_param_names = []
         self.param_to_attr_and_arel_predicate.each do |param_name, attr_sym_and_predicate_name|
           attr_sym, predicate_sym = *attr_sym_and_predicate_name
-          if permitted_params.key?(attr_sym)
-            one_or_more_param = permitted_params[attr_sym].to_s.split(self.filter_split).collect{|v| convert_param_value(attr_sym.to_s, v)}
+          if params.key?(attr_sym)
+            one_or_more_param = params[attr_sym].to_s.split(self.filter_split).collect{|v| convert_param_value(attr_sym.to_s, v)}
             opts = apply_joins_and_return_opts(attr_sym.to_s)
             arel_table = get_arel_table(attr_sym)
             collection.where!(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, one_or_more_param))

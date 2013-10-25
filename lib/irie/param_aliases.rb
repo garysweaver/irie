@@ -6,19 +6,19 @@ module Irie
     # to check for for the provided param name in params, then returns an array of all
     # values for all matching defined request params. Does *not* convert param
     # value with convert_param_value(...).
-    def aliased_params(function_sym)
-      logger.debug("Irie::ParamAliases.aliased_params(#{function_sym.inspect})") if Irie.debug?
+    def aliased_param_values(function_sym)
+      logger.debug("Irie::ParamAliases.aliased_param_values(#{function_sym.inspect})") if Irie.debug?
       if self.function_param_names.key?(function_sym)
-        self.function_param_names[function_sym].select {|v| permitted_params.key?(v)}.collect {|param_name| permitted_params[param_name]}
+        self.function_param_names[function_sym].select {|v| params.key?(v)}.collect {|param_name| params[param_name]}
       else
-        permitted_params.key?(function_sym) ? [permitted_params[function_sym]] : []
+        params.key?(function_sym) ? Array.wrap(params[function_sym]) : []
       end
     end
 
-    # Same as aliased_params(function_sym).first.
-    def aliased_param(function_sym)
-      logger.debug("Irie::ParamAliases.aliased_param(#{function_sym.inspect})") if Irie.debug?
-      aliased_params(function_sym).first
+    # Same as aliased_param_values(function_sym).first.
+    def first_aliased_param_value(function_sym)
+      logger.debug("Irie::ParamAliases.first_aliased_param_value(#{function_sym.inspect})") if Irie.debug?
+      aliased_param_values(function_sym).first
     end
   end
 end

@@ -11,7 +11,7 @@ module Irie
 
       def index_filters
         logger.debug("Irie::Extensions::Distinct.index_filters") if Irie.debug?
-        collection.distinct! if aliased_param(:distinct)
+        collection.distinct! if first_aliased_param_value(:distinct)
         defined?(super) ? super : collection
       end
     end

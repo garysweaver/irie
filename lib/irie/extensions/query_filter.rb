@@ -33,7 +33,7 @@ module Irie
       def collection
         this_includes = self.action_to_query_includes[params[:action].to_sym] || self.all_action_query_includes
         self.param_to_query.each do |param_name, param_query|
-          param_value = permitted_params[param_name]
+          param_value = params[param_name]
           unless param_value.nil?
             set_collection_ivar param_query.call(collection, convert_param_value(param_name.to_s, param_value))
           end

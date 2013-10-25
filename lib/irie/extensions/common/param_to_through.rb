@@ -63,7 +63,7 @@ module Irie
 
             self.param_to_through
           end
-          alias define_param define_params
+          alias_method :define_param, :define_params
         end
 
         # Call .joins! on the relation with configured :through options after parsing them

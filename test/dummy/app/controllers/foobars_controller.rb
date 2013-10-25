@@ -4,6 +4,7 @@ class FoobarsController < ApplicationController
   inherit_resources
 
   actions :all
+  extensions
   # see: https://github.com/ryanb/cancan/wiki/Inherited-Resources
   load_and_authorize_resource
   

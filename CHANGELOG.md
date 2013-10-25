@@ -1,6 +1,6 @@
-## Actionizer 1.0.0 ##
+## Irie 1.0.0 ##
 
-* Renamed restful_json to Actionizer. It isn't only about json.
+* Renamed restful_json to Irie. It isn't only about json.
 
 Changes since restful_json v4.5.1:
 
@@ -29,7 +29,7 @@ Changes since restful_json v4.5.1:
 * Changed model class and name related variables resource_class, collection_name, instance_name methods, similar to inherited_resources.
 * Allow ability to get resource_class, etc. on controller class vs. only instance.
 * Added debug option to enable debug logging in instance methods to help track execution without tracing/debugging.
-* Config errors now Actionizer::ConfigurationError.
+* Config errors now Irie::ConfigurationError.
 * Rework of url and path helpers.
 * Support for configuring model-related attributes via `default` method with options somewhat similar to inherited_resources.
 

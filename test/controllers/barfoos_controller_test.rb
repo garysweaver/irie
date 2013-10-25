@@ -6,7 +6,7 @@ class TestBarfoosController < ActionController::TestCase
 
   def setup
     DatabaseCleaner.start
-    Actionizer.update_should_return_entity = false
+    Irie.update_should_return_entity = false
     @controller = BarfoosController.new
     $test_role = 'admin'
   end

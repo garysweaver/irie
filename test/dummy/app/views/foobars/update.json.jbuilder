@@ -1,1 +1,1 @@
-json.check "foobars-update: #{@foobar.id}"
+json.check "foobars-update: '#{@foobar.id}', #{foobar_url}, #{foobar_path}"

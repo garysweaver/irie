@@ -13,3 +13,5 @@ gem 'minitest-reporters', '~> 0.14.23'
 
 gem 'sqlite3', :platform => :ruby
 gem 'activerecord-jdbcsqlite3-adapter', :platform => :jruby
+gem 'inherited_resources', '~> 1.4.1'
+gem 'autolog'

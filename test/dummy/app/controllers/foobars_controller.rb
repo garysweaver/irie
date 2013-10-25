@@ -1,11 +1,10 @@
 class FoobarsController < ApplicationController
   
-  include ::Actionizer::Controller
-  
   respond_to :json
+  inherit_resources
 
-  include_actions :all
-  include_extensions :rfc2616, :authorizing
+  actions :all
+  extensions :authorizing
   
   define_param renamed_foo_id: :foo_id
   can_filter_by_query a_query: ->(q, param_value) { q.where(foo_id: param_value) }
@@ -23,7 +22,7 @@ class FoobarsController < ApplicationController
 
 private
 
-  def foobar_params
-    params.require(:foobar).permit(:id, :foo_id)
+  def permitted_params
+    params.permit(:id, :foo_id)
   end
 end

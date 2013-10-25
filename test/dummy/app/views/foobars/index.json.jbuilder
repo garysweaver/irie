@@ -1,1 +1,1 @@
-json.check "foobars-index: size=#{@foobars.length}, ids=#{@foobars.collect(&:id).join(',')}"
+json.check "foobars-index: size='#{@foobars.length}', ids='#{@foobars.collect(&:id).join(',')}', #{foobars_url}, #{foobars_path}"

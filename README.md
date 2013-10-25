@@ -1,39 +1,17 @@
-[![Build Status](https://secure.travis-ci.org/FineLinePrototyping/actionizer.png?branch=master)][travis] [![Gem Version](https://badge.fury.io/rb/actionizer.png)][badgefury]
+[![Build Status](https://secure.travis-ci.org/FineLinePrototyping/irie.png?branch=master)][travis] [![Gem Version](https://badge.fury.io/rb/irie.png)][badgefury]
 
-# Actionizer
+# Irie - Inherited Resources Including Extensions
 
-Implement Rails 4 controller actions easily with a clear and concise mix of declarative and imperative code, like models.
+Extend [Inherited Resources][inherited_resources] actions with an awesome package of extensions.
 
-For example, to implement index, show, new, edit, create, update, and destroy methods with their default autoincludes:
-
-```ruby
-class PostsController < ApplicationController
-  include_actions :all
-
-  respond_to :json, :html
-
-private
-  
-  def post_params
-    params.require(:post).permit(:title, :body)
-  end
-
-end
-```
-
-or you can include the `Actionizer::Controller` module that gives you the `include_action` and `include_extensions` methods to shorten further includes, e.g. to specify request parameter-driven filtering, sorting, pagination, etc. with defaults:
+To specify request parameter-driven filtering, sorting, pagination, etc. with defaults, just use `extensions`:
 
 ```ruby
 class PostsController < ApplicationController
-  include Actionizer::Controller
+  inherit_resources
 
-  # The include_* are just human-readable shortcuts to include modules, so we 
-  # don't have to give up module namespacing to use short names. include_actions
-  # also uses configured autoincludes to allow packages of includes. You can
-  # forgo these two and just use include, if you'd rather.
-
-  include_actions :index
-  include_extensions :count, :distinct, :limit, :offset, :paging
+  actions :index
+  extensions :count, :distinct, :limit, :offset, :paging
 
   respond_to :json, :html
 
@@ -92,9 +70,9 @@ can_filter_by_query \
 
 A comparison with [Inherited Resources](https://github.com/josevalim/inherited_resources):
 
-* Actionizer was developed to solve the problem of needing a flexible JSON service controller for applications intended to be used with JavaScript frameworks such as AngularJS and Ember, but evolved into a set of concerns you can include to build your controller easily.
+* Irie was developed to solve the problem of needing a flexible JSON service controller for applications intended to be used with JavaScript frameworks such as AngularJS and Ember, but evolved into a set of concerns you can include to build your controller easily.
 * Inherited Resources was primarily developed for handling HTML forms in Rails, but supports other formats as well.
-* Actionizer supports flexible request param based filtering and ordering, both with defaults, quick to write lambda queries and filters, and a relational param syntax.
+* Irie supports flexible request param based filtering and ordering, both with defaults, quick to write lambda queries and filters, and a relational param syntax.
 * Inherited Resources has some finder options by request param value, and relies more heavily on fat models to handle behavior.
 
 ### Installation
@@ -102,7 +80,7 @@ A comparison with [Inherited Resources](https://github.com/josevalim/inherited_r
 In your Rails app's `Gemfile`:
 
 ```ruby
-gem 'actionizer'
+gem 'irie'
 ```
 
 Then:
@@ -116,13 +94,13 @@ bundle install
 Each application-level configuration option can be configured one line at a time:
 
 ```ruby
-Actionizer.number_of_records_in_a_page = 30
+Irie.number_of_records_in_a_page = 30
 ```
 
 or in bulk, like:
 
 ```ruby
-Actionizer.configure do
+Irie.configure do
   
   # Default for :using in can_filter_by.
   self.can_filter_by_default_using = [:eq]
@@ -145,8 +123,8 @@ Actionizer.configure do
 
   # When you include the defined action module, it includes the associated modules.
   # If value or value array contains symbol it will look up symbol in 
-  # self.available_extensions in the controller (which is defaulted to 
-  # `::Actionizer.available_extensions`). If value is String will assume String is the
+  # Irie.available_extensions in the controller (which is defaulted to 
+  # `::Irie.available_extensions`). If value is String will assume String is the
   # fully-qualified module name to include, e.g. `index: '::My::Module'`, If constant,
   # it will just include constant (module), e.g. `index: ::My::Module`.
   self.autoincludes = {
@@ -165,7 +143,7 @@ Actionizer.configure do
 end
 ```
 
-You may want to put your configuration in an initializer like `config/initializers/actionizer.rb`.
+You may want to put your configuration in an initializer like `config/initializers/irie.rb`.
 
 ### Controller Configuration
 
@@ -353,7 +331,7 @@ http://localhost:3000/posts?page=2
 To set page size at application level:
 
 ```ruby
-Actionizer.number_of_records_in_a_page = 15
+Irie.number_of_records_in_a_page = 15
 ```
 
 To set page size at controller level:
@@ -470,7 +448,7 @@ query_includes_for :index, :show, are: [posts: [{comments: :guest}, :tags]]
 
 #### Customizing Parameter Permittance
 
-Each Actionizer-implemented action method except `new` calls a corresponding `params_for_*` method. For `create` and `update` this calls `(model_name)_params` method expecting you to have defined that method to call `permit`, e.g.
+Each Irie-implemented action method except `new` calls a corresponding `params_for_*` method. For `create` and `update` this calls `(model_name)_params` method expecting you to have defined that method to call `permit`, e.g.
 
 ```ruby
 def post_params
@@ -527,9 +505,9 @@ The following concerns, which you can include via `include_extension ...` or via
 
 Extensions are just modules. There is no magic.
 
-The somewhat special thing about Actionizer extensions if that you can `@action_result = ...; throw(:action_break)` in any method that is called by an Actionizer action and it will break the execution of the action and return `@action_result`. This allows the ease of control that you'd have typically in a single long action method, but lets you use modules to easily share action method functionality. To those unfamiliar, `throw` in Ruby is a normal flow control mechanism, unlike `raise` which is for exceptions.
+The somewhat special thing about Irie extensions if that you can `@action_result = ...; throw(:action_break)` in any method that is called by an Irie action and it will break the execution of the action and return `@action_result`. This allows the ease of control that you'd have typically in a single long action method, but lets you use modules to easily share action method functionality. To those unfamiliar, `throw` in Ruby is a normal flow control mechanism, unlike `raise` which is for exceptions.
 
-Some hopefully good examples of how to extend modules are in lib/actionizer/extensions/* and the actions themselves are in lib/actionizer/actions/*. Get familiar with the code even if you don't plan on customizing, if for no other reason than to have another set of eyes on the code.
+Some hopefully good examples of how to extend modules are in lib/irie/extensions/* and the actions themselves are in lib/irie/actions/*. Get familiar with the code even if you don't plan on customizing, if for no other reason than to have another set of eyes on the code.
 
 Here's another example:
 
@@ -561,12 +539,12 @@ module ServiceController
   extend ::ActiveSupport::Concern
 
   included do
-    include ::Actionizer::Controller
+    include ::Irie::Controller
     respond_to :json
 
     # note: Referencing as string so we don't load the concern before it is used.
-    ::Actionizer.available_actions[:my_custom_action] = '::MyCustomAction'
-    ::Actionizer.available_extensions[:boolean_params] = '::BooleanParams'
+    ::Irie.available_actions[:my_custom_action] = '::MyCustomAction'
+    ::Irie.available_extensions[:boolean_params] = '::BooleanParams'
   end
 
 end
@@ -597,7 +575,7 @@ You can also use `rescue_from` or `around_action` in Rails to have more control 
 
 ### Troubleshooting
 
-#### Actionizer::Extensions::QueryIncludes
+#### Irie::Extensions::QueryIncludes
 
 If you get `missing FROM-clause entry for table` errors, it might mean that `query_includes`/`query_includes_for` you are using are overlapping with joins that are being done in the query. This is the nasty head of AR relational includes, unfortunately.
 
@@ -631,10 +609,10 @@ query_includes_for :index, are: []
 
 ##### Logging
 
-If you enabled Actionizer's debug option via:
+If you enabled Irie's debug option via:
 
 ```ruby
-Actionizer.debug = true
+Irie.debug = true
 ```
 
 Then all the included modules (actions, extensions) will use `logger.debug ...` to log some information about what is executed.
@@ -642,7 +620,7 @@ Then all the included modules (actions, extensions) will use `logger.debug ...` 
 To log debug to console only in your tests, you could put this in your test helper:
 
 ```ruby
-::Actionizer.debug = true
+::Irie.debug = true
 ActionController::Base.logger = Logger.new(STDOUT)
 ActionController::Base.logger.level = Logger::DEBUG
 ```
@@ -650,34 +628,34 @@ ActionController::Base.logger.level = Logger::DEBUG
 However, that might not catch all the initialization debug logging that could occur. Instead, you might put the following into the block in `config/environments/test.rb`:
 
 ```ruby
-::Actionizer.debug = true
+::Irie.debug = true
 config.log_level = :debug
 ```
 
-##### ::Actionizer::ControllerDebugging
+##### ::Irie::ControllerDebugging
 
 If there is a problem with class load related to includes, add this to the class body of your controller:
 
 ```ruby
-require 'actionizer/controller_debugging'
-extend ::Actionizer::ControllerDebugging
+require 'irie/controller_debugging'
+extend ::Irie::ControllerDebugging
 
 ActionController::Base.logger.level = Logger::DEBUG
 
 # Ensure this comes after all relevant includes.
-output_actionizer_debugging_info
+output_irie_debugging_info
 ```
 
 If there is a problem with instance methods/behavior related to includes, add this to the class body of your controller:
 
 ```ruby
-require 'actionizer/controller_debugging'
-include ::Actionizer::ControllerDebugging
+require 'irie/controller_debugging'
+include ::Irie::ControllerDebugging
 
 ActionController::Base.logger.level = Logger::DEBUG
 
 def initialize(*args)
-  output_actionizer_debugging_info
+  output_irie_debugging_info
 end
 ```
 
@@ -685,7 +663,7 @@ That will output all include registration information including the ordered cont
 
 ### restful_json
 
-The project was originally named [restful_json][restful_json], but was renamed to Actionizer when it no longer was meant to be JSON-service specific. If you need the old tags, they can be found in [legacy][legacy].
+The project was originally named [restful_json][restful_json], but was renamed to Irie when it no longer was meant to be JSON-service specific. If you need the old tags, they can be found in [legacy][legacy].
 
 ### Release Notes
 
@@ -705,15 +683,15 @@ This was written by [FineLine Prototyping, Inc.](http://www.finelineprototyping.
 
 Copyright (c) 2013 FineLine Prototyping, Inc., released under the [MIT license][lic].
 
-[travis]: http://travis-ci.org/FineLinePrototyping/actionizer
-[badgefury]: http://badge.fury.io/rb/actionizer
+[travis]: http://travis-ci.org/FineLinePrototyping/irie
+[badgefury]: http://badge.fury.io/rb/irie
 [cancan]: https://github.com/ryanb/cancan
 [arel]: https://github.com/rails/arel
 [ar]: http://api.rubyonrails.org/classes/ActiveRecord/Relation.html
 [public_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/public_exceptions.rb
 [show_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/show_exceptions.rb
-[changelog]: https://github.com/FineLinePrototyping/actionizer/blob/master/CHANGELOG.md
+[changelog]: https://github.com/FineLinePrototyping/irie/blob/master/CHANGELOG.md
 [inherited_resources]: https://github.com/josevalim/inherited_resources
 [restful_json]: http://rubygems.org/gems/restful_json
-[legacy]: http://github.com/FineLinePrototyping/actionizer/blob/master/LEGACY.md
-[lic]: http://github.com/FineLinePrototyping/actionizer/blob/master/LICENSE
+[legacy]: http://github.com/FineLinePrototyping/irie/blob/master/LEGACY.md
+[lic]: http://github.com/FineLinePrototyping/irie/blob/master/LICENSE

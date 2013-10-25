@@ -1,10 +1,10 @@
 [![Build Status](https://secure.travis-ci.org/FineLinePrototyping/irie.png?branch=master)][travis] [![Gem Version](https://badge.fury.io/rb/irie.png)][badgefury]
 
-# Irie - Inherited Resources Including Extensions
+# Irie
 
-Extend [Inherited Resources][inherited_resources] actions with an awesome package of extensions.
+Inherited Resources including extensions.
 
-To specify request parameter-driven filtering, sorting, pagination, etc. with defaults, just use `extensions`:
+Extend [Inherited Resources][inherited_resources] actions with request parameter-driven filtering, sorting, pagination, and more:
 
 ```ruby
 class PostsController < ApplicationController
@@ -66,7 +66,7 @@ can_filter_by_query \
     }
 ```
 
-Note: if you just want to use autoincludes, just specify `extensions` by itself, e.g.
+Note: `extensions` also automatically includes common sets of extensions with certain actions. So, just specify `extensions` by itself can include things you can use, e.g.
 
 ```ruby
 class PostsController < ApplicationController
@@ -269,7 +269,7 @@ and both attr_name_1 and production_date are supplied by the client, then it wou
 In the controller:
 
 ```ruby
-includes_extension :distinct
+extensions :distinct
 ```
 
 enables:
@@ -283,7 +283,7 @@ http://localhost:3000/posts?distinct=
 In the controller:
 
 ```ruby
-include_extension :count
+extensions :count
 ```
 
 enables:
@@ -294,7 +294,7 @@ http://localhost:3000/posts?count=
 
 That will set the `@count` instance variable that you can use in your view.
 
-Use `include_extension :autorender_count` to render count automatically for non-HTML (JSON, etc.) views.
+Use `extensions :autorender_count` to render count automatically for non-HTML (JSON, etc.) views.
 
 
 ##### Page Count
@@ -302,7 +302,7 @@ Use `include_extension :autorender_count` to render count automatically for non-
 In the controller:
 
 ```ruby
-include_extension :paging
+extensions :paging
 ```
 
 enables:
@@ -313,14 +313,14 @@ http://localhost:3000/posts?page_count=
 
 That will set the `@page_count` instance variable that you can use in your view.
 
-Use `include_extension :autorender_page_count` to render count automatically for non-HTML (JSON, etc.) views.
+Use `extensions :autorender_page_count` to render count automatically for non-HTML (JSON, etc.) views.
 
 ##### Getting a Page
 
 In the controller:
 
 ```ruby
-include_extension :paging
+extensions :paging
 ```
 
 To access each page of results:
@@ -347,7 +347,7 @@ self.number_of_records_in_a_page = 15
 In the controller:
 
 ```ruby
-include_extensions :offset, :limit
+extensionss :offset, :limit
 ```
 
 enables:
@@ -496,7 +496,7 @@ Path and URL methods should "just work" if you follow the Rails convention of th
 
 #### Other Extensions
 
-The following concerns, which you can include via `include_extension ...` or via including the corresponding module, might also be of use in your controller:
+The following concerns, which you can include via `extensions ...` or via including the corresponding module, might also be of use in your controller:
 
 * `:nil_params` - convert 'NULL', 'null', and 'nil' to nil when passed in as request params.
 * `:autorender_errors` - renders validation errors (e.g. `@my_model.errors`) for non-HTML (JSON, etc.) formats without a view template.
@@ -531,20 +531,17 @@ module BooleanParams
 end
 ```
 
-If you are just doing regular `include`'s in your controllers, that's all you need. If you'd like to use the `include_action`/`include_extension` method of doing includes, which lets you include bundles of includes, a good place to register the custom concerns is in a shared module, e.g.
-
-in `app/controllers/concerns/service_controller.rb`:
+If you are just doing regular `include`'s in your controllers, that's all you need. If you'd like to use `extensions`, you get autoincludes and can use symbols, e.g. in `app/controllers/concerns/service_controller.rb`:
 
 ```ruby
 module ServiceController
   extend ::ActiveSupport::Concern
 
   included do
-    include ::Irie::Controller
+    inherit_resources
     respond_to :json
 
     # note: Referencing as string so we don't load the concern before it is used.
-    ::Irie.available_actions[:my_custom_action] = '::MyCustomAction'
     ::Irie.available_extensions[:boolean_params] = '::BooleanParams'
   end
 
@@ -556,8 +553,8 @@ Now you could use this in your controller:
 ```ruby
 include ServiceController
 
-include_action :my_custom_action
-include_extension :boolean_params
+actions :index
+extensions :boolean_params
 ```
 
 Doing that doesn't make as much sense when you just have modules in the root namespace, but it might if you have longer namespaces for organization and to avoid class/module name conflicts.
@@ -633,38 +630,9 @@ However, that might not catch all the initialization debug logging that could oc
 config.log_level = :debug
 ```
 
-##### ::Irie::ControllerDebugging
-
-If there is a problem with class load related to includes, add this to the class body of your controller:
-
-```ruby
-require 'irie/controller_debugging'
-extend ::Irie::ControllerDebugging
-
-ActionController::Base.logger.level = Logger::DEBUG
-
-# Ensure this comes after all relevant includes.
-output_irie_debugging_info
-```
-
-If there is a problem with instance methods/behavior related to includes, add this to the class body of your controller:
-
-```ruby
-require 'irie/controller_debugging'
-include ::Irie::ControllerDebugging
-
-ActionController::Base.logger.level = Logger::DEBUG
-
-def initialize(*args)
-  output_irie_debugging_info
-end
-```
-
-That will output all include registration information including the ordered controller's registered includes and method inheritance order for registered includes.
-
 ### restful_json
 
-The project was originally named [restful_json][restful_json], but was renamed to Irie when it no longer was meant to be JSON-service specific. If you need the old tags, they can be found in [legacy][legacy].
+The project was originally named [restful_json][restful_json]. Old commit tags corresponding to restful_json versions may be found in [legacy][legacy].
 
 ### Release Notes
 

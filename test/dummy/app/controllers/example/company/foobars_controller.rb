@@ -6,7 +6,8 @@ module Example
       inherit_resources
 
       actions :all
-      extensions :authorizing
+      # see: https://github.com/ryanb/cancan/wiki/Inherited-Resources
+      load_and_authorize_resource
       
       define_param renamed_foo_id: :foo_id
       can_filter_by_query a_query: ->(q, param_value) { q.where(foo_id: param_value) }

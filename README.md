@@ -498,7 +498,6 @@ Path and URL methods should "just work" if you follow the Rails convention of th
 
 The following concerns, which you can include via `include_extension ...` or via including the corresponding module, might also be of use in your controller:
 
-* `:authorizing` - integrates with [CanCan][cancan]-compatible authorizer.
 * `:nil_params` - convert 'NULL', 'null', and 'nil' to nil when passed in as request params.
 * `:autorender_errors` - renders validation errors (e.g. `@my_model.errors`) for non-HTML (JSON, etc.) formats without a view template.
 * `:rfc2616` - use [RFC 2616](http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.2) RESTful status codes for create and update.
@@ -687,7 +686,6 @@ Copyright (c) 2013 FineLine Prototyping, Inc., released under the [MIT license][
 
 [travis]: http://travis-ci.org/FineLinePrototyping/irie
 [badgefury]: http://badge.fury.io/rb/irie
-[cancan]: https://github.com/ryanb/cancan
 [arel]: https://github.com/rails/arel
 [ar]: http://api.rubyonrails.org/classes/ActiveRecord/Relation.html
 [public_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/public_exceptions.rb

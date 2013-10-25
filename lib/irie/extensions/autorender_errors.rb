@@ -6,16 +6,37 @@ module Irie
       extend ::ActiveSupport::Concern
       ::Irie.available_extensions[:autorender_errors] = '::' + AutorenderErrors.name
 
-      def perform_render(record_or_collection, options = nil)
-        logger.debug("Irie::Extensions::AutorenderErrors.perform_render(#{record_or_collection.inspect}, #{options.inspect})") if Irie.debug?
-        if !request.format.html? && record_or_collection.respond_to?(:errors) && record_or_collection.errors.size > 0
-          respond_to do |format|
-            format.any { render request.format.symbol => { errors: record_or_collection.errors }, status: 422 }
-          end
-        else
-          defined?(super) ? super : get_collection_ivar
+      def edit
+        logger.debug("Irie::Extensions::AutorenderErrors.edit(#{count.inspect})") if Irie.debug?
+        return super if !get_resource_ivar.respond_to?(:errors) || request.format.html?
+        index! do |format|
+          format.any { render request.format.symbol => { errors: record_or_collection.errors }, status: 422 }
         end
-      end
+      end if respond_to?(:edit)
+
+      def create
+        logger.debug("Irie::Extensions::AutorenderErrors.create(#{count.inspect})") if Irie.debug?
+        return super if !get_resource_ivar.respond_to?(:errors) || request.format.html?
+        index! do |format|
+          format.any { render request.format.symbol => { errors: record_or_collection.errors }, status: 422 }
+        end
+      end if respond_to?(:create)
+
+      def update
+        logger.debug("Irie::Extensions::AutorenderErrors.update(#{count.inspect})") if Irie.debug?
+        return super if !get_resource_ivar.respond_to?(:errors) || request.format.html?
+        index! do |format|
+          format.any { render request.format.symbol => { errors: record_or_collection.errors }, status: 422 }
+        end
+      end if respond_to?(:update)
+
+      def destroy
+        logger.debug("Irie::Extensions::AutorenderErrors.destroy(#{count.inspect})") if Irie.debug?
+        return super if !get_resource_ivar.respond_to?(:errors) || request.format.html?
+        index! do |format|
+          format.any { render request.format.symbol => { errors: record_or_collection.errors }, status: 422 }
+        end
+      end if respond_to?(:destroy)
       
     end
   end

@@ -87,6 +87,7 @@ gem 'irie'
 
 Then:
 
+
 ```
 bundle install
 ```
@@ -139,9 +140,6 @@ Irie.configure do
     update: [:query_includes, :render_options, :resource_path_and_url]
   }
 
-  # By default, it sets the instance variable, but does not return entity if request
-  # update, e.g. in JSON format.
-  self.update_should_return_entity = false
 end
 ```
 
@@ -165,12 +163,6 @@ All of the app-level configuration parameters are configurable in the controller
   self.update_should_return_entity = false
 ```
 
-Though it will try to determine them implicitly from the controller name, if you need to override one or more pieces of info about the model, you can do that from a `defaults` method which is partially-similar to the one in [inherited_resources][inherited_resources]:
-
-```ruby
-defaults resource_class: Barfoo, instance_name: 'barfoo', collection_name: 'barfoos'
-```
-
 #### About Extensions
 
 As you may have noticed in `autoincludes`, some concerns are included as a package along with the action include.
@@ -180,7 +172,6 @@ The following assumes that you are using the default autoincludes and included t
 #### Filtering by Attribute(s)
 
 `can_filter_by` filters the index action the request parameter name as a symbol will filter the results by the value of that request parameter, e.g.:
-
 
 ```ruby
 can_filter_by :title
@@ -295,7 +286,6 @@ http://localhost:3000/posts?count=
 That will set the `@count` instance variable that you can use in your view.
 
 Use `extensions :autorender_count` to render count automatically for non-HTML (JSON, etc.) views.
-
 
 ##### Page Count
 
@@ -483,24 +473,12 @@ can_order_by :color
 default_filter_by :color, eq: 'blue'
 ```
 
-#### Path and Url Helper Extensions
-
-You may or may not need these, but each of the following are autoincluded with the relevant actions in the default configuration.
-
-* `:collection_path_and_url` - implements collection name path and url methods on include and revised values when subclass from class that includes.
-* `:edit_path_and_url` - implements edit resource name path and url on include and revised values when subclass from class that includes.
-* `:new_path_and_url` - implements new resource name path and url on include and revised values when subclass from class that includes.
-* `:resource_path_and_url` - implements resource name path and url on include and revised values when subclass from class that includes.
-
-Path and URL methods should "just work" if you follow the Rails convention of the controller name being the plural form of the model followed by "Controller", e.g. `Namespace::Does::Not::Matter::Here::FoosController` manages model `Foo`. If you must a different collection name/resource name/model class name, be sure to call `resource_definition_updated` which should update these.
-
 #### Other Extensions
 
 The following concerns, which you can include via `extensions ...` or via including the corresponding module, might also be of use in your controller:
 
 * `:nil_params` - convert 'NULL', 'null', and 'nil' to nil when passed in as request params.
 * `:autorender_errors` - renders validation errors (e.g. `@my_model.errors`) for non-HTML (JSON, etc.) formats without a view template.
-* `:rfc2616` - use [RFC 2616](http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.2) RESTful status codes for create and update.
 
 #### Writing Your Own Extensions
 

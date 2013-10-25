@@ -89,7 +89,7 @@ module Irie
             one_or_more_param = permitted_params[attr_sym].to_s.split(self.filter_split).collect{|v| convert_param_value(attr_sym.to_s, v)}
             opts = apply_joins_and_return_opts(attr_sym.to_s)
             arel_table = get_arel_table(attr_sym)
-            get_collection_ivar.where!(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, one_or_more_param))
+            collection.where!(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, one_or_more_param))
             filtered_by_param_names << attr_sym
           end
         end
@@ -99,12 +99,12 @@ module Irie
             predicates_to_default_values.each do |predicate_sym, one_or_more_default_value|
               opts = apply_joins_and_return_opts(attr_sym.to_s)
               arel_table = get_arel_table(attr_sym)
-              get_collection_ivar.where!(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, Array.wrap(one_or_more_default_value)))
+              collection.where!(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, Array.wrap(one_or_more_default_value)))
             end
           end
         end
         
-        defined?(super) ? super : get_collection_ivar
+        defined?(super) ? super : collection
       end
 
     end

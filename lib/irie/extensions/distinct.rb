@@ -11,8 +11,8 @@ module Irie
 
       def index_filters
         logger.debug("Irie::Extensions::Distinct.index_filters") if Irie.debug?
-        get_collection_ivar.distinct! if aliased_param(:distinct)
-        defined?(super) ? super : get_collection_ivar
+        collection.distinct! if aliased_param(:distinct)
+        defined?(super) ? super : collection
       end
     end
   end

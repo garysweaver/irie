@@ -8,7 +8,7 @@ module Irie
 
       def edit
         logger.debug("Irie::Extensions::AutorenderErrors.edit(#{count.inspect})") if Irie.debug?
-        return super if !get_resource_ivar.respond_to?(:errors) || request.format.html?
+        return super if !resource.respond_to?(:errors) || request.format.html?
         index! do |format|
           format.any { render request.format.symbol => { errors: record_or_collection.errors }, status: 422 }
         end
@@ -16,7 +16,7 @@ module Irie
 
       def create
         logger.debug("Irie::Extensions::AutorenderErrors.create(#{count.inspect})") if Irie.debug?
-        return super if !get_resource_ivar.respond_to?(:errors) || request.format.html?
+        return super if !resource.respond_to?(:errors) || request.format.html?
         index! do |format|
           format.any { render request.format.symbol => { errors: record_or_collection.errors }, status: 422 }
         end
@@ -24,7 +24,7 @@ module Irie
 
       def update
         logger.debug("Irie::Extensions::AutorenderErrors.update(#{count.inspect})") if Irie.debug?
-        return super if !get_resource_ivar.respond_to?(:errors) || request.format.html?
+        return super if !resource.respond_to?(:errors) || request.format.html?
         index! do |format|
           format.any { render request.format.symbol => { errors: record_or_collection.errors }, status: 422 }
         end
@@ -32,7 +32,7 @@ module Irie
 
       def destroy
         logger.debug("Irie::Extensions::AutorenderErrors.destroy(#{count.inspect})") if Irie.debug?
-        return super if !get_resource_ivar.respond_to?(:errors) || request.format.html?
+        return super if !resource.respond_to?(:errors) || request.format.html?
         index! do |format|
           format.any { render request.format.symbol => { errors: record_or_collection.errors }, status: 422 }
         end

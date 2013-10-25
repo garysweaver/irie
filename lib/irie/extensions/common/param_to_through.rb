@@ -72,7 +72,7 @@ module Irie
         def apply_joins_and_return_opts(param_name)
           old_param_name = param_name
           opts = self.param_to_through[param_name.to_s] || {}
-          get_collection_ivar.joins!(opts[:joins]) if opts[:joins]
+          collection.joins!(opts[:joins]) if opts[:joins]
           opts.reverse_merge(attr_name: param_name.to_sym)
         end
 

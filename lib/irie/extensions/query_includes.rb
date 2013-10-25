@@ -56,17 +56,17 @@ module Irie
       def collection
         this_includes = self.action_to_query_includes[params[:action].to_sym] || self.all_action_query_includes
         if this_includes && this_includes.size > 0
-          get_collection_ivar.includes!(*this_includes)
+          collection.includes!(*this_includes)
         end
-        defined?(super) ? super : get_collection_ivar
+        defined?(super) ? super : collection
       end
 
       def resource
         this_includes = self.action_to_query_includes[params[:action].to_sym] || self.all_action_query_includes
         if this_includes && this_includes.size > 0
-          get_resource_ivar.includes!(*this_includes)
+          resource.includes!(*this_includes)
         end
-        defined?(super) ? super : get_resource_ivar
+        defined?(super) ? super : resource
       end
 
     end

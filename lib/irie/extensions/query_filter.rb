@@ -35,10 +35,10 @@ module Irie
         self.param_to_query.each do |param_name, param_query|
           param_value = permitted_params[param_name]
           unless param_value.nil?
-            set_collection_ivar param_query.call(get_collection_ivar, convert_param_value(param_name.to_s, param_value))
+            set_collection_ivar param_query.call(collection, convert_param_value(param_name.to_s, param_value))
           end
         end
-        defined?(super) ? super : get_collection_ivar
+        defined?(super) ? super : collection
       end
     end
   end

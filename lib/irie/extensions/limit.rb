@@ -11,8 +11,8 @@ module Irie
 
       def index_filters
         logger.debug("Irie::Extensions::Limit.index_filters") if Irie.debug?
-        aliased_params(:limit).each {|param_value| get_collection_ivar.limit!(param_value)}
-        defined?(super) ? super : get_collection_ivar
+        aliased_params(:limit).each {|param_value| collection.limit!(param_value)}
+        defined?(super) ? super : collection
       end
     end
   end

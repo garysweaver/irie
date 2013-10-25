@@ -100,7 +100,7 @@ module Irie
             # if there is one.
             if self.can_be_ordered_by.include?(order_param_value) && !already_ordered_by.include?(order_param_value.to_sym)
               opts = apply_joins_and_return_opts(order_param_value.to_s)
-              get_collection_ivar.order!((opts[:attr_sym] || order_param_value.to_sym) => direction)
+              collection.order!((opts[:attr_sym] || order_param_value.to_sym) => direction)
               already_ordered_by << order_param_value.to_sym
             end
           end
@@ -109,12 +109,12 @@ module Irie
         self.default_ordered_by.each do |attr_sym, direction|
           if !already_ordered_by.include?(attr_sym)
             opts = apply_joins_and_return_opts(attr_sym.to_s)
-            get_collection_ivar.order!((opts[:attr_sym] || attr_sym) => direction)
+            collection.order!((opts[:attr_sym] || attr_sym) => direction)
             already_ordered_by << attr_sym
           end
         end
 
-        defined?(super) ? super : get_collection_ivar
+        defined?(super) ? super : collection
       end
     end
   end

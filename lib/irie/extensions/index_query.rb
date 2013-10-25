@@ -6,6 +6,8 @@ module Irie
       ::Irie.available_extensions[:index_query] = '::' + IndexQuery.name
 
       included do
+        require 'ostruct'
+
         include ::Irie::ParamAliases
 
         class_attribute(:custom_index_query, instance_writer: true) unless self.respond_to? :custom_index_query
@@ -22,7 +24,15 @@ module Irie
       end
 
       def begin_of_association_chain
-        set_collection_ivar(self.custom_index_query ? self.custom_index_query.call(resource_class) : resource_class)
+        return super unless self.custom_index_query
+        query_result = self.custom_index_query.call(resource_class)
+        # we could try to make method_for_association_chain return nil, but I think inherited resources is assuming that
+        # would only be falsey only it is a singleton controller without parents, and I can't guarantee that.
+        if method_for_association_chain
+          OpenStruct.new(method_for_association_chain => query_result)
+        else
+          query_result
+        end
       end
     end
   end

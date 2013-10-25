@@ -5,7 +5,7 @@ PATH
       actionpack (~> 4.0)
       activerecord (~> 4.0)
       activesupport (~> 4.0)
-      inherited_resources (~> 1.4.1)
+      inherited_resources (~> 1.4)
 
 GEM
   remote: https://rubygems.org/

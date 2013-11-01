@@ -6,38 +6,46 @@ module Irie
       extend ::ActiveSupport::Concern
       ::Irie.available_extensions[:autorender_errors] = '::' + AutorenderErrors.name
 
-      def edit
-        logger.debug("Irie::Extensions::AutorenderErrors.edit(#{count.inspect})") if Irie.debug?
-        return super if !resource.respond_to?(:errors) || request.format.html?
-        index! do |format|
-          format.any { render request.format.symbol => { errors: record_or_collection.errors }, status: 422 }
+      if respond_to?(:edit)
+        def edit(options={}, &block)
+          logger.debug("Irie::Extensions::AutorenderErrors.edit") if Irie.debug?
+          return super(options, &block) if request.format.html?
+          edit! do |format|
+            failure.any { render request.format.symbol => { errors: resource.errors }, status: 422 }
+          end
         end
-      end if respond_to?(:edit)
+      end
 
-      def create
-        logger.debug("Irie::Extensions::AutorenderErrors.create(#{count.inspect})") if Irie.debug?
-        return super if !resource.respond_to?(:errors) || request.format.html?
-        index! do |format|
-          format.any { render request.format.symbol => { errors: record_or_collection.errors }, status: 422 }
+      if respond_to?(:create)
+        def create(options={}, &block)
+          logger.debug("Irie::Extensions::AutorenderErrors.create") if Irie.debug?
+          return super(options, &block) if request.format.html?
+          create! do |format|
+            failure.any { render request.format.symbol => { errors: resource.errors }, status: 422 }
+          end
         end
-      end if respond_to?(:create)
+      end
 
-      def update
-        logger.debug("Irie::Extensions::AutorenderErrors.update(#{count.inspect})") if Irie.debug?
-        return super if !resource.respond_to?(:errors) || request.format.html?
-        index! do |format|
-          format.any { render request.format.symbol => { errors: record_or_collection.errors }, status: 422 }
+      if respond_to?(:update)
+        def update(options={}, &block)
+          logger.debug("Irie::Extensions::AutorenderErrors.update") if Irie.debug?
+          return super(options, &block) if request.format.html?
+          update! do |format|
+            failure.any { render request.format.symbol => { errors: resource.errors }, status: 422 }
+          end
         end
-      end if respond_to?(:update)
+      end
 
-      def destroy
-        logger.debug("Irie::Extensions::AutorenderErrors.destroy(#{count.inspect})") if Irie.debug?
-        return super if !resource.respond_to?(:errors) || request.format.html?
-        index! do |format|
-          format.any { render request.format.symbol => { errors: record_or_collection.errors }, status: 422 }
+      if respond_to?(:destroy)
+        def destroy(options={}, &block)
+          logger.debug("Irie::Extensions::AutorenderErrors.destroy") if Irie.debug?
+          return super(options, &block) if request.format.html?
+          destroy! do |format|
+            failure.any { render request.format.symbol => { errors: resource.errors }, status: 422 }
+          end
         end
-      end if respond_to?(:destroy)
-      
+      end
+
     end
   end
 end

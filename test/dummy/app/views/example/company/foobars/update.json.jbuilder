@@ -1,1 +1,0 @@
-json.check "efoobars-update: '#{@foobar.id}', #{foobar_url}, #{foobar_path}"

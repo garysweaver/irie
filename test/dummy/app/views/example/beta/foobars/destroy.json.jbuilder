@@ -1,0 +1,1 @@
+json.check "foobars-destroy: #{@foobar.id}"

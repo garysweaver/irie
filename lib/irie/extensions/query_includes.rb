@@ -50,23 +50,43 @@ module Irie
           end
         end
       end
-
-    protected
       
       def collection
+        logger.debug("Irie::Extensions::QueryIncludes.collection") if Irie.debug?
+        object = super
+        
         this_includes = self.action_to_query_includes[params[:action].to_sym] || self.all_action_query_includes
         if this_includes && this_includes.size > 0
-          collection.includes!(*this_includes)
+          object.includes(*this_includes)
+        else
+          object
         end
-        defined?(super) ? super : collection
+
+        logger.debug("Irie::Extensions::QueryIncludes.collection: relation.to_sql so far: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
+
+        object
       end
 
       def resource
+        logger.debug("Irie::Extensions::QueryIncludes.resource") if Irie.debug?
         this_includes = self.action_to_query_includes[params[:action].to_sym] || self.all_action_query_includes
         if this_includes && this_includes.size > 0
-          resource.includes!(*this_includes)
+          # can return the model class, so won't call bang (includes!) method
+          set_resource_ivar(end_of_association_chain.includes(*this_includes).send(method_for_find, params[:id]))
+        else
+          super
         end
-        defined?(super) ? super : resource
+      end
+
+      def build_resource
+        logger.debug("Irie::Extensions::QueryIncludes.build_resource") if Irie.debug?
+        this_includes = self.action_to_query_includes[params[:action].to_sym] || self.all_action_query_includes
+        if this_includes && this_includes.size > 0
+          # can return the model class, so won't call bang (includes!) method
+          set_resource_ivar(end_of_association_chain.includes(*this_includes).send(method_for_build, *resource_params))
+        else
+          object
+        end
       end
 
     end

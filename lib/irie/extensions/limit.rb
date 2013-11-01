@@ -9,10 +9,16 @@ module Irie
         include ::Irie::ParamAliases
       end
 
-      def index_filters
-        logger.debug("Irie::Extensions::Limit.index_filters") if Irie.debug?
-        aliased_param_values(:limit).each {|param_value| collection.limit!(param_value)}
-        defined?(super) ? super : collection
+      def collection
+        logger.debug("Irie::Extensions::Limit.collection") if Irie.debug?
+        object = super
+        # convert to relation if model class, so we can use bang (limit!) method
+        object = object.all unless object.is_a?(ActiveRecord::Relation)
+        aliased_param_values(:limit).each {|param_value| object.limit!(param_value)}
+
+        logger.debug("Irie::Extensions::Limit.collection: relation.to_sql so far: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
+        
+        object
       end
     end
   end

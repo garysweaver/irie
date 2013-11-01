@@ -16,23 +16,29 @@ module Irie
       end
 
       module ClassMethods
-        # Specify a custom query. If action specified does not have a method, it will alias_method index to create a new action method with that query, e.g.
-        #   index_query ->(q) { q.where(:status_code => 'green') },
+        # Specify a custom query/additional filtering of the collection, e.g.
+        #   index_query ->(q) { q.where(:status_code => 'green') }
+        # You could also completely overwrite the collection which would lead
+        # to certain peril, as you would need to then ensure all filters
+        # are included in the correct order to be executed after the query.
         def index_query(query)
           self.custom_index_query = query
         end
       end
 
-      def begin_of_association_chain
-        return super unless self.custom_index_query
-        query_result = self.custom_index_query.call(resource_class)
-        # we could try to make method_for_association_chain return nil, but I think inherited resources is assuming that
-        # would only be falsey only it is a singleton controller without parents, and I can't guarantee that.
-        if method_for_association_chain
-          OpenStruct.new(method_for_association_chain => query_result)
-        else
-          query_result
+      def collection
+        logger.debug("Irie::Extensions::IndexQuery.collection") if Irie.debug?
+        object = super
+        if self.custom_index_query
+          # convert to relation if model class because proc expects a relation
+          object = object.all unless object.is_a?(ActiveRecord::Relation)
+          a = object.to_s
+          object = self.custom_index_query.call(object)
         end
+
+        logger.debug("Irie::Extensions::IndexQuery.collection: relation.to_sql so far: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
+
+        object
       end
     end
   end

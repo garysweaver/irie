@@ -1,1 +1,0 @@
-json.check "efoobars-create: '#{@foobar.id}', #{foobar_url}, #{foobar_path}"

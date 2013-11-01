@@ -7,7 +7,6 @@ module Irie
 
       included do
         include ::Irie::ParamAliases
-        include ::Irie::Extensions::Common::ParamToThrough
 
         class_attribute(:default_filtered_by, instance_writer: true) unless self.respond_to? :default_filtered_by
         class_attribute(:param_to_attr_and_arel_predicate, instance_writer: true) unless self.respond_to? :param_to_attr_and_arel_predicate
@@ -50,6 +49,7 @@ module Irie
           end
 
           if opt_through
+            raise ::Irie::ConfigurationError.new "Must use extension :params_to_joins to use can_order_by :through" unless ancestors.include?(::Irie::Extensions::ParamsToJoins)
             args.each do |through_key|
               # note: handles cloning, etc.
               self.define_params(through_key => opt_through)
@@ -82,14 +82,17 @@ module Irie
 
       def collection
         logger.debug("Irie::Extensions::ParamFilters.collection") if Irie.debug?
+        object = super
+        # convert to relation if model class, so we can use bang methods to not create multiple instances
+        object = object.all unless object.is_a?(ActiveRecord::Relation)
         filtered_by_param_names = []
         self.param_to_attr_and_arel_predicate.each do |param_name, attr_sym_and_predicate_name|
           attr_sym, predicate_sym = *attr_sym_and_predicate_name
           if params.key?(attr_sym)
-            one_or_more_param = params[attr_sym].to_s.split(self.filter_split).collect{|v| convert_param_value(attr_sym.to_s, v)}
-            opts = apply_joins_and_return_opts(attr_sym.to_s)
+            one_or_more_param = params[attr_sym].to_s.split(self.filter_split).collect{|v| respond_to?(:convert_param_value) ? convert_param_value(attr_sym.to_s, v) : v}
+            object, opts = *apply_joins_and_return_relation_and_opts(object, attr_sym.to_s)
             arel_table = get_arel_table(attr_sym)
-            collection.where!(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, one_or_more_param))
+            object.where!(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, one_or_more_param))
             filtered_by_param_names << attr_sym
           end
         end
@@ -97,14 +100,16 @@ module Irie
         self.default_filtered_by.each do |attr_sym, predicates_to_default_values|
           unless filtered_by_param_names.include?(attr_sym) || predicates_to_default_values.blank?
             predicates_to_default_values.each do |predicate_sym, one_or_more_default_value|
-              opts = apply_joins_and_return_opts(attr_sym.to_s)
+              object, opts = *apply_joins_and_return_relation_and_opts(object, attr_sym.to_s)
               arel_table = get_arel_table(attr_sym)
-              collection.where!(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, Array.wrap(one_or_more_default_value)))
+              object.where!(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, Array.wrap(one_or_more_default_value)))
             end
           end
         end
+
+        logger.debug("Irie::Extensions::ParamFilters.collection: relation.to_sql so far: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
         
-        defined?(super) ? super : collection
+        object
       end
 
     end

@@ -1,13 +1,15 @@
 Dummy::Application.routes.draw do
   resources :barfoos
-  resources :foobars
 
   namespace :example do
-    namespace :company do
+    namespace :alpha do
       #scope '/magic' do
-        resources :foobars
+      resources :foobars
       #end
       resources :special_barfoos
+    end
+    namespace :beta do
+      resources :foobars
     end
   end
 end

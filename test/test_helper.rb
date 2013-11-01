@@ -23,6 +23,10 @@ Rails.backtrace_cleaner.remove_silencers!
 
 require 'irie'
 Irie.debug = true
+ActiveRecord::Base.logger = Logger.new(STDOUT)
+#ActiveRecord::Base.logger = Logger::DEBUG
+ActionController::Base.logger = Logger.new(STDOUT)
+ActionController::Base.logger.level = Logger::DEBUG
 
 # important: we want to ensure that if there is any problem with one class load affecting another
 # (e.g. with helper_method usage for url and path helpers) that we expose that by loading all
@@ -30,42 +34,13 @@ Irie.debug = true
 Rails.application.eager_load!
 
 # Debug routes in Appraisals, since can't just `rake routes`.
-#all_routes = Rails.application.routes.routes
-#require 'action_dispatch/routing/inspector'
-#inspector = ActionDispatch::Routing::RoutesInspector.new(all_routes)
-#puts inspector.format(ActionDispatch::Routing::ConsoleFormatter.new)
-
-def default_json_options
-  {format: :json, use_route: @controller.class.name.gsub('Controller', '').underscore}
-end
-
-def json_index(options = {})
-  get :index, options.reverse_merge(default_json_options)
-end
-
-def json_show(options = {})
-  get :show, options.reverse_merge(default_json_options)
-end
-
-def json_new(options = {})
-  get :new, options.reverse_merge(default_json_options)
-end
-
-def json_edit(options = {})
-  get :edit, options.reverse_merge(default_json_options)
-end
-
-def json_create(options = {})
-  post :create, options.reverse_merge(default_json_options)
-end
-
-def json_update(options = {})
-  put :update, options.reverse_merge(default_json_options)
-end
-
-def json_destroy(options = {})
-  put :destroy, options.reverse_merge(default_json_options)
-end
+all_routes = Rails.application.routes.routes
+require 'action_dispatch/routing/inspector'
+inspector = ActionDispatch::Routing::RoutesInspector.new(all_routes)
+puts inspector.format(ActionDispatch::Routing::ConsoleFormatter.new)
 
 class SomeSubtypeOfStandardError < StandardError
 end
+
+def xtest(*args, &block); end
+

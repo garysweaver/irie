@@ -9,10 +9,14 @@ module Irie
         include ::Irie::ParamAliases
       end
 
-      def index_filters
-        logger.debug("Irie::Extensions::Distinct.index_filters") if Irie.debug?
-        collection.distinct! if first_aliased_param_value(:distinct)
-        defined?(super) ? super : collection
+      def collection
+        logger.debug("Irie::Extensions::Distinct.collection") if Irie.debug?
+        object = super
+        object = object.distinct if first_aliased_param_value(:distinct)
+        
+        logger.debug("Irie::Extensions::Distinct.collection: relation.to_sql so far: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
+
+        object
       end
     end
   end

@@ -7,37 +7,43 @@ module Irie
         self.send("#{key}=".to_sym, ::Irie.send(key)) unless self.send(key.to_sym)
       end
 
+      modules_to_include = extension_syms.dup
+
       self.autoincludes.keys.each do |action_sym|
         if instance_methods.include?(action_sym)
           autoloading_extensions = self.autoincludes[action_sym]
           if autoloading_extensions && autoloading_extensions.size > 0
-            manual_extensions *autoloading_extensions
-            extension_syms -= autoloading_extensions
+            modules_to_include += autoloading_extensions
           end
         end
       end
       
-      manual_extensions extension_syms
+      extensions! modules_to_include
     end
 
-  private
+    # Load extensions in order
+    def extensions!(*extension_syms)
+      extension_syms = extension_syms.flatten.collect {|es| es.to_sym}.compact
 
-    def manual_extensions(*extension_syms)      
+      if extension_syms.include?(:all)
+        ordered_extension_syms = self.extension_include_order.dup
+      else
+        extensions_without_defined_order = extension_syms.uniq - self.extension_include_order.uniq
+        if extensions_without_defined_order.length > 0
+          raise ::Irie::ConfigurationError.new "The following must be added self.extension_include_order in Irie configuration: #{extensions_without_defined_order.collect(&:inspect).join(', ')}"
+        else
+          ordered_extension_syms = self.extension_include_order & extension_syms
+        end
+      end
+
       # load requested extensions
-      extension_syms.flatten.collect {|es| es.to_sym}.compact.each do |arg_sym|
-        if arg_sym == :all
-          self.available_extensions.each do |key, module_class_name|
-            begin
-              include module_class_name.constantize
-            rescue NameError => e
-              raise ::Irie::ConfigurationError.new "Failed to resolve extension module '#{module_class_name}' with key #{key.inspect} in self.available_extensions when including all extensions. Error: \n#{e.message}\n#{e.backtrace.join("\n")}"
-            end
-          end
-        elsif module_class_name = self.available_extensions[arg_sym]
+      ordered_extension_syms.each do |arg_sym|
+        if module_class_name = self.available_extensions[arg_sym]
           begin
+            logger.debug("Irie::ClassMethods.extensions! #{self} including #{module_class_name}") if Irie.debug?
             include module_class_name.constantize
           rescue NameError => e
-            raise ::Irie::ConfigurationError.new "Failed to resolve extension module '#{module_class_name}' with key #{arg_sym.inspect} in self.available_extensions. Error: \n#{e.message}\n#{e.backtrace.join("\n")}"
+            raise ::Irie::ConfigurationError.new "Failed to constantize '#{module_class_name}' with extension key #{arg_sym.inspect} in self.available_extensions. Error: \n#{e.message}\n#{e.backtrace.join("\n")}"
           end      
         else
           raise ::Irie::ConfigurationError.new "#{arg_sym.inspect} isn't defined in self.available_extensions"

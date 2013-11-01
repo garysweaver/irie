@@ -1,1 +1,0 @@
-json.check "efoobars-show: '#{@foobar.id}', #{foobar_url}, #{foobar_path}"

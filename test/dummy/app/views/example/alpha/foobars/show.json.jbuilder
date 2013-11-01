@@ -1,0 +1,1 @@
+json.check "foobars-show: #{@foobar.id}"

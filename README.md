@@ -124,20 +124,15 @@ Irie.configure do
   # Used when paging is enabled.
   self.number_of_records_in_a_page = 15
 
-  # When you include the defined action module, it includes the associated modules.
-  # If value or value array contains symbol it will look up symbol in 
-  # Irie.available_extensions in the controller (which is defaulted to 
-  # `::Irie.available_extensions`). If value is String will assume String is the
-  # fully-qualified module name to include, e.g. `index: '::My::Module'`, If constant,
-  # it will just include constant (module), e.g. `index: ::My::Module`.
+  # Included if the action method exists when `extensions` is called.
   self.autoincludes = {
-    create: [:query_includes, :render_options, :resource_path_and_url],
-    destroy: [:query_includes, :render_options, :resource_path_and_url],
-    edit: [:query_includes, :render_options, :edit_path_and_url],
-    index: [:index_query, :order, :param_filters, :query_filter, :query_includes, :collection_path_and_url],
-    new: [:new_path_and_url],
-    show: [:query_includes, :resource_path_and_url],
-    update: [:query_includes, :render_options, :resource_path_and_url]
+    create: [:query_includes],
+    destroy: [:query_includes],
+    edit: [:query_includes],
+    index: [:index_query, :order, :param_filters, :query_filter, :query_includes],
+    new: [],
+    show: [:query_includes],
+    update: [:query_includes]
   }
 
 end
@@ -519,8 +514,29 @@ module ServiceController
     inherit_resources
     respond_to :json
 
-    # note: Referencing as string so we don't load the concern before it is used.
+    # reference as string so we don't load the concern before it is used.
+    
     ::Irie.available_extensions[:boolean_params] = '::BooleanParams'
+
+    # this is order of inclusion but often the order is not the same as its
+    # effective execution, e.g. often super is called at the beginning of a
+    # composed collection method to work with I.R.'s collection, but that in
+    # turn calls the next include up the chain, effectively somewhat 
+    # reversing the execution order of the extensions.
+    #
+    # so, for anything that wants to be at the beginning of a filter chain,
+    # like param value conversion, it may be ok to use +=, e.g.
+    #   ::Irie.extension_include_order += :an_ext
+    # to include before :count (for example), use:
+    #   ::Irie.extension_include_order.insert
+    #     ::Irie.extension_include_order.index(:count)), :ext_a, :ext_b
+    # to include at the end, use unshift, e.g.:
+    #   ::Irie.extension_include_order.unshift :an_ext
+    # so in this case, we just append since we want it included last.
+    # The more explicit way to do it is to redefine the entire order list
+    # here or in the initializer for Irie configuration.
+
+    ::Irie.extension_include_order += :boolean_params
   end
 
 end

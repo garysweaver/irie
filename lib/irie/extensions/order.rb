@@ -7,7 +7,6 @@ module Irie
 
       included do
         include ::Irie::ParamAliases
-        include ::Irie::Extensions::Common::ParamToThrough
 
         class_attribute(:can_be_ordered_by, instance_writer: true) unless self.respond_to? :can_be_ordered_by
         class_attribute(:default_ordered_by, instance_writer: true) unless self.respond_to? :default_ordered_by
@@ -42,9 +41,10 @@ module Irie
           end
 
           if opt_through
+            raise ::Irie::ConfigurationError.new "Must use extension :params_to_joins to use can_order_by :through" unless ancestors.include?(::Irie::Extensions::ParamsToJoins)
             args.each do |through_key|
               # note: handles cloning, etc.
-              self.add_param_to_through(through_key.to_sym, opt_through)
+              self.add_params_to_joins(through_key.to_sym, opt_through)
             end
           end
         end
@@ -77,7 +77,10 @@ module Irie
       end
 
       def collection
-        logger.debug("Irie::Extensions::Order.after_index_filters") if Irie.debug?
+        logger.debug("Irie::Extensions::Order.collection") if Irie.debug?
+        object = super
+        # convert to relation if model class, so we can use bang methods to not create multiple instances
+        object = object.all unless object.is_a?(ActiveRecord::Relation)
         already_ordered_by = []
         aliased_param_values(:order).reject{|v| v.nil?}.each do |param_value|
           order_params = param_value.split(self.filter_split)
@@ -99,8 +102,8 @@ module Irie
             # be sure to pass in the same param name as the default param it is trying to override,
             # if there is one.
             if self.can_be_ordered_by.include?(order_param_value) && !already_ordered_by.include?(order_param_value.to_sym)
-              opts = apply_joins_and_return_opts(order_param_value.to_s)
-              collection.order!((opts[:attr_sym] || order_param_value.to_sym) => direction)
+              object, opts = *apply_joins_and_return_relation_and_opts(object, order_param_value.to_s)
+              object.order!((opts[:attr_sym] || order_param_value.to_sym) => direction)
               already_ordered_by << order_param_value.to_sym
             end
           end
@@ -108,13 +111,15 @@ module Irie
 
         self.default_ordered_by.each do |attr_sym, direction|
           if !already_ordered_by.include?(attr_sym)
-            opts = apply_joins_and_return_opts(attr_sym.to_s)
-            collection.order!((opts[:attr_sym] || attr_sym) => direction)
+            object, opts = *apply_joins_and_return_relation_and_opts(object, attr_sym.to_s)
+            object.order!((opts[:attr_sym] || attr_sym) => direction)
             already_ordered_by << attr_sym
           end
         end
 
-        defined?(super) ? super : collection
+        logger.debug("Irie::Extensions::Order.collection: relation.to_sql so far: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
+
+        object
       end
     end
   end

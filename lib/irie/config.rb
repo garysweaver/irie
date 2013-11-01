@@ -11,7 +11,8 @@ module Irie
     :id_is_primary_key_param,
     :number_of_records_in_a_page,
     :predicate_prefix,
-    :update_should_return_entity
+    :update_should_return_entity,
+    :extension_include_order
   ]
 
   class << self
@@ -52,11 +53,34 @@ Irie.configure do
     create: [:query_includes],
     destroy: [:query_includes],
     edit: [:query_includes],
-    index: [:index_query, :order, :param_filters, :query_filter, :query_includes],
+    index: [:index_query, :order, :param_filters, :params_to_joins, :query_filter, :query_includes],
     new: [],
     show: [:query_includes],
     update: [:query_includes]
   }
+
+  # This ensures the correct order of includes via the extensions method. It bears no
+  # relevance on whether the include is included or not. Since many includes call
+  # super in their methods, the order may seem partially reversed, but this is the actual
+  # include order. If extensions are not listed here, they will not be included by
+  # the extensions method.
+  self.extension_include_order = [
+    :autorender_errors,
+    :autorender_page_count,
+    :autorender_count,
+    :count,
+    :paging,
+    :order,
+    :offset,
+    :limit,
+    :distinct,
+    :param_filters,
+    :query_filter,
+    :params_to_joins,
+    :query_includes,
+    :index_query,
+    :nil_params
+  ]
 
   # By default, it sets the instance variable, but does not return entity if request
   # update, e.g. in JSON format.

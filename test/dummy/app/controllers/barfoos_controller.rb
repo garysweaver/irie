@@ -12,7 +12,11 @@ class BarfoosController < ApplicationController
 
 private
 
-  def permitted_params
-    params.permit(:id)
+  #def permitted_params
+  #  params.permit(barfoo: [:id])
+  #end
+
+  def build_resource_params
+    [params.require(:barfoo).permit(:id)]
   end
 end

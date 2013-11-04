@@ -9,16 +9,16 @@ module Irie
         include ::Irie::ParamAliases
       end
 
+      protected
+
       def collection
         logger.debug("Irie::Extensions::Offset.collection") if Irie.debug?
         object = super
-        # convert to relation if model class, so we can use bang (offset!) method
-        object = object.all unless object.is_a?(ActiveRecord::Relation)
-        aliased_param_values(:offset).each {|param_value| object.offset!(param_value)}
+        aliased_param_values(:offset).each {|param_value| object = object.offset(param_value)}
 
         logger.debug("Irie::Extensions::Offset.collection: relation.to_sql so far: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
 
-        object
+        set_collection_ivar object
       end
     end
   end

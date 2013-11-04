@@ -1,9 +1,8 @@
 require 'irie/version'
 require 'irie/configuration_error'
 require 'irie/config'
-require 'inherited_resources/overrides'
-#require 'inherited_resources/base_helpers'
 require 'irie/class_methods'
+require 'inherited_resources/overrides'
 require 'irie/param_aliases'
 require 'irie/extensions/autorender_count'
 require 'irie/extensions/autorender_errors'
@@ -20,6 +19,7 @@ require 'irie/extensions/paging'
 require 'irie/extensions/param_filters'
 require 'irie/extensions/query_filter'
 require 'irie/extensions/query_includes'
+require 'irie/extensions/update_includes_resource'
 
 class ActionController::Base
   extend Irie::ClassMethods

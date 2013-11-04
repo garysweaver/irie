@@ -18,5 +18,8 @@ private
 
   def build_resource_params
     [params.require(:barfoo).permit(:id)]
+  rescue => e
+    #TODO: fix? wrapped param optional if new
+    raise unless params[:action] == 'new' && e.message == 'param not found: barfoo'
   end
 end

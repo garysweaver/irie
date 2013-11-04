@@ -10,7 +10,7 @@ module Example
       # see: https://github.com/ryanb/cancan/wiki/Inherited-Resources
       load_and_authorize_resource
       
-      define_param renamed_foo_id: :foo_id
+      define_params renamed_foo_id: :foo_id
       can_filter_by_query a_query: ->(q, param_value) { q.where(foo_id: param_value) }
       can_filter_by :foo_id
       can_filter_by :renamed_foo_id
@@ -32,6 +32,9 @@ module Example
 
       def build_resource_params
         [params.require(:foobar).permit(:id, :foo_id, foo_attributes: [:id, :code])]
+      rescue => e
+        #TODO: fix? wrapped param optional if new
+        raise unless params[:action] == 'new' && e.message == 'param not found: foobar'
       end
     end
   end

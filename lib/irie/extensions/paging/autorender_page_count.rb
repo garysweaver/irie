@@ -6,6 +6,8 @@ module Irie
         extend ::ActiveSupport::Concern
         ::Irie.available_extensions[:autorender_page_count] = '::' + AutorenderPageCount.name
 
+        protected
+
         def autorender_page_count(options={}, &block)
           logger.debug("Irie::Extensions::Paging::AutorenderPageCount.autorender_page_count") if Irie.debug?
           index! do |format|

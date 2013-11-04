@@ -5,6 +5,8 @@ module Irie
       extend ::ActiveSupport::Concern
       ::Irie.available_extensions[:autorender_count] = '::' + AutorenderCount.name
 
+      protected
+      
       def autorender_count(options={}, &block)
         logger.debug("Irie::Extensions::AutorenderCount.autorender_count") if Irie.debug?
         index! do |format|

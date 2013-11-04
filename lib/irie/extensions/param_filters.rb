@@ -16,6 +16,9 @@ module Irie
       end
 
       module ClassMethods
+
+        protected
+        
         # A whitelist of filters and definition of filter options related to request parameters.
         #
         # If no options are provided or the :using option is provided, defines attributes that are queryable through the operation(s) already defined in can_filter_by_default_using, or can specify attributes:
@@ -80,11 +83,12 @@ module Irie
         end
       end
 
+      protected
+
       def collection
         logger.debug("Irie::Extensions::ParamFilters.collection") if Irie.debug?
         object = super
         # convert to relation if model class, so we can use bang methods to not create multiple instances
-        object = object.all unless object.is_a?(ActiveRecord::Relation)
         filtered_by_param_names = []
         self.param_to_attr_and_arel_predicate.each do |param_name, attr_sym_and_predicate_name|
           attr_sym, predicate_sym = *attr_sym_and_predicate_name
@@ -92,7 +96,7 @@ module Irie
             one_or_more_param = params[attr_sym].to_s.split(self.filter_split).collect{|v| respond_to?(:convert_param_value) ? convert_param_value(attr_sym.to_s, v) : v}
             object, opts = *apply_joins_and_return_relation_and_opts(object, attr_sym.to_s)
             arel_table = get_arel_table(attr_sym)
-            object.where!(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, one_or_more_param))
+            object = object.where(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, one_or_more_param))
             filtered_by_param_names << attr_sym
           end
         end
@@ -102,14 +106,14 @@ module Irie
             predicates_to_default_values.each do |predicate_sym, one_or_more_default_value|
               object, opts = *apply_joins_and_return_relation_and_opts(object, attr_sym.to_s)
               arel_table = get_arel_table(attr_sym)
-              object.where!(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, Array.wrap(one_or_more_default_value)))
+              object = object.where(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, Array.wrap(one_or_more_default_value)))
             end
           end
         end
 
         logger.debug("Irie::Extensions::ParamFilters.collection: relation.to_sql so far: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
         
-        object
+        set_collection_ivar object
       end
 
     end

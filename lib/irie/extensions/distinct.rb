@@ -9,6 +9,8 @@ module Irie
         include ::Irie::ParamAliases
       end
 
+      protected
+      
       def collection
         logger.debug("Irie::Extensions::Distinct.collection") if Irie.debug?
         object = super
@@ -16,7 +18,7 @@ module Irie
         
         logger.debug("Irie::Extensions::Distinct.collection: relation.to_sql so far: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
 
-        object
+        set_collection_ivar object
       end
     end
   end

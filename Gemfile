@@ -2,7 +2,7 @@ source 'https://rubygems.org'
 
 gemspec
 # why isn't it using the gemspec in non-Appraisal tests?
-gem 'inherited_resources'
+gem 'inherited_resources', github: 'josevalim/inherited_resources'
 
 gem 'appraisal', '~> 0.5.2'
 gem 'cancan', '~> 1.6.10'

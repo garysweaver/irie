@@ -9,7 +9,7 @@ module Example
       extensions :all
       
       # make it use Barfoo class under the hood
-      defaults resource_class: Barfoo
+      defaults resource_class: Barfoo, :collection_name => 'barfoos', :instance_name => 'barfoo'
 
       index_query ->(q) {q.where(:status => 2)}
 
@@ -21,6 +21,9 @@ module Example
 
       def build_resource_params
         [params.require(:barfoo).permit(:id, :favorite_food)]
+      rescue => e
+        #TODO: fix? wrapped param optional if new
+        raise unless params[:action] == 'new' && e.message == 'param not found: barfoo'
       end
     end
   end

@@ -1,28 +1,33 @@
 module Irie
   module ClassMethods
 
+    protected
+
     def extensions(*extension_syms)
       ::Irie::CONTROLLER_OPTIONS.each do |key|
         class_attribute key, instance_writer: true unless respond_to?(key)
+        # doing unless self.send(key.to_sym) to ensure parent override of defaults is kept
         self.send("#{key}=".to_sym, ::Irie.send(key)) unless self.send(key.to_sym)
       end
 
-      modules_to_include = extension_syms.dup
+      #raise "self.inherited_resources_defined_actions = #{inherited_resources_defined_actions.inspect}\n\ninstance_methods = #{self.instance_methods.collect(&:to_s).sort.join(', ')}\n\nself.autoincludes = #{self.autoincludes.inspect}" if $gary
 
       self.autoincludes.keys.each do |action_sym|
-        if instance_methods.include?(action_sym)
+        if self.inherited_resources_defined_actions.include?(action_sym.to_sym)
           autoloading_extensions = self.autoincludes[action_sym]
           if autoloading_extensions && autoloading_extensions.size > 0
-            modules_to_include += autoloading_extensions
+            extension_syms += autoloading_extensions
           end
         end
       end
       
-      extensions! modules_to_include
+      extensions! extension_syms
     end
 
-    # Load extensions in order
+    # Load specified extensions in the order defined by self.extension_include_order.
     def extensions!(*extension_syms)
+      return extension_syms if extension_syms.length == 0
+
       extension_syms = extension_syms.flatten.collect {|es| es.to_sym}.compact
 
       if extension_syms.include?(:all)
@@ -49,6 +54,8 @@ module Irie
           raise ::Irie::ConfigurationError.new "#{arg_sym.inspect} isn't defined in self.available_extensions"
         end
       end
+
+      extension_syms
     end
   end
 end

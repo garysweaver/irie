@@ -16,6 +16,9 @@ module Irie
       end
 
       module ClassMethods
+
+        protected
+        
         # A whitelist of orderable attributes.
         #
         # If no options are provided or the :using option is provided, defines attributes that are orderable through the operation(s) already defined in can_filter_by_default_using, or can specify attributes:
@@ -76,11 +79,12 @@ module Irie
         end
       end
 
+      protected
+
       def collection
         logger.debug("Irie::Extensions::Order.collection") if Irie.debug?
         object = super
-        # convert to relation if model class, so we can use bang methods to not create multiple instances
-        object = object.all unless object.is_a?(ActiveRecord::Relation)
+        
         already_ordered_by = []
         aliased_param_values(:order).reject{|v| v.nil?}.each do |param_value|
           order_params = param_value.split(self.filter_split)
@@ -103,23 +107,29 @@ module Irie
             # if there is one.
             if self.can_be_ordered_by.include?(order_param_value) && !already_ordered_by.include?(order_param_value.to_sym)
               object, opts = *apply_joins_and_return_relation_and_opts(object, order_param_value.to_s)
-              object.order!((opts[:attr_sym] || order_param_value.to_sym) => direction)
+              # Important note! the behavior of this got reversed between Rails 4.0.0 and 4.0.1:
+              # http://weblog.rubyonrails.org/2013/11/1/Rails-4-0-1-has-been-released/
+              object = object.order((opts[:attr_sym] || order_param_value.to_sym) => direction)
               already_ordered_by << order_param_value.to_sym
             end
           end
+
+          set_collection_ivar object
+
+          object
         end
 
         self.default_ordered_by.each do |attr_sym, direction|
           if !already_ordered_by.include?(attr_sym)
             object, opts = *apply_joins_and_return_relation_and_opts(object, attr_sym.to_s)
-            object.order!((opts[:attr_sym] || attr_sym) => direction)
+            object = object.order((opts[:attr_sym] || attr_sym) => direction)
             already_ordered_by << attr_sym
           end
         end
 
         logger.debug("Irie::Extensions::Order.collection: relation.to_sql so far: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
 
-        object
+        set_collection_ivar object
       end
     end
   end

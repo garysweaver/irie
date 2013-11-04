@@ -68,6 +68,7 @@ Irie.configure do
     :autorender_errors,
     :autorender_page_count,
     :autorender_count,
+    :update_includes_resource,
     :count,
     :paging,
     :order,

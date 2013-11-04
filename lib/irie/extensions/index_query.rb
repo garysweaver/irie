@@ -16,6 +16,9 @@ module Irie
       end
 
       module ClassMethods
+
+        protected
+        
         # Specify a custom query/additional filtering of the collection, e.g.
         #   index_query ->(q) { q.where(:status_code => 'green') }
         # You could also completely overwrite the collection which would lead
@@ -25,6 +28,8 @@ module Irie
           self.custom_index_query = query
         end
       end
+
+      protected
 
       def collection
         logger.debug("Irie::Extensions::IndexQuery.collection") if Irie.debug?
@@ -38,7 +43,7 @@ module Irie
 
         logger.debug("Irie::Extensions::IndexQuery.collection: relation.to_sql so far: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
 
-        object
+        set_collection_ivar object
       end
     end
   end

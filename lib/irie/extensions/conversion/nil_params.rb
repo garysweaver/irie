@@ -8,6 +8,8 @@ module Irie
 
         NILS = ['NULL'.freeze, 'null'.freeze, 'nil'.freeze].to_set
 
+        protected
+
         # Converts request param values 'NULL', 'null', and 'nil' to nil.
         def convert_param_value(param_name, param_value)
           logger.debug("Irie::Extensions::Conversion::NilParams.convert_param_value(#{param_name.inspect}, #{param_value.inspect})") if Irie.debug?

@@ -8,7 +8,7 @@ module Irie
       included do
         include ::Irie::ParamAliases
       end
-
+      
       def index(options={}, &block)
         logger.debug("Irie::Extensions::Count.index") if Irie.debug?
         super(options, &block) unless first_aliased_param_value(:count)

@@ -490,6 +490,8 @@ Here's another example:
 module BooleanParams
   extend ::ActiveSupport::Concern
 
+  protected
+
   def convert_param_value(param_name, param_value)
     case param_value
     when 'true'

@@ -12,6 +12,9 @@ module Irie
       end
 
       module ClassMethods
+
+        protected
+        
         # An alterative method to defining :through options (for can_filter_by, can_order_by, etc.)
         # in a single place that isn't on the same line as another class method.
         #
@@ -63,16 +66,22 @@ module Irie
 
           self.params_to_joins
         end
-        alias_method :define_param, :define_params
       end
+
+      protected
 
       # Call .joins! on the relation with configured :through options after parsing them
       # and then return a new options hash that has :attr_name and may have :joins if
       # define_params was called or :through option was used.
       def apply_joins_and_return_relation_and_opts(relation, param_name)
+        logger.debug("Irie::Extensions::ParamsToJoins.apply_joins_and_return_relation_and_opts") if Irie.debug?
+
         old_param_name = param_name
         opts = self.params_to_joins[param_name.to_s] || {}
-        relation.joins(opts[:joins]) if opts[:joins]
+        if opts[:joins]
+          relation = relation.joins(opts[:joins])
+          logger.debug("Irie::Extensions::ParamsToJoins.apply_joins_and_return_relation_and_opts: relation.to_sql so far: #{relation.to_sql}") if Irie.debug?
+        end
         [relation, opts.reverse_merge(attr_name: param_name.to_sym)]
       end
 

@@ -39,9 +39,9 @@ class Example::Alpha::TestSpecialBarfoosController < ActionDispatch::Integration
     b = Barfoo.create(status: 1, favorite_food: "borscht", favorite_drink: "vodka")
     favorite_food = "test"
     put "/example/alpha/special_barfoos/#{b.id}.json", barfoo: {favorite_food: favorite_food}
-    # returning 204 because controller by default won't return entity with update per RFC 2616: http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.1
-    assert_equal 204, response.status, "unexpected code from update (got #{response.status}): #{response.body}"
-    assert_match '', response.body
+    
+    assert_equal 200, response.status, "unexpected code from update (got #{response.status}): #{response.body}"
+    assert_match '{"check":"special_barfoos-update: test"', response.body
     assert Barfoo.where(favorite_food: favorite_food).to_a.size > 0, "should have updated param"
   end
 

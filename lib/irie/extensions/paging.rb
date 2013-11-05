@@ -13,6 +13,13 @@ module Irie
         self.number_of_records_in_a_page = ::Irie.number_of_records_in_a_page
       end
 
+      def index(options={}, &block)
+        logger.debug("Irie::Extensions::Count.index") if Irie.debug?
+        return super(options, &block) unless aliased_param_specified?(:page_count)
+        @page_count = (collection.count.to_f / self.number_of_records_in_a_page.to_f).ceil
+        return respond_to?(:autorender_page_count, true) ? autorender_page_count(options, &block) : index!(options, &block)
+      end
+
       protected
 
       def collection

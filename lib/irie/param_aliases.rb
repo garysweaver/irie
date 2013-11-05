@@ -17,10 +17,20 @@ module Irie
       end
     end
 
+    def aliased_param_specified?(function_sym)
+      logger.debug("Irie::ParamAliases.aliased_param_key?(#{function_sym.inspect})") if Irie.debug?
+      if self.function_param_names.key?(function_sym)
+        self.function_param_names[function_sym].select {|v| params.key?(v)}.any? {|param_name| params.key?(param_name)}
+      else
+        params.key?(function_sym)
+      end
+    end
+
     # Same as aliased_param_values(function_sym).first.
     def first_aliased_param_value(function_sym)
       logger.debug("Irie::ParamAliases.first_aliased_param_value(#{function_sym.inspect})") if Irie.debug?
       aliased_param_values(function_sym).first
     end
+
   end
 end

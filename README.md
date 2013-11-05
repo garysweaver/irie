@@ -4,7 +4,7 @@
 
 Inherited Resources including extensions.
 
-Extend [Inherited Resources][inherited_resources] actions with request parameter-driven filtering, sorting, pagination, and more:
+Extend [Inherited Resources][inherited_resources] actions with modules request parameter-driven filtering, sorting, pagination, and more. It's like using a more powerful version of [has_scope][has_scope], but with cleaner request URLs in some cases, and without having to add model scopes and controller methods just to do something controller-specific.
 
 ```ruby
 class PostsController < ApplicationController
@@ -166,19 +166,23 @@ The following assumes that you are using the default autoincludes and included t
 
 #### Filtering by Attribute(s)
 
-`can_filter_by` filters the index action the request parameter name as a symbol will filter the results by the value of that request parameter, e.g.:
+Inherited Resources has `has_scope` via the [has_scope][has_scope] dependency, which is still available for use, and is very powerful. But, Irie also has `can_filter_by`. It is an alternative, not a replacement.
+
+Unlike `has_scope`, `can_filter_by` doesn't require a `scope` on the model and `has_scope` on the controller. Instead you just have a single `can_filter_by` in the controller rather. Other differences are that the request parameter syntax is more brief, and it adds support for defining deeply associated attributes via either `define_params` or a `through` option.
+
+Like the combination of `scope` and `has_scope`, `can_filter_by` filters the index action the request parameter name as a symbol will filter the results by the value of that request parameter, e.g.:
 
 ```ruby
 can_filter_by :title
 ```
 
-allows you to filter by title:
+allows you to:
 
 ```
 http://localhost:3000/posts?title=Awesome
 ```
 
-If you do `Arel::Predications.public_instance_methods.sort` in Rails console, you can see a list of the available predicates:
+And, like `has_scope`, predications are supported. Do `Arel::Predications.public_instance_methods.sort` in Rails console to see the list:
 
 ```ruby
 :does_not_match, :does_not_match_all, :does_not_match_any, :eq, :eq_all, :eq_any, :gt,
@@ -187,19 +191,19 @@ If you do `Arel::Predications.public_instance_methods.sort` in Rails console, yo
 :not_eq_all, :not_eq_any, :not_in, :not_in_all, :not_in_any
 ```
 
-`:using` means you can use those [ARel][arel] predicates for filtering:
+You can specify these via the `using:` option:
 
 ```ruby
 can_filter_by :seen_on, using: [:gteq, :eq_any]
 ```
 
-By appending the predicate prefix (`.` by default) to the request parameter name, you can use any [ARel][arel] predicate you allowed, e.g.:
+But, unlike `has_scope` which uses a much lengthier request parameter syntax, by appending the predicate prefix (`.` by default) to the request parameter name, you can use any [ARel][arel] predicate you allowed, e.g.:
 
 ```
 http://localhost:3000/posts?seen_on.gteq=2012-08-08
 ```
 
-And `can_filter_by` can specify a `:through` which (inner) joins and sets the deepest symbol in the hash as the key for the parameter value, then does a where, e.g.:
+And, `can_filter_by` supports (inner) joins created by `define_params` or if you'd rather, you can specify a `:through` which (inner) joins and sets the deepest symbol in the hash as the key for the parameter value, then does a where, e.g.:
 
 ```ruby
 can_filter_by :name, through: {company: {employee: :full_name}}
@@ -218,7 +222,7 @@ and use this to get valleys associated with unicorns who in turn have a friend n
 http://localhost:3000/magical_valleys?magical_unicorn_friend_name=Oscar
 ```
 
-Use `can_filter_by_query` to provide a lambda:
+Similar to specifying a proc/lambda in the `scope` and then using `has_scope` to use it, or defining a `scope` in the model and defining `has_scope` and passing a block into it, you can use `can_filter_by_query`, but again you only have to define something in the controller- not the model and controller. It works a little bit differently; the proc/lambda is in the context of the controller, so unlike the `has_scope` that takes a block, the `controller` doesn't have to be passed in, since that is `self`. The relation object is passed in as `q`, e.g.:
 
 ```ruby
 can_filter_by_query a_request_param_name: ->(q, param_value) {
@@ -226,15 +230,26 @@ can_filter_by_query a_request_param_name: ->(q, param_value) {
 }
 ```
 
-The second argument sent to the lambda is the request parameter value converted by the `convert_param_value(param_name, param_value)` method which may be customized. See elsewhere in this document for more information about the behavior of this method.
+The second argument sent to the lambda (`param_value`) is the request parameter value converted by the `convert_param_value(param_name, param_value)` method, which may be customized through included extensions or your own extension. See elsewhere in this document for more information about the behavior of this method.
 
 The return value of the lambda becomes the new query, so you could really change the behavior of the query depending on the request parameter provided.
 
 ##### Customizing Request Parameter Value Conversion
 
-Implement the `convert_param_value(param_name, param_value)` in your controller or an included module.
+Implement the `convert_param_value(param_name, param_value)` in your controller or an included module, e.g.
+
+```ruby
+  protected
+
+  def convert_param_value(param_name, param_value)
+    # ... make changes as needed and return the converted param_value
+    param_value
+  end
+```
 
 #### Default Filters
+
+Like the combination of `scope` and `has_scope` available via [has_scope][has_scope], which you can still use, defaults are supported that are compatible with `can_filter_by`.
 
 Specify default filters to define attributes, ARel predicates, and values to use if no filter is provided by the client with the same param name, e.g. if you have:
 
@@ -246,23 +261,9 @@ Specify default filters to define attributes, ARel predicates, and values to use
                     lteq: 1.year.from_now
 ```
 
-and both attr_name_1 and production_date are supplied by the client, then it would filter by the client's attr_name_1 and production_date and filter creation_date by both > 1 year ago and <= 1 year from now.
+and both `attr_name_1` and `production_date` are supplied by the client, then it would filter by the client's `attr_name_1` and `production_date` and filter creation_date by both > 1 year ago and <= 1 year from now.
 
 #### Extensions
-
-##### Distinct
-
-In the controller:
-
-```ruby
-extensions :distinct
-```
-
-enables:
-
-```
-http://localhost:3000/posts?distinct=
-```
 
 ##### Count
 
@@ -473,7 +474,6 @@ default_filter_by :color, eq: 'blue'
 The following concerns, which you can include via `extensions ...` or via including the corresponding module, might also be of use in your controller:
 
 * `:nil_params` - convert 'NULL', 'null', and 'nil' to nil when passed in as request params.
-* `:autorender_errors` - renders validation errors (e.g. `@my_model.errors`) for non-HTML (JSON, etc.) formats without a view template.
 
 #### Writing Your Own Extensions
 

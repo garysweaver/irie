@@ -65,16 +65,13 @@ Irie.configure do
   # include order. If extensions are not listed here, they will not be included by
   # the extensions method.
   self.extension_include_order = [
-    :autorender_errors,
     :autorender_page_count,
     :autorender_count,
-    :update_includes_resource,
     :count,
     :paging,
     :order,
     :offset,
     :limit,
-    :distinct,
     :param_filters,
     :query_filter,
     :params_to_joins,

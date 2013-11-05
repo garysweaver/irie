@@ -4,22 +4,20 @@ class BarfoosController < ApplicationController
   inherit_resources
 
   actions :all
-  # among other things this checks that authorizing called after index_query still works
-  extensions :all
+  extensions :count, :autorender_count, :paging, :autorender_page_count
   
   index_query ->(q) {q.where(:status => 2)}
   query_includes :foo
 
+  def resource
+    b = super
+    b.errors.add(:base, "sample #{params[:action]} errors") if $resource_has_errors
+    set_resource_ivar b
+  end
+
 private
 
-  #def permitted_params
-  #  params.permit(barfoo: [:id])
-  #end
-
   def build_resource_params
-    [params.require(:barfoo).permit(:id)]
-  rescue => e
-    #TODO: fix? wrapped param optional if new
-    raise unless params[:action] == 'new' && e.message == 'param not found: barfoo'
+    [params.require(:barfoo).permit(:id, :favorite_food)]
   end
 end

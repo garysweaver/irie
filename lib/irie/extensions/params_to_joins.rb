@@ -35,7 +35,7 @@ module Irie
 
           options.each do |param_name, through_val|
             param_name = param_name.to_s
-            self.params_to_joins[param_name] = (convert = ->(hsh, orig=nil) do
+            self.params_to_joins[param_name.to_s] = (convert = ->(hsh, orig=nil) do
               orig ||= hsh
               case hsh
               when String, Symbol

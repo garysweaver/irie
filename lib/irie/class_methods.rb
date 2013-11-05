@@ -13,7 +13,7 @@ module Irie
       #raise "self.inherited_resources_defined_actions = #{inherited_resources_defined_actions.inspect}\n\ninstance_methods = #{self.instance_methods.collect(&:to_s).sort.join(', ')}\n\nself.autoincludes = #{self.autoincludes.inspect}" if $gary
 
       self.autoincludes.keys.each do |action_sym|
-        if self.inherited_resources_defined_actions.include?(action_sym.to_sym)
+        if self.instance_methods.include?(action_sym.to_sym)
           autoloading_extensions = self.autoincludes[action_sym]
           if autoloading_extensions && autoloading_extensions.size > 0
             extension_syms += autoloading_extensions

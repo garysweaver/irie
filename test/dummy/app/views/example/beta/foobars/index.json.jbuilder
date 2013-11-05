@@ -1,1 +1,0 @@
-json.check "foobars-index: size=#{@foobars.length}, ids=#{@foobars.collect(&:id).join(',')}"

@@ -1,1 +1,0 @@
-json.check "foobars-new: #{@foobar.id}"

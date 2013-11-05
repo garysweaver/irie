@@ -15,15 +15,8 @@ module Example
 
     private
 
-      #def permitted_params
-      #  params.permit(barfoo: [:id, :favorite_food])
-      #end
-
       def build_resource_params
         [params.require(:barfoo).permit(:id, :favorite_food)]
-      rescue => e
-        #TODO: fix? wrapped param optional if new
-        raise unless params[:action] == 'new' && e.message == 'param not found: barfoo'
       end
     end
   end

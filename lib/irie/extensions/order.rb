@@ -47,7 +47,7 @@ module Irie
             raise ::Irie::ConfigurationError.new "Must use extension :params_to_joins to use can_order_by :through" unless ancestors.include?(::Irie::Extensions::ParamsToJoins)
             args.each do |through_key|
               # note: handles cloning, etc.
-              self.add_params_to_joins(through_key.to_sym, opt_through)
+              self.define_params(through_key => opt_through)
             end
           end
         end

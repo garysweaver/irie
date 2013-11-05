@@ -88,6 +88,9 @@ class Example::Alpha::TestFoobarsController < ActionDispatch::IntegrationTest
   end
 
   test 'new assigns foobar' do
+    # note: the foobar get param is a problem with allowing params to be used to
+    # initialize a new object while using require in the method for S.P.
+    # rather than an inherent problem with using IR or Irie.
     get "/example/alpha/foobars/new.json"
     #assert assigns(:foobar).is_a?(Foobar)
     assert_equal response.status, 200, "new returned unexpected response code (got #{response.status}): #{response.body}"
@@ -179,7 +182,7 @@ class Example::Alpha::TestFoobarsController < ActionDispatch::IntegrationTest
     patch "/example/alpha/foobars/#{foobar.id}.json", foobar: {foo_id: foo_id}
     # this controller is set to return entity on update, so will return 200 instead of 204
     assert_equal 200, response.status, "update returned unexpected response code (got #{response.status}): #{response.body}"
-    assert_match "{\"check\":\"foobars-update: #{Foobar.last.id}\"}", response.body # no! need to fix
+    assert_match "{\"check\":\"foobars-update: #{Foobar.last.id}\"}", response.body
     assert_equal foo_id, Foobar.find(foobar.id).foo_id, "should have updated param"
   end
 

@@ -6,7 +6,7 @@ module Example
       inherit_resources
 
       actions :all
-      extensions
+      extensions :nil_params
       # see: https://github.com/ryanb/cancan/wiki/Inherited-Resources
       load_and_authorize_resource
       
@@ -17,24 +17,19 @@ module Example
       can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt]
       can_filter_by :open_hours, through: {foo: {bar: :open_hours}}
       can_order_by :foo_id
+      can_order_by :bar_code, through: {foo: {bar: :code}}
 
       default_filter_by :renamed_foo_id, not_eq: 3
-      default_order_by [{foo_id: :desc}]
+      default_order_by [{foo_id: :desc}, :renamed_foo_id, bar_code: :asc]
       query_includes :foo
-      #query_includes_for :create, :index, are: [:foo]
       query_includes_for :update, are: {foo: [:bar]}
 
     private
 
-      #def permitted_params
-      #  params.permit(foobar: [:id, :foo_id])
-      #end
-
       def build_resource_params
-        [params.require(:foobar).permit(:id, :foo_id, foo_attributes: [:id, :code])]
-      rescue => e
-        #TODO: fix? wrapped param optional if new
-        raise unless params[:action] == 'new' && e.message == 'param not found: foobar'
+        #TODO: fix. the problem is that the wrapped param should be optional for 'new', but there
+        # isn't a concept of an "optional require" in S.P. yet.
+        [params.permit(:id, :format, foobar: [:id, :foo_id, foo_attributes: [:id, :code]])[:foobar]]
       end
     end
   end

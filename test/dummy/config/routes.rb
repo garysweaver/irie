@@ -3,9 +3,9 @@ Dummy::Application.routes.draw do
 
   namespace :example do
     namespace :alpha do
-      #scope '/magic' do
-      resources :foobars
-      #end
+      scope '/awesome_routing_scope' do
+        resources :foobars
+      end
       resources :special_barfoos
     end
     namespace :beta do

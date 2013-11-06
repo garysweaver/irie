@@ -68,14 +68,17 @@ module Irie
           args.flatten.each do |item|
             case item
             when Hash
-              self.default_ordered_by.merge!(item)
+              # merge hash converting keys to string
+              item.each {|param_name, direction| self.default_ordered_by[param_name.to_s] = direction}
             when String, Symbol
-              self.default_ordered_by[item.to_sym] = :asc
+              self.default_ordered_by[item.to_s] = :asc
             else
               raise ::Irie::ConfigurationError.new "Can't default_order_by #{item}"
             end
           end
-          self.default_ordered_by.merge!(options)
+
+          # merge hash converting keys to string
+          options.each {|param_name, direction| self.default_ordered_by[param_name.to_s] = direction}
         end
       end
 
@@ -84,33 +87,43 @@ module Irie
       def collection
         logger.debug("Irie::Extensions::Order.collection") if Irie.debug?
         object = super
-        
+
         already_ordered_by = []
         aliased_param_values(:order).reject{|v| v.nil?}.each do |param_value|
-          order_params = param_value.split(self.filter_split)
-          order_params.each do |order_param_value|
+          order_param_value_parts = param_value.split(self.filter_split)
+          order_param_value_parts.each do |split_param_name|
+            split_param_name.strip!
+
             # not using convert_param_value here.
             # (these should be attribute names, not attribute values.)
 
             # remove optional preceding - or + to act as directional
             direction = :asc
-            if order_param_value[0] == '-'
+            if split_param_name[0] == '-'
               direction = :desc
-              order_param_value = order_param_value.reverse.chomp('-').reverse
-            elsif order_param_value[0] == '+'
-              order_param_value = order_param_value.reverse.chomp('+').reverse
+              split_param_name = split_param_name.reverse.chomp('-').reverse
+            elsif split_param_name[0] == '+'
+              split_param_name = split_param_name.reverse.chomp('+').reverse
             end
+
+            # support for named_params/:through renaming of param name
+            attr_sym = attr_sym_for_param(split_param_name)
 
             # order of logic here is important:
             # do not to_sym the partial param value until passes whitelist to avoid symbol attack.
             # be sure to pass in the same param name as the default param it is trying to override,
             # if there is one.
-            if self.can_be_ordered_by.include?(order_param_value) && !already_ordered_by.include?(order_param_value.to_sym)
-              object, opts = *apply_joins_and_return_relation_and_opts(object, order_param_value.to_s)
-              # Important note! the behavior of this got reversed between Rails 4.0.0 and 4.0.1:
+            if self.can_be_ordered_by.include?(split_param_name) && !already_ordered_by.include?(attr_sym)
+              join_to_apply = join_for_param(split_param_name)
+              object = object.joins(join_to_apply) if join_to_apply
+              arel_table_column = get_arel_table(split_param_name)[attr_sym]
+              raise ::Irie::ConfigurationError.new "can_order_by/define_params config problem: could not find arel table/column for param name #{split_param_name.inspect} and/or attr_sym #{attr_sym.inspect}" unless arel_table_column
+              #TODO: is there a better way? not sure how else to order on joined table columns- no example
+              sql_fragment = "#{arel_table_column.relation.name}.#{arel_table_column.name}#{direction == :desc ? ' DESC' : ''}"
+              # Important note! the behavior of multiple `order`'s' got reversed between Rails 4.0.0 and 4.0.1:
               # http://weblog.rubyonrails.org/2013/11/1/Rails-4-0-1-has-been-released/
-              object = object.order((opts[:attr_sym] || order_param_value.to_sym) => direction)
-              already_ordered_by << order_param_value.to_sym
+              object = object.order(sql_fragment)
+              already_ordered_by << attr_sym
             end
           end
 
@@ -119,10 +132,16 @@ module Irie
           object
         end
 
-        self.default_ordered_by.each do |attr_sym, direction|
-          if !already_ordered_by.include?(attr_sym)
-            object, opts = *apply_joins_and_return_relation_and_opts(object, attr_sym.to_s)
-            object = object.order((opts[:attr_sym] || attr_sym) => direction)
+        self.default_ordered_by.each do |split_param_name, direction|
+          unless already_ordered_by.include?(split_param_name)
+            attr_sym = attr_sym_for_param(split_param_name)
+            join_to_apply = join_for_param(split_param_name)
+            object = object.joins(join_to_apply) if join_to_apply
+            arel_table_column = get_arel_table(split_param_name)[attr_sym]
+            raise ::Irie::ConfigurationError.new "default_order_by/define_params config problem: could not find arel table/column for param name #{split_param_name.inspect} and/or attr_sym #{attr_sym.inspect}" unless arel_table_column
+            #TODO: is there a better way? not sure how else to order on joined table columns- no example
+            sql_fragment = "#{arel_table_column.relation.name}.#{arel_table_column.name}#{direction == :desc ? ' DESC' : ''}"            
+            object = object.order(sql_fragment)
             already_ordered_by << attr_sym
           end
         end

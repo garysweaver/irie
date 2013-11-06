@@ -39,7 +39,7 @@ class Example::Alpha::TestFoobarsController < ActionDispatch::IntegrationTest
   test 'index allows requested ascending order with default filter' do
     expected = Foobar.all.reject!{|i|i.foo_id == 3} # default filter
 
-    get "/example/alpha/foobars.json?order=foo_id,+bar,-barfoo_id"
+    get "/example/alpha/foobars.json?order=foo_id,+bar_code,-renamed_foo_id"
     assert_equal expected, assigns(:foobars).to_a
     # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
     first_id = expected.last.id-(expected.length - 1)

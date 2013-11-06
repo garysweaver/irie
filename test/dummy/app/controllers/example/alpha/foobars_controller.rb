@@ -10,17 +10,22 @@ module Example
       # see: https://github.com/ryanb/cancan/wiki/Inherited-Resources
       load_and_authorize_resource
       
-      define_params renamed_foo_id: :foo_id
       can_filter_by_query a_query: ->(q, param_value) { q.where(foo_id: param_value) }
       can_filter_by :foo_id
-      can_filter_by :renamed_foo_id
       can_filter_by :foo_date, :bar_date, using: [:lt, :eq, :gt]
       can_filter_by :open_hours, through: {foo: {bar: :open_hours}}
-      can_order_by :foo_id
-      can_order_by :bar_code, through: {foo: {bar: :code}}
 
+      define_params renamed_foo_id: :foo_id
+      can_filter_by :renamed_foo_id
       default_filter_by :renamed_foo_id, not_eq: 3
-      default_order_by [{foo_id: :desc}, :renamed_foo_id, bar_code: :asc]
+
+      # foo_id,+bar_code,-renamed_foo_id
+      can_order_by :foo_id
+      can_order_by :renamed_foo_id
+      can_order_by :bar_code, through: {foo: {bar: :code}}
+      
+      default_order_by [{foo_id: :desc}, :renamed_foo_id, :foo_date, bar_code: :asc]
+
       query_includes :foo
       query_includes_for :update, are: {foo: [:bar]}
 

@@ -9,10 +9,10 @@ module Irie
         include ::Irie::ParamAliases
 
         class_attribute(:default_filtered_by, instance_writer: true) unless self.respond_to? :default_filtered_by
-        class_attribute(:param_to_attr_and_arel_predicate, instance_writer: true) unless self.respond_to? :param_to_attr_and_arel_predicate
+        class_attribute(:composite_param_to_param_name_and_arel_predicate, instance_writer: true) unless self.respond_to? :composite_param_to_param_name_and_arel_predicate
 
         self.default_filtered_by ||= {}
-        self.param_to_attr_and_arel_predicate ||= {}
+        self.composite_param_to_param_name_and_arel_predicate ||= {}
       end
 
       module ClassMethods
@@ -28,7 +28,11 @@ module Irie
         # When :through is specified, it will take the array supplied to through as 0 to many model names following by an attribute name. It will follow through
         # each association until it gets to the attribute to filter by that via ARel joins, e.g. if the model Foobar has an association to :foo, and on the Foo model there is an assocation
         # to :bar, and you want to filter by bar.name (foobar.foo.bar.name):
-        #  can_filter_by :my_param_name, through: {foo: {bar: :name}}
+        #   can_filter_by :my_param_name, through: {foo: {bar: :name}}
+        #
+        # It also supports param to attribute name/joins via define_params, e.g.
+        #   define_params car: :car_attr_name
+        #   can_filter_by :car
         def can_filter_by(*args)
           options = args.extract_options!
 
@@ -36,17 +40,17 @@ module Irie
           opt_through = options.delete(:through)
           raise ::Irie::ConfigurationError.new "options #{options.inspect} not supported by can_filter_by" if options.present?
 
-          self.param_to_attr_and_arel_predicate = self.param_to_attr_and_arel_predicate.deep_dup
+          self.composite_param_to_param_name_and_arel_predicate = self.composite_param_to_param_name_and_arel_predicate.deep_dup
 
           # :using is the default action if no options are present
           if opt_using || options.size == 0
             predicates = Array.wrap(opt_using || self.can_filter_by_default_using)
             predicates.each do |predicate|
               predicate_sym = predicate.to_sym
-              args.each do |attr_name|
-                attr_sym = attr_name.to_sym
-                self.param_to_attr_and_arel_predicate[attr_sym] = [attr_sym, :eq] if predicate_sym == :eq
-                self.param_to_attr_and_arel_predicate["#{attr_name}#{self.predicate_prefix}#{predicate}".to_sym] = [attr_sym, predicate_sym]
+              args.each do |param_name|
+                param_name = param_name.to_s
+                self.composite_param_to_param_name_and_arel_predicate[param_name] = [param_name, :eq] if predicate_sym == :eq
+                self.composite_param_to_param_name_and_arel_predicate["#{param_name}#{self.predicate_prefix}#{predicate}"] = [param_name, predicate_sym]
               end
             end
           end
@@ -72,12 +76,13 @@ module Irie
 
           self.default_filtered_by = self.default_filtered_by.deep_dup
           
-          args.each do |attr_name|
-            if self.default_filtered_by[attr_name.to_sym]
+          args.each do |param_name|
+            param_name = param_name.to_s
+            if self.default_filtered_by[param_name]
               # have merge create new instance to help avoid subclass inheritance related sharing issues.
-              self.default_filtered_by[attr_name.to_sym] = self.default_filtered_by[attr_name.to_sym].merge(options)
+              self.default_filtered_by[param_name] = self.default_filtered_by[param_name].merge(options)
             else
-              self.default_filtered_by[attr_name.to_sym] = options
+              self.default_filtered_by[param_name] = options
             end
           end
         end
@@ -88,25 +93,31 @@ module Irie
       def collection
         logger.debug("Irie::Extensions::ParamFilters.collection") if Irie.debug?
         object = super
-        # convert to relation if model class, so we can use bang methods to not create multiple instances
-        filtered_by_param_names = []
-        self.param_to_attr_and_arel_predicate.each do |param_name, attr_sym_and_predicate_name|
-          attr_sym, predicate_sym = *attr_sym_and_predicate_name
-          if params.key?(attr_sym)
-            one_or_more_param = params[attr_sym].to_s.split(self.filter_split).collect{|v| respond_to?(:convert_param_value, true) ? convert_param_value(attr_sym.to_s, v) : v}
-            object, opts = *apply_joins_and_return_relation_and_opts(object, attr_sym.to_s)
-            arel_table = get_arel_table(attr_sym)
-            object = object.where(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, one_or_more_param))
-            filtered_by_param_names << attr_sym
+        already_filtered_by_split_param_names = []
+        self.composite_param_to_param_name_and_arel_predicate.each do |composite_param, param_name_and_arel_predicate|
+          if params.key?(composite_param)
+            split_param_name, predicate_sym = *param_name_and_arel_predicate
+            converted_split_param_values = params[composite_param].to_s.split(self.filter_split).collect{|v| respond_to?(:convert_param_value, true) ? convert_param_value(split_param_name, v) : v}
+            # support for named_params/:through renaming of param name
+            attr_sym = attr_sym_for_param(split_param_name)
+            join_to_apply = join_for_param(split_param_name)
+            object = object.joins(join_to_apply) if join_to_apply
+            arel_table_column = get_arel_table(split_param_name)[attr_sym]
+            raise ::Irie::ConfigurationError.new "can_filter_by/define_params config problem: could not find arel table/column for param name #{split_param_name.inspect} and/or attr_sym #{attr_sym.inspect}" unless arel_table_column
+            object = object.where(arel_table_column.send(predicate_sym, converted_split_param_values))
+            already_filtered_by_split_param_names << split_param_name
           end
         end
 
-        self.default_filtered_by.each do |attr_sym, predicates_to_default_values|
-          unless filtered_by_param_names.include?(attr_sym) || predicates_to_default_values.blank?
-            predicates_to_default_values.each do |predicate_sym, one_or_more_default_value|
-              object, opts = *apply_joins_and_return_relation_and_opts(object, attr_sym.to_s)
-              arel_table = get_arel_table(attr_sym)
-              object = object.where(arel_table[opts[:attr_name] || attr_sym].try(predicate_sym, Array.wrap(one_or_more_default_value)))
+        self.default_filtered_by.each do |split_param_name, predicates_to_default_values|
+          unless already_filtered_by_split_param_names.include?(split_param_name) || predicates_to_default_values.blank?
+            attr_sym = attr_sym_for_param(split_param_name)
+            join_to_apply = join_for_param(split_param_name)
+            object = object.joins(join_to_apply) if join_to_apply
+            arel_table_column = get_arel_table(split_param_name)[attr_sym]
+            raise ::Irie::ConfigurationError.new "default_filter_by/define_params config problem: could not find arel table/column for param name #{split_param_name.inspect} and/or attr_sym #{attr_sym.inspect}" unless arel_table_column
+            predicates_to_default_values.each do |predicate_sym, one_or_more_default_values|
+              object = object.where(arel_table_column.send(predicate_sym, Array.wrap(one_or_more_default_values)))
             end
           end
         end

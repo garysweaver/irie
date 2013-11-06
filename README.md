@@ -170,7 +170,7 @@ Inherited Resources has `has_scope` via the [has_scope][has_scope] dependency, w
 
 Unlike `has_scope`, `can_filter_by` doesn't require a `scope` on the model and `has_scope` on the controller. Instead you just have a single `can_filter_by` in the controller rather. Other differences are that the request parameter syntax is more brief, and it adds support for defining deeply associated attributes via either `define_params` or a `through` option.
 
-Like the combination of `scope` and `has_scope`, `can_filter_by` filters the index action the request parameter name as a symbol will filter the results by the value of that request parameter, e.g.:
+Like the combination of `scope` and `has_scope`, `can_filter_by` filters the index action the request parameter name as a symbol will filter the results by the value of that request parameter, e.g. assuming `:eq` is in the configured `can_filter_by_default_using` in your config, as it is by default:
 
 ```ruby
 can_filter_by :title
@@ -181,6 +181,14 @@ allows you to:
 ```
 http://localhost:3000/posts?title=Awesome
 ```
+
+or
+
+```
+http://localhost:3000/posts?title.eq=Awesome
+```
+
+Since `.eq` is optional in the param name.
 
 And, like `has_scope`, predications are supported. Do `Arel::Predications.public_instance_methods.sort` in Rails console to see the list:
 
@@ -378,6 +386,8 @@ default_order_by {:this_is_desc => :desc}, :this_is_asc,
                  {:no_different_than_a_symbol => :asc},
                  :this_is_asc_also, :id => :desc
 ```
+
+`can_order_by` and `default_order_by` support joins/`names_params` as well as a `through` option on `can_order_by` similar to `can_filter_by`.
 
 #### Custom Index Queries
 

@@ -39,17 +39,17 @@ module Irie
               orig ||= hsh
               case hsh
               when String, Symbol
-                {attr_name: hsh}
+                {attr_sym: hsh.to_sym}
               when Hash
                 case hsh.values.first
                 when String, Symbol
-                  {attr_name: hsh.values.first, joins: hsh.keys.first}
+                  {attr_sym: hsh.values.first.to_sym, joins: hsh.keys.first}
                 when Hash
                   case hsh.values.first.values.first
                   when String, Symbol
                     attr_name = hsh.values.first.values.first
                     hsh[hsh.keys.first] = hsh.values.first.keys.first
-                    {attr_name: attr_name, joins: orig}
+                    {attr_sym: attr_name.to_sym, joins: orig}
                   when Hash
                     convert.call(hsh.values.first, orig)
                   else
@@ -70,19 +70,14 @@ module Irie
 
       protected
 
-      # Call .joins! on the relation with configured :through options after parsing them
-      # and then return a new options hash that has :attr_name and may have :joins if
-      # define_params was called or :through option was used.
-      def apply_joins_and_return_relation_and_opts(relation, param_name)
-        logger.debug("Irie::Extensions::ParamsToJoins.apply_joins_and_return_relation_and_opts") if Irie.debug?
+      # Returns attribute name for the param name.
+      def attr_sym_for_param(param_name)
+        self.params_to_joins[param_name].try(:[], :attr_sym) || param_name
+      end
 
-        old_param_name = param_name
-        opts = self.params_to_joins[param_name.to_s] || {}
-        if opts[:joins]
-          relation = relation.joins(opts[:joins])
-          logger.debug("Irie::Extensions::ParamsToJoins.apply_joins_and_return_relation_and_opts: relation.to_sql so far: #{relation.to_sql}") if Irie.debug?
-        end
-        [relation, opts.reverse_merge(attr_name: param_name.to_sym)]
+      # Returns value to be used for the `.joins` query method.
+      def join_for_param(param_name)
+        self.params_to_joins[param_name].try(:[], :joins)
       end
 
       # Walk any configured :through options to get the ARel table or return resource_class.arel_table.

@@ -34,10 +34,10 @@ require 'irie'
 Rails.application.eager_load!
 
 # Debug routes in Appraisals, since can't just `rake routes`.
-all_routes = Rails.application.routes.routes
-require 'action_dispatch/routing/inspector'
-inspector = ActionDispatch::Routing::RoutesInspector.new(all_routes)
-puts inspector.format(ActionDispatch::Routing::ConsoleFormatter.new)
+#all_routes = Rails.application.routes.routes
+#require 'action_dispatch/routing/inspector'
+#inspector = ActionDispatch::Routing::RoutesInspector.new(all_routes)
+#puts inspector.format(ActionDispatch::Routing::ConsoleFormatter.new)
 
 class SomeSubtypeOfStandardError < StandardError
 end

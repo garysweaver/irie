@@ -35,7 +35,7 @@ module Irie
       else
         extensions_without_defined_order = extension_syms.uniq - self.extension_include_order.uniq
         if extensions_without_defined_order.length > 0
-          raise ::Irie::ConfigurationError.new "The following must be added self.extension_include_order in Irie configuration: #{extensions_without_defined_order.collect(&:inspect).join(', ')}"
+          raise ::Irie::ConfigurationError.new "The following must be added to the self.extension_include_order array in Irie configuration: #{extensions_without_defined_order.collect(&:inspect).join(', ')}"
         else
           ordered_extension_syms = self.extension_include_order & extension_syms
         end

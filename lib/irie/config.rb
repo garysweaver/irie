@@ -38,6 +38,8 @@ module Irie
       include_opt = :last unless include_opt || after_opt || before_opt
       raise ::Irie::ConfigurationError.new "Irie.register_extension unrecognized options: #{options.inspect}" if options.size > 0
 
+      ::Irie.extension_include_order.delete(extension_sym)
+
       before_or_after_opt_value = before_opt || after_opt
       if include_opt == :first
         ::Irie.extension_include_order.unshift extension_class_name

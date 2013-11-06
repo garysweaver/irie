@@ -23,7 +23,7 @@ module Irie
     #   ::Irie.register_extension :boolean_params, '::Focal::Irie::BooleanParams'
     # Is equivalent to:
     #   ::Irie.available_extensions[:boolean_params] = '::Focal::Irie::BooleanParams'
-    #   ::Irie.extension_include_order << '::Focal::Irie::BooleanParams'
+    #   ::Irie.extension_include_order << extension_sym
     # Allowed options are `:include`, `:after`, and `:before`. Some examples:
     #   ::Irie.register_extension :boolean_params, '::Example::BooleanParams', include: :last  # the default, so unnecessary
     #   ::Irie.register_extension :boolean_params, '::Example::BooleanParams', include: :first # includes module after all others registered at this point
@@ -42,13 +42,13 @@ module Irie
 
       before_or_after_opt_value = before_opt || after_opt
       if include_opt == :first
-        ::Irie.extension_include_order.unshift extension_class_name
+        ::Irie.extension_include_order.unshift extension_sym
       elsif include_opt == :last
-        ::Irie.extension_include_order << extension_class_name
+        ::Irie.extension_include_order << extension_sym
       elsif before_or_after_opt_value
         ind = ::Irie.extension_include_order.index(before_or_after_opt_value)
         raise ::Irie::ConfigurationError.new "Irie.register_extension cannot insert #{before_opt ? 'before' : 'after'} #{before_or_after_opt_value.inspect}, because #{before_or_after_opt_value.inspect} was not yet registered. A possible workaround for deferred registration may be to require the code that does the prerequisite registration."
-        ::Irie.extension_include_order.insert(ind + (after_opt ? 1 : 0))
+        ::Irie.extension_include_order.insert(ind + (after_opt ? 1 : 0), extension_sym)
       else
         raise ::Irie::ConfigurationError.new "Irie.register_extension unsupported options: #{initial_opts.inspect}"
       end

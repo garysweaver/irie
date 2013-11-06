@@ -18,6 +18,41 @@ module Irie
   class << self
     CONTROLLER_OPTIONS.each{|name|attr_accessor name; define_method("#{name}?") { !!public_send(name) } }
     def configure(&blk); class_eval(&blk); end
+
+    # Adds to extension_include_order and extension_include_order, e.g.
+    #   ::Irie.register_extension :boolean_params, '::Focal::Irie::BooleanParams'
+    # Is equivalent to:
+    #   ::Irie.available_extensions[:boolean_params] = '::Focal::Irie::BooleanParams'
+    #   ::Irie.extension_include_order << '::Focal::Irie::BooleanParams'
+    # Allowed options are `:include`, `:after`, and `:before`. Some examples:
+    #   ::Irie.register_extension :boolean_params, '::Example::BooleanParams', include: :last  # the default, so unnecessary
+    #   ::Irie.register_extension :boolean_params, '::Example::BooleanParams', include: :first # includes module after all others registered at this point
+    #   ::Irie.register_extension :boolean_params, '::Example::BooleanParams', after: :nil_params # includes after :nil_params
+    #   ::Irie.register_extension :boolean_params, '::Example::BooleanParams', before: :nil_params # includes after :nil_params
+    def register_extension(extension_sym, extension_class_name, options = {})
+      raise ::Irie::ConfigurationError.new "Irie.register_extension must provide an extension symbol as the first argument" unless extension_sym
+      raise ::Irie::ConfigurationError.new "Irie.register_extension must provide an extension class name (string) as the second argument" unless extension_sym
+      raise ::Irie::ConfigurationError.new "Irie.register_extension can only provide a single option: :include, :after, or :before" if options.size > 1
+      initial_opts = options.dup
+      include_opt, after_opt, before_opt = *[:include, :after, :before].collect{|opt_name| options.delete(opt_name)}
+      include_opt = :last unless include_opt || after_opt || before_opt
+      raise ::Irie::ConfigurationError.new "Irie.register_extension unrecognized options: #{options.inspect}" if options.size > 0
+
+      before_or_after_opt_value = before_opt || after_opt
+      if include_opt == :first
+        ::Irie.extension_include_order.unshift extension_class_name
+      elsif include_opt == :last
+        ::Irie.extension_include_order << extension_class_name
+      elsif before_or_after_opt_value
+        ind = ::Irie.extension_include_order.index(before_or_after_opt_value)
+        raise ::Irie::ConfigurationError.new "Irie.register_extension cannot insert #{before_opt ? 'before' : 'after'} #{before_or_after_opt_value.inspect}, because #{before_or_after_opt_value.inspect} was not yet registered. A possible workaround for deferred registration may be to require the code that does the prerequisite registration."
+        ::Irie.extension_include_order.insert(ind + (after_opt ? 1 : 0))
+      else
+        raise ::Irie::ConfigurationError.new "Irie.register_extension unsupported options: #{initial_opts.inspect}"
+      end
+
+      ::Irie.available_extensions[extension_sym] = extension_class_name
+    end
   end
 
 end
@@ -89,7 +124,7 @@ Irie.configure do
   # Each is added as each file is required when the gem is loaded, so for a full list,
   # check `::Irie.available_extensions` in rails console.
   # You shouldn't have to worry about configuring this typically.
-  Irie.available_extensions = {}
+  self.available_extensions = {}
 
   # If true, will logger.debug in instance methods to help with execution tracing at
   # runtime.

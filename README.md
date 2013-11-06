@@ -444,28 +444,6 @@ query_includes_for :create, are: [:category, :comments]
 query_includes_for :index, :show, are: [posts: [{comments: :guest}, :tags]]
 ```
 
-#### Customizing Parameter Permittance
-
-Each Irie-implemented action method except `new` calls a corresponding `params_for_*` method. For `create` and `update` this calls `(model_name)_params` method expecting you to have defined that method to call `permit`, e.g.
-
-```ruby
-def post_params
-  params.require(:post).permit(:name)
-end
-```
-
-But, if you need action-specific permittance, just override the corresponding `params_for_*` method, e.g. if you'd like to override the params permittance for both create and update actions, you can implement the `params_for_create` and `params_for_update` methods, and you won't even need to implement a `(model_name)_params`, since those two method are what call that:
-
-```ruby
-def params_for_create
-  params.require(:post).permit(:name, :color)
-end
-
-def params_for_update
-  params.require(:post).permit(:color)
-end
-```
-
 #### Using define_params vs :through option
 
 The `:through` option in `can_filter_by` and `can_order_by` just uses `define_params` to set the attribute name alias and options (which is parsed into a joins hash and attribute name internally). So, if you don't mind a little more typing, it might make the intent clearer, e.g.
@@ -527,28 +505,14 @@ module ServiceController
     respond_to :json
 
     # reference as string so we don't load the concern before it is used.
-    
-    ::Irie.available_extensions[:boolean_params] = '::BooleanParams'
+    ::Irie.register_extension :boolean_params, '::Example::BooleanParams'
 
-    # this is order of inclusion but often the order is not the same as its
-    # effective execution, e.g. often super is called at the beginning of a
-    # composed collection method to work with I.R.'s collection, but that in
-    # turn calls the next include up the chain, effectively somewhat 
-    # reversing the execution order of the extensions.
-    #
-    # so, for anything that wants to be at the beginning of a filter chain,
-    # like param value conversion, it may be ok to use +=, e.g.
-    #   ::Irie.extension_include_order += :an_ext
-    # to include before :count (for example), use:
-    #   ::Irie.extension_include_order.insert
-    #     ::Irie.extension_include_order.index(:count)), :ext_a, :ext_b
-    # to include at the end, use unshift, e.g.:
-    #   ::Irie.extension_include_order.unshift :an_ext
-    # so in this case, we just append since we want it included last.
-    # The more explicit way to do it is to redefine the entire order list
-    # here or in the initializer for Irie configuration.
+    # register_extension also can define the order of inclusion, e.g.:
+    #   ::Irie.register_extension :boolean_params, '::Example::BooleanParams', include: :last #default
+    #   ::Irie.register_extension :boolean_params, '::Example::BooleanParams', include: :first
+    #   ::Irie.register_extension :boolean_params, '::Example::BooleanParams', after: :nil_params
+    #   ::Irie.register_extension :boolean_params, '::Example::BooleanParams', before: :nil_params
 
-    ::Irie.extension_include_order += :boolean_params
   end
 
 end

@@ -38,6 +38,7 @@ module Irie
 
           opt_using = options.delete(:using)
           opt_through = options.delete(:through)
+          opt_split = options.delete(:split)
           raise ::Irie::ConfigurationError.new "options #{options.inspect} not supported by can_filter_by" if options.present?
 
           self.composite_param_to_param_name_and_arel_predicate = self.composite_param_to_param_name_and_arel_predicate.deep_dup
@@ -49,8 +50,11 @@ module Irie
               predicate_sym = predicate.to_sym
               args.each do |param_name|
                 param_name = param_name.to_s
-                self.composite_param_to_param_name_and_arel_predicate[param_name] = [param_name, :eq] if predicate_sym == :eq
-                self.composite_param_to_param_name_and_arel_predicate["#{param_name}#{self.predicate_prefix}#{predicate}"] = [param_name, predicate_sym]
+                if predicate_sym == :eq
+                  self.composite_param_to_param_name_and_arel_predicate[param_name] = [param_name, :eq, opt_split]
+                end
+
+                self.composite_param_to_param_name_and_arel_predicate["#{param_name}#{self.predicate_prefix}#{predicate}"] = [param_name, predicate_sym, opt_split]
               end
             end
           end
@@ -94,17 +98,18 @@ module Irie
         logger.debug("Irie::Extensions::ParamFilters.collection") if Irie.debug?
         object = super
         already_filtered_by_split_param_names = []
-        self.composite_param_to_param_name_and_arel_predicate.each do |composite_param, param_name_and_arel_predicate|
+        self.composite_param_to_param_name_and_arel_predicate.each do |composite_param, param_name_and_arel_predicate, split|
           if params.key?(composite_param)
             split_param_name, predicate_sym = *param_name_and_arel_predicate
-            converted_split_param_values = params[composite_param].to_s.split(self.filter_split).collect{|v| respond_to?(:convert_param_value, true) ? convert_param_value(split_param_name, v) : v}
+            converted_param_values = converted_param_values.collect{|p| p.split(*split)}.flatten unless split.blank?
+            converted_param_values = convert_param_values(composite_param, params[composite_param])
             # support for named_params/:through renaming of param name
             attr_sym = attr_sym_for_param(split_param_name)
             join_to_apply = join_for_param(split_param_name)
             object = object.joins(join_to_apply) if join_to_apply
             arel_table_column = get_arel_table(split_param_name)[attr_sym]
             raise ::Irie::ConfigurationError.new "can_filter_by/define_params config problem: could not find arel table/column for param name #{split_param_name.inspect} and/or attr_sym #{attr_sym.inspect}" unless arel_table_column
-            object = object.where(arel_table_column.send(predicate_sym, converted_split_param_values))
+            object = object.where(arel_table_column.send(predicate_sym, converted_param_values))
             already_filtered_by_split_param_names << split_param_name
           end
         end

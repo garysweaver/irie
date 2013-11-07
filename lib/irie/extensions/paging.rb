@@ -15,7 +15,7 @@ module Irie
 
       def index(options={}, &block)
         logger.debug("Irie::Extensions::Count.index") if Irie.debug?
-        return super(options, &block) unless aliased_param_specified?(:page_count)
+        return super(options, &block) unless aliased_param_present?(:page_count)
         @page_count = (collection.count.to_f / self.number_of_records_in_a_page.to_f).ceil
         return respond_to?(:autorender_page_count, true) ? autorender_page_count(options, &block) : index!(options, &block)
       end
@@ -25,7 +25,7 @@ module Irie
       def collection
         logger.debug("Irie::Extensions::Paging.collection") if Irie.debug?
         object = super
-        page_param_value = first_aliased_param_value(:page)
+        page_param_value = aliased_param(:page)
         unless page_param_value.nil?
           page = page_param_value.to_i
           page = 1 if page < 1

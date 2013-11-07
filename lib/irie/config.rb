@@ -6,7 +6,6 @@ module Irie
     :available_extensions,
     :can_filter_by_default_using,
     :debug,
-    :filter_split,
     :function_param_names,
     :id_is_primary_key_param,
     :number_of_records_in_a_page,
@@ -63,9 +62,6 @@ Irie.configure do
   
   # Default for :using in can_filter_by.
   self.can_filter_by_default_using = [:eq]
-  
-  # Delimiter for values in request parameter values.
-  self.filter_split = ','
 
   # Use one or more alternate request parameter names for functions, e.g.
   # `self.function_param_names = {distinct: :very_distinct, limit: [:limit, :limita]}`

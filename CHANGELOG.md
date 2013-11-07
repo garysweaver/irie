@@ -4,7 +4,7 @@
 
 Changes since restful_json v4.5.1:
 
-* Now assumes Rails 4+.
+* Now assumes Rails 4+ and uses Inherited Resources.
 * Simplification of configuration, usage, and implementation.
 * CanCan/authR support now optional via authorizer module.
 * Removed direct support for Permitters. The controller can define params methods and/or use `before_action`.
@@ -32,6 +32,8 @@ Changes since restful_json v4.5.1:
 * Config errors now Irie::ConfigurationError.
 * Rework of url and path helpers.
 * Support for configuring model-related attributes via `default` method with options somewhat similar to inherited_resources.
+* `can_filter_by` delimiting is now specified as an option `:split` in the `can_filter_by`.
+* Probably many other changes. See the README.
 
 ## restful_json 4.5.1 ##
 

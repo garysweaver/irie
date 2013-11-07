@@ -89,42 +89,38 @@ module Irie
         object = super
 
         already_ordered_by = []
-        aliased_param_values(:order).reject{|v| v.nil?}.each do |param_value|
-          order_param_value_parts = param_value.split(self.filter_split)
-          order_param_value_parts.each do |split_param_name|
-            split_param_name.strip!
+        aliased_params(:order).collect{|p| p.split(',')}.flatten.collect(&:strip).each do |split_param_name|
 
-            # not using convert_param_value here.
-            # (these should be attribute names, not attribute values.)
+          # not using convert_param_values here.
+          # (these should be attribute names, not attribute values.)
 
-            # remove optional preceding - or + to act as directional
-            direction = :asc
-            if split_param_name[0] == '-'
-              direction = :desc
-              split_param_name = split_param_name.reverse.chomp('-').reverse
-            elsif split_param_name[0] == '+'
-              split_param_name = split_param_name.reverse.chomp('+').reverse
-            end
+          # remove optional preceding - or + to act as directional
+          direction = :asc
+          if split_param_name[0] == '-'
+            direction = :desc
+            split_param_name = split_param_name.reverse.chomp('-').reverse
+          elsif split_param_name[0] == '+'
+            split_param_name = split_param_name.reverse.chomp('+').reverse
+          end
 
-            # support for named_params/:through renaming of param name
-            attr_sym = attr_sym_for_param(split_param_name)
+          # support for named_params/:through renaming of param name
+          attr_sym = attr_sym_for_param(split_param_name)
 
-            # order of logic here is important:
-            # do not to_sym the partial param value until passes whitelist to avoid symbol attack.
-            # be sure to pass in the same param name as the default param it is trying to override,
-            # if there is one.
-            if self.can_be_ordered_by.include?(split_param_name) && !already_ordered_by.include?(attr_sym)
-              join_to_apply = join_for_param(split_param_name)
-              object = object.joins(join_to_apply) if join_to_apply
-              arel_table_column = get_arel_table(split_param_name)[attr_sym]
-              raise ::Irie::ConfigurationError.new "can_order_by/define_params config problem: could not find arel table/column for param name #{split_param_name.inspect} and/or attr_sym #{attr_sym.inspect}" unless arel_table_column
-              #TODO: is there a better way? not sure how else to order on joined table columns- no example
-              sql_fragment = "#{arel_table_column.relation.name}.#{arel_table_column.name}#{direction == :desc ? ' DESC' : ''}"
-              # Important note! the behavior of multiple `order`'s' got reversed between Rails 4.0.0 and 4.0.1:
-              # http://weblog.rubyonrails.org/2013/11/1/Rails-4-0-1-has-been-released/
-              object = object.order(sql_fragment)
-              already_ordered_by << attr_sym
-            end
+          # order of logic here is important:
+          # do not to_sym the partial param value until passes whitelist to avoid symbol attack.
+          # be sure to pass in the same param name as the default param it is trying to override,
+          # if there is one.
+          if self.can_be_ordered_by.include?(split_param_name) && !already_ordered_by.include?(attr_sym)
+            join_to_apply = join_for_param(split_param_name)
+            object = object.joins(join_to_apply) if join_to_apply
+            arel_table_column = get_arel_table(split_param_name)[attr_sym]
+            raise ::Irie::ConfigurationError.new "can_order_by/define_params config problem: could not find arel table/column for param name #{split_param_name.inspect} and/or attr_sym #{attr_sym.inspect}" unless arel_table_column
+            #TODO: is there a better way? not sure how else to order on joined table columns- no example
+            sql_fragment = "#{arel_table_column.relation.name}.#{arel_table_column.name}#{direction == :desc ? ' DESC' : ''}"
+            # Important note! the behavior of multiple `order`'s' got reversed between Rails 4.0.0 and 4.0.1:
+            # http://weblog.rubyonrails.org/2013/11/1/Rails-4-0-1-has-been-released/
+            object = object.order(sql_fragment)
+            already_ordered_by << attr_sym
           end
 
           set_collection_ivar object

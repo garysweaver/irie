@@ -11,10 +11,10 @@ module Irie
         protected
 
         # Converts request param values 'NULL', 'null', and 'nil' to nil.
-        def convert_param_value(param_name, param_value)
-          logger.debug("Irie::Extensions::Conversion::NilParams.convert_param_value(#{param_name.inspect}, #{param_value.inspect})") if Irie.debug?
-          param_value = super if defined?(super)
-          param_value && NILS.include?(param_value) ? nil : param_value
+        def convert_param_values(param_name, param_values)
+          logger.debug("Irie::Extensions::Conversion::NilParams.convert_param_values(#{param_name.inspect}, #{param_values.inspect})") if Irie.debug?
+          param_values = super if defined?(super)
+          param_values && NILS.include?(param_values) ? nil : param_values
         end
       
       end

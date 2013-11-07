@@ -107,9 +107,6 @@ Irie.configure do
   
   # Default for :using in can_filter_by.
   self.can_filter_by_default_using = [:eq]
-  
-  # Delimiter for values in request parameter values.
-  self.filter_split = ','
 
   # Use one or more alternate request parameter names for functions, e.g.
   # `self.function_param_names = {distinct: :very_distinct, limit: [:limit, :limita]}`
@@ -150,7 +147,6 @@ All of the app-level configuration parameters are configurable in the controller
 
 ```ruby
   self.can_filter_by_default_using = [:eq]
-  self.filter_split = ','
   self.function_param_names = {}
   self.predicate_prefix = '.'
   self.number_of_records_in_a_page = 15
@@ -205,7 +201,14 @@ You can specify these via the `using:` option:
 can_filter_by :seen_on, using: [:gteq, :eq_any]
 ```
 
-But, unlike `has_scope` which uses a much lengthier request parameter syntax, by appending the predicate prefix (`.` by default) to the request parameter name, you can use any [ARel][arel] predicate you allowed, e.g.:
+For predicates that take more than one value, by default it expects that you send in multiple request parameters, that way if a value contains something that would be a delimiter of the value, you don't have to worry about additional escaping characters in the value to what you'd have to do otherwise. But, if a value is numeric, for example, you might want to be able to specify a comma-delimited list, and you can do so via:
+
+```ruby
+# magic numbers can be comma and semicolon-delimited. the value of split is the value that will be unsplatted and passed into the split command for each value
+can_filter_by :magic_numbers, using: [:eq_any], split: ","
+```
+
+Unlike `has_scope` which uses a much lengthier request parameter syntax, by appending the predicate prefix (`.` by default) to the request parameter name, you can use any [ARel][arel] predicate you allowed, e.g.:
 
 ```
 http://localhost:3000/posts?seen_on.gteq=2012-08-08
@@ -233,25 +236,25 @@ http://localhost:3000/magical_valleys?magical_unicorn_friend_name=Oscar
 Similar to specifying a proc/lambda in the `scope` and then using `has_scope` to use it, or defining a `scope` in the model and defining `has_scope` and passing a block into it, you can use `can_filter_by_query`, but again you only have to define something in the controller- not the model and controller. It works a little bit differently; the proc/lambda is in the context of the controller, so unlike the `has_scope` that takes a block, the `controller` doesn't have to be passed in, since that is `self`. The relation object is passed in as `q`, e.g.:
 
 ```ruby
-can_filter_by_query a_request_param_name: ->(q, param_value) {
-  q.joins(:some_assoc).where(some_assocs_table_name: {some_attr: param_value})
+can_filter_by_query a_request_param_name: ->(q, param_value_or_values) {
+  q.joins(:some_assoc).where(some_assocs_table_name: {some_attr: param_value_or_values})
 }
 ```
 
-The second argument sent to the lambda (`param_value`) is the request parameter value converted by the `convert_param_value(param_name, param_value)` method, which may be customized through included extensions or your own extension. See elsewhere in this document for more information about the behavior of this method.
+The second argument sent to the lambda (`param_value_or_values`) is the request parameter value converted by the `convert_param_values(param_name, param_values)` method, which may be customized through included extensions or your own extension. See elsewhere in this document for more information about the behavior of this method.
 
 The return value of the lambda becomes the new query, so you could really change the behavior of the query depending on the request parameter provided.
 
 ##### Customizing Request Parameter Value Conversion
 
-Implement the `convert_param_value(param_name, param_value)` in your controller or an included module, e.g.
+Implement the `convert_param_values(param_name, param_values)` in your controller or an included module, e.g.
 
 ```ruby
   protected
 
-  def convert_param_value(param_name, param_value)
-    # ... make changes as needed and return the converted param_value
-    param_value
+  def convert_param_values(param_name, param_values)
+    # ... make changes as needed and return the converted param_values
+    param_values
   end
 ```
 
@@ -480,8 +483,8 @@ module BooleanParams
 
   protected
 
-  def convert_param_value(param_name, param_value)
-    case param_value
+  def convert_param_values(param_name, param_values)
+    case param_values
     when 'true'
       true
     when 'false'

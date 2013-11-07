@@ -11,7 +11,7 @@ module Irie
       
       def index(options={}, &block)
         logger.debug("Irie::Extensions::Count.index") if Irie.debug?
-        return super(options, &block) unless aliased_param_specified?(:count)
+        return super(options, &block) unless aliased_param_present?(:count)
         @count = collection.count
         return respond_to?(:autorender_count, true) ? autorender_count(options, &block) : index!(options, &block)
       end

@@ -45,7 +45,7 @@ module Irie
         self.param_to_query.each do |param_name, param_query|
           param_value = params[param_name]
           unless param_value.nil?
-            object = param_query.call(object, respond_to?(:convert_param_value, true) ? convert_param_value(param_name.to_s, param_value) : param_value)
+            object = param_query.call(object, convert_param_values(param_name.to_s, param_value))
           end
         end
 

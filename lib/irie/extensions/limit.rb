@@ -14,7 +14,7 @@ module Irie
       def collection
         logger.debug("Irie::Extensions::Limit.collection") if Irie.debug?
         object = super
-        aliased_param_values(:limit).each {|param_value| object = object.limit(param_value)}
+        aliased_params(:limit).each {|param_value| object = object.limit(param_value)}
 
         logger.debug("Irie::Extensions::Limit.collection: relation.to_sql so far: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
 

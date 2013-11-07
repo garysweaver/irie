@@ -4,7 +4,7 @@
 
 Inherited Resources including extensions.
 
-Extend [Inherited Resources][inherited_resources] actions with modules request parameter-driven filtering, sorting, pagination, and more. It's like using a more powerful version of [has_scope][has_scope], but with cleaner request URLs in some cases, and without having to add model scopes and controller methods just to do something controller-specific.
+Extend [Inherited Resources][inherited_resources] actions with the `extensions` method which provides symbolic references to do module includes as well as automatic inclusion of modules based on what actions are in-use. The included extensions provide more of a DSL-like way to define your controllers, and instead of model-heavy development via `scope` in models and `has_scope` in the controller, you can just define request parameter-based filters and their defaults in the controller. Also, ordering, parameter conversion, param value split delimiters, pagination, and more are supported.
 
 ```ruby
 class PostsController < ApplicationController
@@ -628,6 +628,7 @@ Copyright (c) 2013 FineLine Prototyping, Inc., released under the [MIT license][
 [badgefury]: http://badge.fury.io/rb/irie
 [arel]: https://github.com/rails/arel
 [ar]: http://api.rubyonrails.org/classes/ActiveRecord/Relation.html
+[has_scope]: https://github.com/plataformatec/has_scope
 [public_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/public_exceptions.rb
 [show_exceptions]: https://github.com/rails/rails/blob/master/actionpack/lib/action_dispatch/middleware/show_exceptions.rb
 [changelog]: https://github.com/FineLinePrototyping/irie/blob/master/CHANGELOG.md

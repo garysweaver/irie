@@ -8,12 +8,12 @@ Extend [Inherited Resources][inherited_resources] actions with the `extensions` 
 
 ```ruby
 class PostsController < ApplicationController
+
+  respond_to :json
   inherit_resources
 
   actions :index
   extensions :count, :limit, :offset, :paging
-
-  respond_to :json, :html
 
   can_filter_by :author, through: {author: :name}
   default_filter_by :author, eq: 'anonymous'
@@ -29,7 +29,7 @@ class PostsController < ApplicationController
 end
 ```
 
-Then set up your routes and views.
+Then set up your routes and any views.
 
 Now here are some of the URLs you can hit:
 

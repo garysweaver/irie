@@ -205,7 +205,7 @@ For predicates that take more than one value, by default it expects that you sen
 
 ```ruby
 # magic numbers can be comma and semicolon-delimited. the value of split is the value that will be unsplatted and passed into the split command for each value
-can_filter_by :magic_numbers, using: [:eq_any], split: ","
+can_filter_by :mileage, using: [:eq_any], split: ","
 ```
 
 Unlike `has_scope` which uses a much lengthier request parameter syntax, by appending the predicate prefix (`.` by default) to the request parameter name, you can use any [ARel][arel] predicate you allowed, e.g.:

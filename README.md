@@ -11,7 +11,7 @@ class PostsController < ApplicationController
   inherit_resources
 
   actions :index
-  extensions :count, :distinct, :limit, :offset, :paging
+  extensions :count, :limit, :offset, :paging
 
   respond_to :json, :html
 

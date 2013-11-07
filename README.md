@@ -204,7 +204,6 @@ can_filter_by :seen_on, using: [:gteq, :eq_any]
 For predicates that take more than one value, by default it expects that you send in multiple request parameters, that way if a value contains something that would be a delimiter of the value, you don't have to worry about additional escaping characters in the value to what you'd have to do otherwise. But, if a value is numeric, for example, you might want to be able to specify a comma-delimited list, and you can do so via:
 
 ```ruby
-# magic numbers can be comma and semicolon-delimited. the value of split is the value that will be unsplatted and passed into the split command for each value
 can_filter_by :mileage, using: [:eq_any], split: ","
 ```
 

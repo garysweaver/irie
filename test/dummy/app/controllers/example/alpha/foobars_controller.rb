@@ -2,11 +2,11 @@ module Example
   module Alpha
     class FoobarsController < ApplicationController
       
-      respond_to :json
-      inherit_resources
+      # test for one way to refactoring controllers
+      include ::Example::ServiceControllerBehavior
 
       actions :all
-      extensions :nil_params
+      extensions :nil_params, :boolean_params
       # see: https://github.com/ryanb/cancan/wiki/Inherited-Resources
       load_and_authorize_resource
       

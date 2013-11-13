@@ -6,8 +6,6 @@ module Irie
       ::Irie.available_extensions[:index_query] = '::' + IndexQuery.name
 
       included do
-        require 'ostruct'
-
         include ::Irie::ParamAliases
 
         class_attribute(:custom_index_query, instance_writer: true) unless self.respond_to? :custom_index_query

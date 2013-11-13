@@ -19,4 +19,35 @@ require 'irie/extensions/query_includes'
 
 class ActionController::Base
   extend Irie::ClassMethods
+#
+#  alias_method :orig_respond_with, :respond_with
+#  def respond_with(*args, &block)
+#    logger.debug("respond with called with #{args.inspect}") if Irie.debug?
+#    args = args.collect do |arg|
+#      if arg.is_a?(ActiveRecord::Relation)
+#        if params[:action] == 'index'
+#          arg.to_a
+#        else
+#          arg.to_a.last
+#        end
+#      else
+#        arg
+#      end
+#    end
+#    
+#    logger.debug("converted to #{args.inspect} and calling original respond_with") if Irie.debug?
+#    
+#    orig_respond_with(*args, &block)
+#  end
+#
 end
+
+#class ActionController::Responder
+#  def default_render
+#    if @default_response
+#      @default_response.call(options)
+#    else
+#      @action == 'index' || (@resources && @resources.size > 1) ? controller.default_render(@resources, options) : controller.default_render(@resource, options)
+#    end
+#  end
+#end

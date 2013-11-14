@@ -77,7 +77,11 @@ module Irie
         this_includes = self.action_to_query_includes[params[:action].to_sym] || self.all_action_query_includes
         if this_includes && this_includes.size > 0
           # can return the model class, so won't call bang (includes!) method
-          set_resource_ivar end_of_association_chain.includes(*this_includes).send(method_for_find, params[:id])
+          object = end_of_association_chain.includes(*this_includes)
+
+          logger.debug("Irie::Extensions::QueryIncludes.resource: end_of_association_chain.to_sql: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
+
+          set_resource_ivar object.send(method_for_find, params[:id])
         else
           super
         end
@@ -88,7 +92,11 @@ module Irie
         this_includes = self.action_to_query_includes[params[:action].to_sym] || self.all_action_query_includes
         if this_includes && this_includes.size > 0
           # can return the model class, so won't call bang (includes!) method
-          set_resource_ivar end_of_association_chain.includes(*this_includes).send(method_for_build, *resource_params)
+          object = end_of_association_chain.includes(*this_includes)
+
+          logger.debug("Irie::Extensions::QueryIncludes.build_resource: end_of_association_chain.to_sql: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
+
+          set_resource_ivar object.send(method_for_build, *resource_params)
         else
           object
         end

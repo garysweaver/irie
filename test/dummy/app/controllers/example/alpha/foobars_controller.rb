@@ -2,7 +2,6 @@ module Example
   module Alpha
     class FoobarsController < ApplicationController
       
-      # test for one way to refactoring controllers
       include ::Example::ServiceControllerBehavior
 
       actions :all

@@ -1,7 +1,6 @@
 class BarfoosController < ApplicationController
 
-  respond_to :json
-  inherit_resources
+  include ::Example::ServiceControllerBehavior
 
   actions :all
   extensions :count, :autorender_count, :paging, :autorender_page_count

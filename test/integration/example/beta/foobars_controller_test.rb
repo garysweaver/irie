@@ -32,7 +32,7 @@ class Example::Beta::TestFoobarsController < ActionDispatch::IntegrationTest
     assert_equal "application/json; charset=utf-8", response.headers['Content-Type'], "didn't include expected content-type. was #{response.headers['Content-Type']}"
     assert_equal 200, response.status, "Bad response code (got #{response.status}): #{response.body}"
     
-    assert_equal "{\"check\":\"foobars-create: #{Foobar.last.id}\"}", response.body
+    assert_equal "{\"id\":#{Foobar.last.id}}", response.body
   end
 
   test 'update can implicitly return resource' do

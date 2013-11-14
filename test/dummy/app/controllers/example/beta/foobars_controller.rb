@@ -2,8 +2,7 @@ module Example
   module Beta
     class FoobarsController < ApplicationController
       
-      respond_to :json
-      inherit_resources
+      include ::Example::ServiceControllerBehavior
 
       actions :index, :show, :create, :update
       extensions

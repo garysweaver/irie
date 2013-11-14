@@ -123,13 +123,13 @@ Irie.configure do
 
   # Included if the action method exists when `extensions` is called.
   self.autoincludes = {
-    create: [:query_includes],
-    destroy: [:query_includes],
-    edit: [:query_includes],
-    index: [:index_query, :order, :param_filters, :query_filter, :query_includes],
-    new: [],
-    show: [:query_includes],
-    update: [:query_includes]
+    create: [:smart_layout, :query_includes],
+    destroy: [:smart_layout, :query_includes],
+    edit: [:smart_layout, :query_includes],
+    index: [:smart_layout, :index_query, :order, :param_filters, :params_to_joins, :query_filter, :query_includes],
+    new: [:smart_layout],
+    show: [:smart_layout, :query_includes],
+    update: [:smart_layout, :query_includes]
   }
 
 end
@@ -411,19 +411,9 @@ index_query ->(q) {
 
 To avoid n+1 queries, use `.includes(...)` in your query to eager load any associations that you will need in the JSON view.
 
-#### Specifying Rendering Options
+#### Smart Layout
 
-If you wanted to specify the serializer option in the index:
-
-```ruby
-render_options :index, serializer: PostSerializer
-```
-
-(You can use more than one action and more than one option.)
-
-Also available are `render_valid_options` and `render_invalid_options` (when record/collection respond to `.errors` and has more than one error) that are merged into any `render_options` you provide. (Please see the Exception Handling section for information about handling exceptions.)
-
-For more control, you can either implement `options_for_render(record_or_collection)`, or both `options_for_collection_render(records)` for index, and `options_for_render(record)` for other actions. Or, implement any action's `render_*(...)` method (where * is the action name).
+By default, Rails rendering goes through some extra hoops to attempt to find your layout unless you tell it not to, so With default autoincludes, Irie will use the `:smart_layout` extension to specify `layout: false` unless the request format is html.
 
 #### Avoid n+1 Queries
 

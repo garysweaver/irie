@@ -9,7 +9,7 @@ module Irie
       
       def autorender_count(options={}, &block)
         logger.debug("Irie::Extensions::AutorenderCount.autorender_count") if Irie.debug?
-        render request.format.symbol => { count: @count }, status: 200
+        render request.format.symbol => { count: @count }, status: 200, layout: false
       end
       
     end

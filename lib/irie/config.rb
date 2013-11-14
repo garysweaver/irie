@@ -83,13 +83,13 @@ Irie.configure do
   # fully-qualified module name to include, e.g. `index: '::My::Module'`, If constant,
   # it will just include constant (module), e.g. `index: ::My::Module`.
   self.autoincludes = {
-    create: [:query_includes],
-    destroy: [:query_includes],
-    edit: [:query_includes],
-    index: [:index_query, :order, :param_filters, :params_to_joins, :query_filter, :query_includes],
-    new: [],
-    show: [:query_includes],
-    update: [:query_includes]
+    create: [:smart_layout, :query_includes],
+    destroy: [:smart_layout, :query_includes],
+    edit: [:smart_layout, :query_includes],
+    index: [:smart_layout, :index_query, :order, :param_filters, :params_to_joins, :query_filter, :query_includes],
+    new: [:smart_layout],
+    show: [:smart_layout, :query_includes],
+    update: [:smart_layout, :query_includes]
   }
 
   # This ensures the correct order of includes via the extensions method. It bears no
@@ -98,6 +98,7 @@ Irie.configure do
   # include order. If extensions are not listed here, they will not be included by
   # the extensions method.
   self.extension_include_order = [
+    :smart_layout,
     :autorender_page_count,
     :autorender_count,
     :count,

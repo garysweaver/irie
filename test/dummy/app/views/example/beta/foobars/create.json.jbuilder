@@ -1,1 +1,1 @@
-json.check "foobars-create: #{@foobar.id}"
+@foobar ? json.partial!(partial: 'example/beta/foobars/foobar', locals: {foobar: @foobar}) : json.nil!

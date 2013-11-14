@@ -62,7 +62,7 @@ module Irie
         
         this_includes = self.action_to_query_includes[params[:action].to_sym] || self.all_action_query_includes
         if this_includes && this_includes.size > 0
-          object.includes(*this_includes)
+          object = object.includes(*this_includes)
         else
           object
         end

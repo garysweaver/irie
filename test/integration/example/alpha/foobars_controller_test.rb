@@ -38,13 +38,17 @@ class Example::Alpha::TestFoobarsController < ActionDispatch::IntegrationTest
 
   test 'index allows requested ascending order with default filter' do
     expected = Foobar.all.reject!{|i|i.foo_id == 3} # default filter
-
-    get "/example/alpha/awesome_routing_scope/foobars.json?order=foo_id,+bar_code,-renamed_foo_id"
+    queries = QueryCollector.collect_all do
+      get "/example/alpha/awesome_routing_scope/foobars.json?order=foo_id,+bar_code,-renamed_foo_id"
+    end
     assert_equal expected, assigns(:foobars).to_a
     # note: ids, created_at, updated_at and order of keys are ignored- see https://github.com/collectiveidea/json_spec
     first_id = expected.last.id-(expected.length - 1)
     last_id = expected.last.id
     assert_equal "{\"check\":\"foobars-index: size=#{expected.length}, ids=#{expected.collect{|f|f.id}.join(',')}\"}", response.body
+    # experimental at the moment. eventually want to try to cleanly ensure includes are being used
+    query_count = queries.select{|r|r.last.try(:[],:name).try(:end_with?," Load")}.count
+    assert_equal 2, query_count, "Expected /example/alpha/awesome_routing_scope/foobars.json?order=foo_id,+bar_code,-renamed_foo_id to have 2 load queries, but had #{query_count} load queries: #{queries.inspect}"
   end
 
   test 'index returns foobars with simple filter' do
@@ -138,15 +142,25 @@ class Example::Alpha::TestFoobarsController < ActionDispatch::IntegrationTest
     Foobar.delete_all
     before_count = Foobar.count
     code = "new#{rand(99999)}"
-    post "/example/alpha/awesome_routing_scope/foobars.json", foobar: {foo_attributes: {code: code}}
-    assert_equal before_count + 1, Foobar.count, "Didn't create Foobar"
-    assert_equal code, Foobar.last.foo.code
-    # RFC 2616 conformance checks. See: http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.1
-    assert_equal "http://www.example.com/example/alpha/awesome_routing_scope/foobars/#{Foobar.last.id}", response.headers['Location'], "didn't include expected location header. was #{response.headers['Location']}"
-    assert_equal "application/json; charset=utf-8", response.headers['Content-Type'], "didn't include expected content-type. was #{response.headers['Content-Type']}"
-    assert_equal 200, response.status, "Bad response code (got #{response.status}): #{response.body}"
+    queries = QueryCollector.collect_all do
+      post "/example/alpha/awesome_routing_scope/foobars.json", foobar: {foo_attributes: {code: code}}    
+      assert_equal 200, response.status, "Bad response code (got #{response.status}): #{response.body}"
+      s = response.body
+    end
     
-    assert_equal "{\"check\":\"foobars-create: #{Foobar.last.id}\"}", response.body
+    assert_equal before_count + 1, Foobar.count, "Didn't create Foobar"
+    last_foobar = Foobar.last
+    assert_equal code, last_foobar.foo.code
+
+    # Starting to do a few RFC 2616 (http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.1)
+    # conformance checks, back when was trying to ensure path and url method etc. setup.
+    #TODO: Once stable and have time, clean-up/remove tests for functionality that isn't a part of Irie.
+    assert_equal "http://www.example.com/example/alpha/awesome_routing_scope/foobars/#{last_foobar.id}", response.headers['Location'], "didn't include expected location header. was #{response.headers['Location']}"
+    assert_equal "application/json; charset=utf-8", response.headers['Content-Type'], "didn't include expected content-type. was #{response.headers['Content-Type']}"
+    assert_equal "{\"check\":\"foobars-create: #{last_foobar.id}, foo: #{last_foobar.foo.id}\"}", response.body
+    # experimental at the moment. eventually want to try to cleanly ensure includes are being used
+    query_count = queries.select{|r|r.last.try(:[],:name).try(:end_with?," Load")}.count
+    assert_equal 2, query_count, "Expected /example/alpha/awesome_routing_scope/foobars.json to have 2 load queries, but had #{query_count} load queries: #{queries.inspect}"    
   #end
   end
 
@@ -176,13 +190,14 @@ class Example::Alpha::TestFoobarsController < ActionDispatch::IntegrationTest
     end
   end
 
-  test 'update allowed for accepted params' do
+  test 'update allowed for accepted params and honors includes request' do
     foobar = Foobar.create(foo_id: Foo.last.id)
     foo_id = Foo.first.id
     patch "/example/alpha/awesome_routing_scope/foobars/#{foobar.id}.json", foobar: {foo_id: foo_id}
     # this controller is set to return entity on update, so will return 200 instead of 204
     assert_equal 200, response.status, "update returned unexpected response code (got #{response.status}): #{response.body}"
-    assert_match "{\"check\":\"foobars-update: #{Foobar.last.id}\"}", response.body
+    last_foobar = Foobar.last
+    assert_match "{\"check\":\"foobars-update: #{Foobar.last.id}, foo: #{last_foobar.foo.id}, bar: #{last_foobar.foo.bar.id}\"}", response.body
     assert_equal foo_id, Foobar.find(foobar.id).foo_id, "should have updated param"
   end
 

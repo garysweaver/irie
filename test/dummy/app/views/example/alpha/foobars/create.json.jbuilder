@@ -1,1 +1,1 @@
-json.check "foobars-create: #{@foobar.id}"
+json.check "foobars-create: #{@foobar.id}, foo: #{@foobar.foo.id}"

@@ -44,3 +44,19 @@ end
 
 def xtest(*args, &block); end
 
+# based on http://stackoverflow.com/a/5492207/178651
+class QueryCollector
+  cattr_accessor :list
+  self.list = []
+
+  def call(*args)
+    self.class.list << args
+  end
+  
+  def self.collect_all(&block)
+    self.list = []
+    yield
+    self.list
+  end
+end
+ActiveSupport::Notifications.subscribe('sql.active_record', QueryCollector.new)

@@ -1,1 +1,1 @@
-json.check "foobars-update: #{@foobar.id}"
+json.check "foobars-update: #{@foobar.id}, foo: #{@foobar.foo.id}, bar: #{@foobar.foo.bar.id}"

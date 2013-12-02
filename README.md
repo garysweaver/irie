@@ -97,13 +97,13 @@ bundle install
 Each application-level configuration option can be configured one line at a time:
 
 ```ruby
-Irie.number_of_records_in_a_page = 30
+::Irie.number_of_records_in_a_page = 30
 ```
 
 or in bulk, like:
 
 ```ruby
-Irie.configure do
+::Irie.configure do
   
   # Default for :using in can_filter_by.
   self.can_filter_by_default_using = [:eq]
@@ -358,7 +358,7 @@ http://localhost:3000/posts?page=2
 To set page size at application level:
 
 ```ruby
-Irie.number_of_records_in_a_page = 15
+::Irie.number_of_records_in_a_page = 15
 ```
 
 To set page size at controller level:
@@ -601,7 +601,7 @@ query_includes_for :index, are: []
 If you enabled Irie's debug option via:
 
 ```ruby
-Irie.debug = true
+::Irie.debug = true
 ```
 
 Then all the included modules (actions, extensions) will use `logger.debug ...` to log some information about what is executed.
@@ -609,15 +609,15 @@ Then all the included modules (actions, extensions) will use `logger.debug ...` 
 To log debug to console only in your tests, you could put this in your test helper:
 
 ```ruby
-::Irie.debug? = true
-ActionController::Base.logger = Logger.new(STDOUT)
-ActionController::Base.logger.level = Logger::DEBUG
+::Irie.debug = true
+::ActionController::Base.logger = Logger.new(STDOUT)
+::ActionController::Base.logger.level = Logger::DEBUG
 ```
 
 However, that might not catch all the initialization debug logging that could occur. Instead, you might put the following into the block in `config/environments/test.rb`:
 
 ```ruby
-::Irie.debug? = true
+::Irie.debug = true
 config.log_level = :debug
 ```
 

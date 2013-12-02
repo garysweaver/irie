@@ -36,7 +36,7 @@ module Irie
       protected
 
       def collection
-        logger.debug("Irie::Extensions::QueryFilter.collection") if Irie.debug?
+        logger.debug("Irie::Extensions::QueryFilter.collection") if ::Irie.debug?
         object = super
         # convert to relation if model class because proc expects a relation
         object = object.all unless object.is_a?(ActiveRecord::Relation)
@@ -49,7 +49,7 @@ module Irie
           end
         end
 
-        logger.debug("Irie::Extensions::QueryFilter.collection: relation.to_sql so far: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
+        logger.debug("Irie::Extensions::QueryFilter.collection: relation.to_sql so far: #{object.to_sql}") if ::Irie.debug? && object.respond_to?(:to_sql)
 
         set_collection_ivar object
       end

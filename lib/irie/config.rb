@@ -58,7 +58,7 @@ module Irie
 
 end
 
-Irie.configure do
+::Irie.configure do
   
   # Default for :using in can_filter_by.
   self.can_filter_by_default_using = [:eq]
@@ -78,7 +78,7 @@ Irie.configure do
 
   # When you include the defined action module, it includes the associated modules.
   # If value or value array contains symbol it will look up symbol in 
-  # Irie.available_extensions in the controller (which is defaulted to 
+  # ::Irie.available_extensions in the controller (which is defaulted to 
   # `::Irie.available_extensions`). If value is String will assume String is the
   # fully-qualified module name to include, e.g. `index: '::My::Module'`, If constant,
   # it will just include constant (module), e.g. `index: ::My::Module`.

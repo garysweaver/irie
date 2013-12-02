@@ -95,7 +95,7 @@ module Irie
       protected
 
       def collection
-        logger.debug("Irie::Extensions::ParamFilters.collection") if Irie.debug?
+        logger.debug("Irie::Extensions::ParamFilters.collection") if ::Irie.debug?
         object = super
         already_filtered_by_split_param_names = []
         self.composite_param_to_param_name_and_arel_predicate.each do |composite_param, param_name_and_arel_predicate, split|
@@ -127,7 +127,7 @@ module Irie
           end
         end
 
-        logger.debug("Irie::Extensions::ParamFilters.collection: relation.to_sql so far: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
+        logger.debug("Irie::Extensions::ParamFilters.collection: relation.to_sql so far: #{object.to_sql}") if ::Irie.debug? && object.respond_to?(:to_sql)
         
         set_collection_ivar object
       end

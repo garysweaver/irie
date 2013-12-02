@@ -1,4 +1,4 @@
 module Irie
-  class ConfigurationError < StandardError
+  class ConfigurationError < ::StandardError
   end
 end

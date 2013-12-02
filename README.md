@@ -261,7 +261,7 @@ module Example
 
     # Converts request param value(s) 'true' to true and 'false' to false
     def convert_param(param_name, param_value_or_values)
-      logger.debug("Example::BooleanParams.convert_param(#{param_name.inspect}, #{param_value_or_values.inspect})") if Irie.debug?
+      logger.debug("Example::BooleanParams.convert_param(#{param_name.inspect}, #{param_value_or_values.inspect})") if ::Irie.debug?
       param_value_or_values = super if defined?(super)
       if param_value_or_values.is_a? Array
         param_value_or_values.map {|v| convert_boolean(v)}
@@ -609,7 +609,7 @@ Then all the included modules (actions, extensions) will use `logger.debug ...` 
 To log debug to console only in your tests, you could put this in your test helper:
 
 ```ruby
-::Irie.debug = true
+::Irie.debug? = true
 ActionController::Base.logger = Logger.new(STDOUT)
 ActionController::Base.logger.level = Logger::DEBUG
 ```
@@ -617,7 +617,7 @@ ActionController::Base.logger.level = Logger::DEBUG
 However, that might not catch all the initialization debug logging that could occur. Instead, you might put the following into the block in `config/environments/test.rb`:
 
 ```ruby
-::Irie.debug = true
+::Irie.debug? = true
 config.log_level = :debug
 ```
 

@@ -18,6 +18,6 @@ require 'irie/extensions/query_filter'
 require 'irie/extensions/query_includes'
 require 'irie/extensions/smart_layout'
 
-class ActionController::Base
-  extend Irie::ClassMethods
+class ::ActionController::Base
+  extend ::Irie::ClassMethods
 end

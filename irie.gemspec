@@ -4,7 +4,7 @@ require "irie/version"
 
 Gem::Specification.new do |s|
   s.name        = 'irie'
-  s.version     = Irie::VERSION
+  s.version     = ::Irie::VERSION
   s.authors     = ['Gary S. Weaver', 'Tommy Odom']
   s.email       = ['garysweaver@gmail.com']
   s.homepage    = 'https://github.com/FineLinePrototyping/irie'

@@ -6,7 +6,7 @@ class TestBarfoosController < ActionDispatch::IntegrationTest
 
   def setup
     DatabaseCleaner.start
-    Irie.update_should_return_entity = false
+    ::Irie.update_should_return_entity = false
     @controller = BarfoosController.new
     $resource_has_errors = false
     $test_role = 'admin'

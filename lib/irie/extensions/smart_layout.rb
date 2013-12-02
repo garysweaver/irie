@@ -10,7 +10,7 @@ module Irie
       end
       
       def index(options={}, &block)
-        logger.debug("Irie::Extensions::NoLayout.index") if Irie.debug?
+        logger.debug("Irie::Extensions::NoLayout.index") if ::Irie.debug?
         options.merge!({layout: false}) unless request.format.html?
         super(options, &block)
       end

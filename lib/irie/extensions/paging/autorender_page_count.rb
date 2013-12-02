@@ -9,7 +9,7 @@ module Irie
         protected
 
         def autorender_page_count(options={}, &block)
-          logger.debug("Irie::Extensions::Paging::AutorenderPageCount.autorender_page_count") if Irie.debug?
+          logger.debug("Irie::Extensions::Paging::AutorenderPageCount.autorender_page_count") if ::Irie.debug?
           render request.format.symbol => { page_count: @page_count }, status: 200, layout: false
         end
         

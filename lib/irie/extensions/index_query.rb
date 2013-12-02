@@ -30,7 +30,7 @@ module Irie
       protected
 
       def collection
-        logger.debug("Irie::Extensions::IndexQuery.collection") if Irie.debug?
+        logger.debug("Irie::Extensions::IndexQuery.collection") if ::Irie.debug?
         object = super
         if self.custom_index_query
           # convert to relation if model class because proc expects a relation
@@ -39,7 +39,7 @@ module Irie
           object = self.custom_index_query.call(object)
         end
 
-        logger.debug("Irie::Extensions::IndexQuery.collection: relation.to_sql so far: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
+        logger.debug("Irie::Extensions::IndexQuery.collection: relation.to_sql so far: #{object.to_sql}") if ::Irie.debug? && object.respond_to?(:to_sql)
 
         set_collection_ivar object
       end

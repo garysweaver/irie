@@ -85,7 +85,7 @@ module Irie
       protected
 
       def collection
-        logger.debug("Irie::Extensions::Order.collection") if Irie.debug?
+        logger.debug("Irie::Extensions::Order.collection") if ::Irie.debug?
         object = super
 
         already_ordered_by = []
@@ -142,7 +142,7 @@ module Irie
           end
         end
 
-        logger.debug("Irie::Extensions::Order.collection: relation.to_sql so far: #{object.to_sql}") if Irie.debug? && object.respond_to?(:to_sql)
+        logger.debug("Irie::Extensions::Order.collection: relation.to_sql so far: #{object.to_sql}") if ::Irie.debug? && object.respond_to?(:to_sql)
 
         set_collection_ivar object
       end

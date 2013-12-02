@@ -102,7 +102,7 @@ module Irie
           if params.key?(composite_param)
             split_param_name, predicate_sym = *param_name_and_arel_predicate
             converted_param_values = converted_param_values.collect{|p| p.split(*split)}.flatten unless split.blank?
-            converted_param_values = convert_param_values(composite_param, params[composite_param])
+            converted_param_values = convert_param(composite_param, params[composite_param])
             # support for named_params/:through renaming of param name
             attr_sym = attr_sym_for_param(split_param_name)
             join_to_apply = join_for_param(split_param_name)

@@ -7,7 +7,7 @@ module Irie
     # Looks at ::Irie.function_param_names to get the proper request params
     # to check for for the provided param name in params, then returns an array of all
     # values for all matching defined request params. Does *not* convert param
-    # value with convert_param_values(...).
+    # value with convert_param(...).
     def aliased_params(function_sym)
       logger.debug("Irie::ParamAliases.aliased_params(#{function_sym.inspect})") if Irie.debug?
       if self.function_param_names.key?(function_sym)

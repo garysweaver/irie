@@ -4,7 +4,7 @@ module Example
     included do
       respond_to :json
       inherit_resources
-      ::Irie.register_extension :boolean_params, '::Example::BooleanParams'
+      # see config/initializers/irie.rb for autoincludes/extension registration
     end
   end
 end

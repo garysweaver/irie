@@ -91,7 +91,7 @@ module Irie
         already_ordered_by = []
         aliased_params(:order).collect{|p| p.split(',')}.flatten.collect(&:strip).each do |split_param_name|
 
-          # not using convert_param_values here.
+          # not using convert_param here.
           # (these should be attribute names, not attribute values.)
 
           # remove optional preceding - or + to act as directional

@@ -240,21 +240,50 @@ can_filter_by_query a_request_param_name: ->(q, param_value_or_values) {
 }
 ```
 
-The second argument sent to the lambda (`param_value_or_values`) is the request parameter value converted by the `convert_param_values(param_name, param_values)` method, which may be customized through included extensions or your own extension. See elsewhere in this document for more information about the behavior of this method.
+The second argument sent to the lambda (`param_value_or_values`) is the request parameter value converted by the `convert_param(param_name, param_values)` method, which may be customized through included extensions or your own extension. See elsewhere in this document for more information about the behavior of this method.
 
 The return value of the lambda becomes the new query, so you could really change the behavior of the query depending on the request parameter provided.
 
 ##### Customizing Request Parameter Value Conversion
 
-Implement the `convert_param_values(param_name, param_values)` in your controller or an included module, e.g.
+Implement the `convert_param(param_name, param_values)` in your controller or an included module, e.g.
 
 ```ruby
-  protected
+# example of custom parameter value converter
+module Example
+  module BooleanParams
+    extend ::ActiveSupport::Concern
 
-  def convert_param_values(param_name, param_values)
-    # ... make changes as needed and return the converted param_values
-    param_values
+    TRUE_VALUE = 'true'.freeze
+    FALSE_VALUE = 'false'.freeze
+
+    protected
+
+    # Converts request param value(s) 'true' to true and 'false' to false
+    def convert_param(param_name, param_value_or_values)
+      logger.debug("Example::BooleanParams.convert_param(#{param_name.inspect}, #{param_value_or_values.inspect})") if Irie.debug?
+      param_value_or_values = super if defined?(super)
+      if param_value_or_values.is_a? Array
+        param_value_or_values.map {|v| convert_boolean(v)}
+      else
+        convert_boolean(param_value_or_values)
+      end
+    end
+
+    private
+
+    def convert_boolean(value)
+      case value
+      when TRUE_VALUE
+        true
+      when FALSE_VALUE
+        false
+      else
+        value
+      end
+    end
   end
+end
 ```
 
 #### Default Filters
@@ -472,7 +501,7 @@ module BooleanParams
 
   protected
 
-  def convert_param_values(param_name, param_values)
+  def convert_param(param_name, param_values)
     case param_values
     when 'true'
       true

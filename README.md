@@ -246,45 +246,7 @@ The return value of the lambda becomes the new query, so you could really change
 
 ##### Customizing Request Parameter Value Conversion
 
-Implement the `convert_param(param_name, param_values)` in your controller or an included module, e.g.
-
-```ruby
-# example of custom parameter value converter
-module Example
-  module BooleanParams
-    extend ::ActiveSupport::Concern
-
-    TRUE_VALUE = 'true'.freeze
-    FALSE_VALUE = 'false'.freeze
-
-    protected
-
-    # Converts request param value(s) 'true' to true and 'false' to false
-    def convert_param(param_name, param_value_or_values)
-      logger.debug("Example::BooleanParams.convert_param(#{param_name.inspect}, #{param_value_or_values.inspect})") if ::Irie.debug?
-      param_value_or_values = super if defined?(super)
-      if param_value_or_values.is_a? Array
-        param_value_or_values.map {|v| convert_boolean(v)}
-      else
-        convert_boolean(param_value_or_values)
-      end
-    end
-
-    private
-
-    def convert_boolean(value)
-      case value
-      when TRUE_VALUE
-        true
-      when FALSE_VALUE
-        false
-      else
-        value
-      end
-    end
-  end
-end
-```
+Implement the `convert_param(param_name, param_values)` in your controller or an included module. See [Writing Your Own Extensions](#writing-your-own-extensions) for an example.
 
 #### Default Filters
 
@@ -493,60 +455,73 @@ Some hopefully good examples of how to extend modules are in this project in `li
 Here's a quick example:
 
 ```ruby
-# Converts all 'true' and 'false' param values to true and false
-module BooleanParams
-  extend ::ActiveSupport::Concern
+module Example
+  module BooleanParams
+    extend ::ActiveSupport::Concern
 
-  protected
+    TRUE_VALUE = 'true'.freeze
+    FALSE_VALUE = 'false'.freeze
 
-  def convert_param(param_name, param_values)
-    case param_values
-    when 'true'
-      true
-    when 'false'
-      false
-    else
-      super if defined?(super)
+    protected
+
+    # Converts request param value(s) 'true' to true and 'false' to false
+    def convert_param(param_name, param_value_or_values)
+      logger.debug("Example::BooleanParams.convert_param(#{param_name.inspect}, #{param_value_or_values.inspect})") if ::Irie.debug?
+      param_value_or_values = super if defined?(super)
+      if param_value_or_values.is_a? Array
+        param_value_or_values.map {|v| convert_boolean(v)}
+      else
+        convert_boolean(param_value_or_values)
+      end
+    end
+
+    private
+
+    def convert_boolean(value)
+      case value
+      when TRUE_VALUE
+        true
+      when FALSE_VALUE
+        false
+      else
+        value
+      end
     end
   end
-
 end
 ```
 
-If you are just doing regular `include`'s in your controllers, that's all you need. If you'd like to use `extensions`, you get autoincludes and can use symbols, e.g. in `app/controllers/concerns/service_controller.rb`:
+If you are just doing regular `include`'s in your controllers, that's all you need, and you can include when you need to.
+
+If you'd like to use your modules via the `extensions` method, just register the extension in an initializer, e.g. in `config/initializers/irie.rb`:
 
 ```ruby
-module ServiceController
-  extend ::ActiveSupport::Concern
-
-  included do
-    inherit_resources
-    respond_to :json
-
-    # reference as string so we don't load the concern before it is used.
-    ::Irie.register_extension :boolean_params, '::Example::BooleanParams'
-
-    # register_extension also can define the order of inclusion, e.g.:
-    #   ::Irie.register_extension :boolean_params, '::Example::BooleanParams', include: :last #default
-    #   ::Irie.register_extension :boolean_params, '::Example::BooleanParams', include: :first
-    #   ::Irie.register_extension :boolean_params, '::Example::BooleanParams', after: :nil_params
-    #   ::Irie.register_extension :boolean_params, '::Example::BooleanParams', before: :nil_params
-
-  end
-
-end
+# note: Referencing as string so we don't load the concern before it is used.
+::Irie.register_extension :boolean_params, '::Example::BooleanParams'
 ```
 
-Now you could use this in your controller:
+Now, you could do this in your controller:
 
 ```ruby
-include ServiceController
+  respond_to :json
+  inherit_resources
 
-actions :index
-extensions :boolean_params
+  actions :index
+  extensions :boolean_params
 ```
 
-Doing that doesn't make as much sense when you just have modules in the root namespace, but it might if you have longer namespaces for organization and to avoid class/module name conflicts.
+Irie includes a way to specify order of module inclusion independent of the class/module it is included in, and you can specify that at registration, e.g. in an initializer like `config/initializers/irie.rb`, you might do one of the following:
+
+```ruby
+::Irie.register_extension :boolean_params, '::Example::BooleanParams', include: :last # last is the default, so don't need to specify this option
+::Irie.register_extension :boolean_params, '::Example::BooleanParams', include: :first
+::Irie.register_extension :boolean_params, '::Example::BooleanParams', after: :nil_params
+::Irie.register_extension :boolean_params, '::Example::BooleanParams', before: :nil_params
+```
+
+Note: an extension must be registered before you can use `after:` or `before:` to place your extension include after or before it. Use `require` and declare dependencies if possible to ensure registration of other extensions, and nothing is stopping you from registering something else. The extension class constant isn't going to be referenced by Irie until `extensions` is called with it.
+
+The `extensions` method is just a companion to `actions` if you want to use it. You can still use [include/extend/prepend](http://ruby-doc.org/core-2.0.0/Module.html), if you'd rather.
 
 ### Troubleshooting
 

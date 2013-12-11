@@ -4,7 +4,7 @@
 
 Inherited Resources including extensions. Tested with Rails 4/edge, Inherited Resources 1.4/edge in Ruby 1.9.3, 2.0.0, and jruby-19mode.
 
-Extend [Inherited Resources][inherited_resources] actions with the `extensions` method which provides symbolic references to do module includes as well as automatic inclusion of modules based on what actions are in-use. The included extensions provide more of a DSL-like way to define your controllers, and instead of model-heavy development via `scope` in models and `has_scope` in the controller, you can just define request parameter-based filters and their defaults in the controller. Also, ordering, parameter conversion, param value split delimiters, pagination, and more are supported.
+Extend [Inherited Resources][inherited_resources] actions with the `extensions` method which provides symbolic references to do module includes as well as automatic inclusion of modules based on what `actions` are defined. The included extensions provide more of a DSL-like way to define your controllers. And, instead of model-heavy development via `scope` in models and `has_scope` in the controller, you can just define request parameter-based filters and their defaults in the controller. Ordering, parameter value conversion, pagination, and more are supported without additional dependencies.
 
 ```ruby
 class PostsController < ApplicationController
@@ -547,18 +547,6 @@ extensions :boolean_params
 ```
 
 Doing that doesn't make as much sense when you just have modules in the root namespace, but it might if you have longer namespaces for organization and to avoid class/module name conflicts.
-
-#### Primary Keys
-
-Supports composite primary keys. If `resource_class.primary_key.is_a?(Array)`, show/edit/update/destroy will use your two or more request params for the ids that make up the composite.
-
-#### Exception Handling
-
-Rails 4 has basic exception handling in the [public_exceptions][public_exceptions] and [show_exceptions][show_exceptions] Rack middleware.
-
-If you want to customize Rails 4's Rack exception handling, search the web for customizing `config.exceptions_app`, although the default behavior should work for most.
-
-You can also use `rescue_from` or `around_action` in Rails to have more control over error rendering.
 
 ### Troubleshooting
 

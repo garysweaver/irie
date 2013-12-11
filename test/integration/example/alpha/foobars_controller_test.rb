@@ -20,7 +20,7 @@ class Example::Alpha::TestFoobarsController < ActionDispatch::IntegrationTest
   end
 
   test 'index returns foobars in default order with default filter' do
-    expected = Foobar.all.reject!{|i|i.foo_id == 3} # default filter
+    expected = Foobar.all.to_a.reject!{|i|i.foo_id == 3} # default filter
 
     get "/example/alpha/awesome_routing_scope/foobars.json"
     assert_equal expected.reverse, assigns(:foobars).to_a
@@ -37,7 +37,7 @@ class Example::Alpha::TestFoobarsController < ActionDispatch::IntegrationTest
   end
 
   test 'index allows requested ascending order with default filter' do
-    expected = Foobar.all.reject!{|i|i.foo_id == 3} # default filter
+    expected = Foobar.all.to_a.reject!{|i|i.foo_id == 3} # default filter
     queries = QueryCollector.collect_all do
       get "/example/alpha/awesome_routing_scope/foobars.json?order=foo_id,+bar_code,-renamed_foo_id"
     end

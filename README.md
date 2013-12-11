@@ -488,11 +488,9 @@ The following concerns, which you can include via `extensions ...` or via includ
 
 Extensions are just modules. There is no magic.
 
-The somewhat special thing about Irie extensions if that you can `@action_result = ...; throw(:action_break)` in any method that is called by an Irie action and it will break the execution of the action and return `@action_result`. This allows the ease of control that you'd have typically in a single long action method, but lets you use modules to easily share action method functionality. To those unfamiliar, `throw` in Ruby is a normal flow control mechanism, unlike `raise` which is for exceptions.
+Some hopefully good examples of how to extend modules are in this project in `lib/irie/extensions/`.
 
-Some hopefully good examples of how to extend modules are in lib/irie/extensions/* and the actions themselves are in lib/irie/actions/*. Get familiar with the code even if you don't plan on customizing, if for no other reason than to have another set of eyes on the code.
-
-Here's another example:
+Here's a quick example:
 
 ```ruby
 # Converts all 'true' and 'false' param values to true and false

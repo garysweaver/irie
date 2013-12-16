@@ -95,7 +95,7 @@ module Irie
       def build_resource
         cached = get_resource_ivar
         if cached
-          logger.debug("Irie::Extensions::QueryIncludes.resource returning cached resource") if ::Irie.debug?
+          logger.debug("Irie::Extensions::QueryIncludes.build_resource returning cached resource") if ::Irie.debug?
           return cached
         end
         logger.debug("Irie::Extensions::QueryIncludes.build_resource") if ::Irie.debug?

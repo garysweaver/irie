@@ -1,3 +1,7 @@
+## Irie 1.0.2 ##
+
+* Debug log message fix.
+
 ## Irie 1.0.1 ##
 
 * Caches resource in query includes to avoid additional query(ies). Thanks to Tommy for noticing!

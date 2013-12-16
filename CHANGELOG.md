@@ -1,3 +1,7 @@
+## Irie 1.0.1 ##
+
+* Caches resource in query includes to avoid additional query(ies). Thanks to Tommy for noticing!
+
 ## Irie 1.0.0 ##
 
 * Renamed restful_json to Irie. It isn't only about json.

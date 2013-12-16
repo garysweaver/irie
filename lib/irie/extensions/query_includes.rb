@@ -73,6 +73,11 @@ module Irie
       end
 
       def resource
+        cached = get_resource_ivar
+        if cached
+          logger.debug("Irie::Extensions::QueryIncludes.resource returning cached resource") if ::Irie.debug?
+          return cached
+        end
         logger.debug("Irie::Extensions::QueryIncludes.resource") if ::Irie.debug?
         this_includes = self.action_to_query_includes[params[:action].to_sym] || self.all_action_query_includes
         if this_includes && this_includes.size > 0
@@ -88,6 +93,11 @@ module Irie
       end
 
       def build_resource
+        cached = get_resource_ivar
+        if cached
+          logger.debug("Irie::Extensions::QueryIncludes.resource returning cached resource") if ::Irie.debug?
+          return cached
+        end
         logger.debug("Irie::Extensions::QueryIncludes.build_resource") if ::Irie.debug?
         this_includes = self.action_to_query_includes[params[:action].to_sym] || self.all_action_query_includes
         if this_includes && this_includes.size > 0

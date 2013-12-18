@@ -21,6 +21,14 @@ require 'rails/test_help'
 puts "Testing Rails v#{Rails.version}"
 Rails.backtrace_cleaner.remove_silencers!
 
+require 'database_cleaner'
+if Rails::VERSION::MAJOR < 4
+  DatabaseCleaner.strategy = :truncation
+  def patch(*args, &block); put(*args, &block); end
+else
+  DatabaseCleaner.strategy = :transaction
+end
+
 require 'irie'
 
 #Irie.debug = true

@@ -10,5 +10,8 @@ module Dummy
     config.active_support.escape_html_entities_in_json = true
     config.assets.enabled = true
     config.action_controller.action_on_unpermitted_parameters = :raise
+    if Rails::VERSION::MAJOR < 4
+      config.autoload_paths << "#{config.root}/app/controllers/concerns"
+    end
   end
 end

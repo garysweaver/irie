@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.files = Dir['lib/**/*'] + ['Rakefile', 'README.md']
   s.license = 'MIT'
   s.add_dependency 'inherited_resources', '~> 1.4'
-  s.add_runtime_dependency 'actionpack', '~> 4.0'
-  s.add_runtime_dependency 'activerecord', '~> 4.0'
-  s.add_runtime_dependency 'activesupport', '~> 4.0'
+  s.add_runtime_dependency 'actionpack', '>= 3.2', '< 5'
+  s.add_runtime_dependency 'activerecord', '>= 3.2', '< 5'
+  s.add_runtime_dependency 'activesupport', '>= 3.2', '< 5'
 end

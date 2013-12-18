@@ -1,6 +1,4 @@
 require 'test_helper'
-require 'database_cleaner'
-DatabaseCleaner.strategy = :transaction
 
 class TestBarfoosController < ActionDispatch::IntegrationTest
 

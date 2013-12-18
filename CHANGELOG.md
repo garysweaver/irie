@@ -1,3 +1,7 @@
+## Irie 1.0.3 ##
+
+* Conditionally monkey patch deep_dup for Rails 3.2 support.
+
 ## Irie 1.0.2 ##
 
 * Debug log message fix.
